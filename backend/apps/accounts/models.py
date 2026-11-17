@@ -1,10 +1,13 @@
 """Global user model (no org_id: users can belong to several organizations via memberships)."""
 
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models.functions import Lower
+from django.utils import timezone
 
-from apps.core.tenancy.models import uuid7
+from apps.core.tenancy.models import TenantModel, uuid7
 
 
 class UserManager(BaseUserManager):
@@ -67,3 +70,35 @@ class User(AbstractBaseUser):
 
     def has_module_perms(self, app_label) -> bool:
         return False
+
+
+class ApiKey(TenantModel):
+    """Org-bound programmatic credential: `nxk_<prefix>_<secret>`.
+
+    Only `prefix` (public, globally unique, used for lookup) and `key_hash`
+    (HMAC-SHA256(secret, settings.API_KEY_PEPPER)) are stored; the secret is shown once at creation.
+    The key acts as its creator, restricted to `scopes` ∩ the creator's current role permissions.
+    """
+
+    name = models.CharField(max_length=100)
+    prefix = models.CharField(max_length=8, unique=True)
+    key_hash = models.BinaryField()
+    scopes = ArrayField(models.CharField(max_length=60), default=list)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="+")
+    expires_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["org", "-created_at"], name="apikey_org_time_idx")]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.prefix})"
+
+    @property
+    def status(self) -> str:
+        if self.revoked_at is not None:
+            return "revoked"
+        if self.expires_at is not None and self.expires_at <= timezone.now():
+            return "expired"
+        return "active"
