@@ -16,4 +16,4 @@ def enforce_csrf(request) -> None:
     try:
         SessionAuthentication().enforce_csrf(request)
     except PermissionDenied as exc:
-        raise PermissionDenied(exc.detail, code="csrf_failed") from exc
+        raise PermissionDenied(str(exc.detail), code="csrf_failed") from exc

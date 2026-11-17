@@ -57,11 +57,11 @@ class LoginLocked(Throttled):
         super().__init__(wait=wait, detail="Too many failed sign-in attempts. Try again later.", code="login_locked")
 
 
-def _password_errors(password: str, user) -> None:
+def _password_errors(password: str, user, field: str = "password") -> None:
     try:
         validate_password(password, user)
     except DjangoValidationError as exc:
-        raise ValidationError({"password": list(exc.messages)}) from exc
+        raise ValidationError({field: list(exc.messages)}) from exc
 
 
 def _session_login(request, user) -> None:
@@ -211,7 +211,7 @@ class PasswordChangeView(SessionView):
         new = ser.validated_data["new_password"]
         if new == ser.validated_data["current_password"]:
             raise ValidationError({"new_password": ["The new password must differ from the current one."]})
-        _password_errors(new, user)
+        _password_errors(new, user, field="new_password")
         user.set_password(new)
         user.save(update_fields=["password", "updated_at"])
         update_session_auth_hash(request._request, user)
