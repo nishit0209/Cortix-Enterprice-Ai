@@ -31,6 +31,24 @@ class Unprocessable(NexoraError):
     default_detail = "The request could not be processed."
 
 
+class Forbidden(NexoraError):
+    status_code = 403
+    default_code = "forbidden"
+    default_detail = "You do not have permission to perform this action."
+
+
+class AIPolicyConsentRequired(NexoraError):
+    status_code = 400
+    default_code = "ai_policy_consent_required"
+    default_detail = "This AI data policy requires an acknowledged consent for the current consent text."
+
+
+class AIPolicyTierForbidden(NexoraError):
+    status_code = 403
+    default_code = "ai_policy_tier_forbidden"
+    default_detail = "This AI data policy is not allowed while the Gemini free tier is configured."
+
+
 class AIPolicyBlocked(NexoraError):
     status_code = 403
     default_code = "ai_policy_blocked"
@@ -66,6 +84,8 @@ def problem_exception_handler(exc, context):
     elif isinstance(exc, APIException):
         codes = exc.get_codes()
         code = codes if isinstance(codes, str) else ("invalid" if isinstance(exc, ValidationError) else code)
+    if code == "throttled":
+        code = "rate_limited"  # stable code from API_SPECIFICATION.md §2
     body = {
         "type": "about:blank",
         "title": response.status_text if hasattr(response, "status_text") else "Error",

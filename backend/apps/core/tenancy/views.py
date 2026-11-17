@@ -11,7 +11,7 @@ from uuid import UUID
 
 from django.db import connection, transaction
 from rest_framework import generics, viewsets
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotAuthenticated, NotFound
 from rest_framework.views import APIView
 
 from .context import TenantInfo, current_actor, current_org, current_tenant, set_db_tenant
@@ -50,7 +50,7 @@ class TenantScopedMixin:
             return pre
         user = request.user
         if not user or not user.is_authenticated:
-            raise NotFound()
+            raise NotAuthenticated()  # 401 regardless of whether the org exists (reveals nothing)
         info = resolve_membership(user.pk, slug)
         if info is None:
             raise NotFound()  # 404, not 403: never reveal other orgs
