@@ -154,7 +154,7 @@ describe("problem+json parsing", () => {
       ),
     );
     setCookie("csrftoken=t");
-    const err = await api.post("/auth/signup", {}).catch((e) => e);
+    const err = (await api.post("/auth/signup", {}).catch((e: ApiError) => e)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(400);
     expect(err.code).toBe("invalid");
@@ -191,7 +191,7 @@ describe("problem+json parsing", () => {
         throw new TypeError("Failed to fetch");
       }),
     );
-    const err = await api.get("/me").catch((e) => e);
+    const err = (await api.get("/me").catch((e: ApiError) => e)) as ApiError;
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(0);
     expect(err.code).toBe("network_error");
