@@ -8,7 +8,14 @@ import types
 import numpy as np
 import pytest
 
-from apps.ai.embeddings import FakeEmbedder, LocalEmbedder, cosine, embed_query, get_embedder, override_embedder
+from apps.ai.embeddings import (
+    FakeEmbedder,
+    LocalEmbedder,
+    cosine,
+    embed_query,
+    get_embedder,
+    override_embedder,
+)
 
 
 def test_fake_embedder_is_deterministic_and_normalized():

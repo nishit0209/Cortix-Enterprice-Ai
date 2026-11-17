@@ -7,7 +7,14 @@ from uuid import uuid4
 
 import pytest
 
-from apps.ai.quota import LimiterUnavailable, ModelLimits, OrgLimits, QuotaDenied, QuotaLimiter, default_model_limits
+from apps.ai.quota import (
+    LimiterUnavailable,
+    ModelLimits,
+    OrgLimits,
+    QuotaDenied,
+    QuotaLimiter,
+    default_model_limits,
+)
 from apps.ai.testing import FakeClock, FakeRedis
 from apps.ai.timeutil import next_pacific_midnight
 

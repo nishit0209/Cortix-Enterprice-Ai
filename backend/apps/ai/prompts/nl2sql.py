@@ -39,7 +39,7 @@ NL2SQL_RESPONSE_SCHEMA: dict = {
     "required": ["sql", "explanation", "assumptions", "chart_hint", "clarification"],
 }
 
-SYSTEM = f"""You translate business questions into ONE read-only PostgreSQL query for a BI tool.
+_RULES = """You translate business questions into ONE read-only PostgreSQL query for a BI tool.
 Rules:
 1. Output a single SELECT statement (WITH/CTEs allowed). Never INSERT, UPDATE, DELETE, DDL, COPY, SET or comments.
 2. PostgreSQL dialect. Use ONLY the tables and columns listed in the schema card, with double-quoted identifiers.
@@ -50,8 +50,8 @@ Rules:
 7. If the question is ambiguous or cannot be answered from the schema, set "sql" to null and ask one short
    clarifying question in "clarification".
 8. "chart_hint" must reference output column names of your query.
-{DATA_BLOCK_RULE}
-Respond with JSON only, matching the response schema."""
+"""
+SYSTEM = _RULES + DATA_BLOCK_RULE + "\nRespond with JSON only, matching the response schema."
 
 
 def _schema_card(tables: list[dict]) -> str:
