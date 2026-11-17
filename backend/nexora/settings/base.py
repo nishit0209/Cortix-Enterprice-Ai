@@ -113,8 +113,12 @@ DATABASES = {
         else _db("DATABASE_URL_APP", _APP_URL)
     ),
     "ops": _db("DATABASE_URL_OPS", _OPS_URL),
+    # Separate connection (same RLS-bound app role) for log rows that must survive a rolled-back request
+    # transaction, e.g. ai.AIRequestLog. Callers set the tenant GUC on this alias inside their own atomic block.
+    "durable": _db("DATABASE_URL_APP", _APP_URL),
 }
 DATABASES["ops"]["TEST"] = {"MIRROR": "default"}
+DATABASES["durable"]["TEST"] = {"MIRROR": "default"}
 DATABASE_ROUTERS: list[str] = []
 WH_DATABASE_URL_LOADER = env("WH_DATABASE_URL_LOADER", default="postgres://wh_loader:wh_loader_dev@localhost:5433/nexora_wh")
 WH_DATABASE_URL_EXECUTOR = env(
@@ -162,8 +166,17 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "600/min", "login": "10/min"},
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        "user": "600/min",
+        "login": "10/min",
+        "signup": "5/min",
+        "reauth": "10/min",
+        "upload": "30/min",
+        "ai": "30/min",
+    },
 }
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 SPECTACULAR_SETTINGS = {
     "TITLE": "NEXORA Enterprise AI API",
     "VERSION": "1.0.0",
@@ -190,6 +203,8 @@ S3_SECRET_KEY = env("S3_SECRET_KEY", default="nexora_minio_dev")
 S3_BUCKET = env("S3_BUCKET", default="nexora")
 S3_REGION = env("S3_REGION", default="us-east-1")
 MAX_UPLOAD_BYTES = env.int("MAX_UPLOAD_BYTES", default=200 * 1024 * 1024)
+DATASET_MAX_COLUMNS = env.int("DATASET_MAX_COLUMNS", default=1000)
+DATASET_MAX_ROWS = env.int("DATASET_MAX_ROWS", default=50_000_000)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
@@ -203,6 +218,10 @@ GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
 GEMINI_TIER = env("GEMINI_TIER", default="free")  # free | paid | vertex
 GEMINI_MODEL_FAST = env("GEMINI_MODEL_FAST", default="gemini-3.5-flash-lite")
 GEMINI_MODEL_REASONING = env("GEMINI_MODEL_REASONING", default="gemini-3.8-flash")
+GEMINI_MODEL_VISION = env("GEMINI_MODEL_VISION", default="gemini-3.5-flash-lite")
+GEMINI_MAX_OUTPUT_TOKENS = env.int("GEMINI_MAX_OUTPUT_TOKENS", default=2048)
+GEMINI_VERTEX_PROJECT = env("GEMINI_VERTEX_PROJECT", default="")
+GEMINI_VERTEX_LOCATION = env("GEMINI_VERTEX_LOCATION", default="us-central1")
 GEMINI_REQUEST_TIMEOUT_S = env.int("GEMINI_REQUEST_TIMEOUT_S", default=60)
 AI_CONSENT_TEXT_VERSION = env("AI_CONSENT_TEXT_VERSION", default="2026-11-v1")
 DEV_AGENT_RPD = env.int("DEV_AGENT_RPD", default=40)

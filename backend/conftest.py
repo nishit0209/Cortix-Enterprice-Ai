@@ -32,8 +32,12 @@ def django_db_setup(django_db_setup, django_db_blocker):  # noqa: F811 - wraps p
     owner_pw = conn.settings_dict["PASSWORD"]
     owner_opts = dict(conn.settings_dict.get("OPTIONS", {}))
     with django_db_blocker.unblock():
-        conn.close()
+        # TEST DB ONLY: transactional tests (django_db(transaction=True), live_server) flush tables with
+        # TRUNCATE through the default connection. Production never grants TRUNCATE to nexora_app.
         user, pw = _app_credentials()
+        with conn.cursor() as cur:
+            cur.execute(f'GRANT TRUNCATE ON ALL TABLES IN SCHEMA public TO "{user}"')
+        conn.close()
         conn.settings_dict["USER"] = user
         conn.settings_dict["PASSWORD"] = pw
         conn.settings_dict["OPTIONS"] = {k: v for k, v in owner_opts.items() if k != "options"}

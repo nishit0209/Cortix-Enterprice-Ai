@@ -37,6 +37,52 @@
 | GET | `/orgs/{org}/audit-events` | `?action=&target_type=` | list of `{ id, occurred_at, actor_type, actor_id, action, target_type, target_id, metadata }` |
 | GET | `/orgs/{org}/activity` | – | recent audit events with actor email (dashboard feed) |
 
+### W1 as-built additions (binding from W2; details in `coordination/handoffs/w1/*.md`)
+- **Effective policy.** `Org.ai_data_policy` and `ai-policy.policy` report the *effective* policy: `synthetic_only` whenever consent is invalid (revoked, or `AI_CONSENT_TEXT_VERSION` changed). The stored value is `configured_policy`. `consent.granted_by` is the grantor's email.
+- **Additive fields:**
+  - `Org.settings`;
+  - `Member.role_name`;
+  - invitations carry `created_at` and `email_sent`;
+  - `user.mfa_enabled`;
+  - `POST /invitations/accept` returns `{org, user}`; 404 or 410 means expired or revoked.
+- **Additional routes:**
+  - `GET /orgs` lists the caller's orgs;
+  - `GET /permissions` is the catalog;
+  - MFA: `POST /auth/mfa/setup|verify|disable`, and `otp` is accepted at login;
+  - `GET /orgs/{org}` lives in `urls_public` (no trailing slash).
+- `/activity` returns `{items, next_cursor: null, previous_cursor: null}`. Each item adds `actor_email` and `actor_name`.
+- **API keys:**
+  - create needs no password re-auth in W1. It **will require `password` from W3**: frontend, add the field now; backend, enforce it in W2.
+  - effective permissions = the key's scopes ∩ the creator's current role;
+  - management scopes are never grantable.
+- **Error codes:**
+  - 400: `invalid_credentials`, `mfa_required`, `mfa_invalid`, `reauth_failed` (with `errors:[{field:"password"}]`), `ai_policy_consent_required`, `invitation_invalid`.
+  - 401: `api_key_invalid`.
+  - 403: `csrf_failed`, `ai_policy_tier_forbidden`, `owner_required`, `invitation_email_mismatch`, `api_key_not_allowed`.
+  - 409: `email_taken`, `last_owner`, `already_member`.
+  - 429: `login_locked` (with Retry-After), `rate_limited`.
+- **Anonymous requests to tenant routes return 401.** Authenticated non-members and other-org resources still return 404.
+- **Throttle scopes:** `login`, `signup`, `reauth`, `upload`, `ai`.
+- **Governance (Python):** `apps.governance.services.effective_policy(user_id, dataset_id, tables, columns_by_table, *, privilege="query") -> QueryPolicy`, plus `check_dataset_access(user_id, dataset_id, privilege)` and `visible_dataset_ids(user_id, privilege)`. A deny-all row policy is emitted as `RowPredicate(col, "in", ())`. The SQL guard must render `in ()` as `FALSE` and `not_in ()` as `TRUE`.
+- **AI:**
+  - `GET /orgs/{org}/ai/status` adds `stored_policy`, `consent_valid`, `policy_downgrade_reason`, `token_budget`, `user_budget`, `budget_resets_at`, `models{fast,reasoning}` and `limiter_available`.
+  - `GET /orgs/{org}/ai/usage?days=1..90` returns `{range, totals, daily, by_feature, by_status}` (perm `org.settings.edit` or `audit.view`).
+  - AI log rows are written through the `durable` DB alias, so they survive a rolled-back request.
+- **Datasets:**
+  - additive fields `source_kind`, `classification_attested_at`, `owner_id`, `last_error{code,message}` and `last_job_id`;
+  - `status` is one of `processing|ready|failed|archived|deleted`;
+  - the 202 body adds `status_url`;
+  - `POST /datasets` accepts `attest: true` alongside a `synthetic` or `public` classification.
+- **Numeric scales:** `quality_score`, `avg_quality` and quality dimensions are **0–100**. `stats.null_pct` is **0–100**. `stats.histogram` is `[{start, end, count}]`.
+- **Further dataset and quality routes:**
+  - `GET /uploads/{id}`;
+  - `GET|POST /datasets/{id}/versions`;
+  - `GET|PATCH|DELETE /datasets/{id}/quality-rules/{rule_id}`;
+  - `POST /datasets/{id}/quality/evaluate` (202 job).
+  - The quality response adds `status`, `summary`, `generated_at` and `duplicates.key_columns`; `key_duplicates` is an integer.
+- **Lineage:** node ids are raw UUID strings. Hidden assets collapse into one `{id:"restricted", type:"restricted"}` node, and a root node the caller cannot see returns 404.
+- **Isolation fixtures:** every new tenant route with resource kwargs must register an isolation factory in `apps/<app>/tests/isolation.py` (`ISOLATION_FACTORIES`, `KWARG_FACTORIES` or `ISOLATION_EXEMPT`); see `backend/testing/isolation.py`.
+
 ## W2: Data Engineering (Data Engineering agent)
 | Method | Path | Request | Response |
 |---|---|---|---|
