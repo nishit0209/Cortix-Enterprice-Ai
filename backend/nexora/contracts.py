@@ -140,8 +140,42 @@ class SqlProposal:
     blocked_reason: str | None = None  # e.g. "ai_policy_blocked", "ai_quota_exhausted", "ai_not_configured"
 
 
+@dataclass(frozen=True)
+class DatasetSemantics:
+    """W2 contract — returned by apps.semantic.services.dataset_semantics(dataset_id) (Data Engineering).
+
+    Logical table names are what NL->SQL and users write; physical names are "schema.table" in nexora_wh.
+    columns_meta / metrics use the same dict shapes as QuestionContext. Lists ALL columns (policy filtering is
+    done by governance.effective_policy + the caller)."""
+
+    dataset_id: UUID
+    dataset_version_id: UUID
+    dataset_name: str
+    classification: str
+    tables: Mapping[str, str]                          # logical -> physical
+    columns_by_table: Mapping[str, tuple[str, ...]]    # logical table -> all column names
+    columns_meta: Mapping[str, tuple[dict, ...]] = field(default_factory=dict)
+    metrics: tuple[dict, ...] = ()
+    schema_hash: str = ""
+
+
+# W2 contract: the ONLY reject codes sqlguard.validate/execute may return (SECURITY_ARCHITECTURE §5.1).
+# REPAIRABLE ones may be sent back to nl2sql.repair() once; all others are terminal.
+GUARD_REJECT_CODES: frozenset[str] = frozenset({
+    "parse_error", "too_large", "multiple_statements", "not_select", "forbidden_clause", "forbidden_function",
+    "forbidden_cast", "table_not_allowed", "column_not_allowed", "unknown_table", "unknown_column",
+    "ambiguous_column", "system_object", "recursive_cte", "set_returning_function", "type_error",
+    "invalid_sql", "cost_exceeded", "plan_relation_not_allowed", "execution_error", "timeout",
+})
+REPAIRABLE_REJECT_CODES: frozenset[str] = frozenset({
+    "parse_error", "not_select", "column_not_allowed", "table_not_allowed", "unknown_column", "unknown_table",
+    "ambiguous_column", "type_error", "invalid_sql", "execution_error", "cost_exceeded",
+})
+
+
 class PolicyService(Protocol):
-    def effective_policy(self, user_id: UUID, dataset_id: UUID) -> QueryPolicy: ...
+    def effective_policy(self, user_id: UUID, dataset_id: UUID, tables: Mapping[str, str],
+                         columns_by_table: Mapping[str, tuple[str, ...]], *, privilege: str = "query") -> QueryPolicy: ...
 
 
 class SqlGuard(Protocol):
