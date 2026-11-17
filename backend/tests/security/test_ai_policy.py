@@ -82,15 +82,22 @@ def test_unknown_policy_values_are_rejected_by_the_database(two_orgs):
     a = two_orgs.a
     with db_tenant(a.id):
         with pytest.raises((IntegrityError, DatabaseError)), transaction.atomic(), connection.cursor() as cur:
-            cur.execute("UPDATE orgs_organization SET ai_data_policy = 'everything' WHERE id = %s", [str(a.id)])
+            cur.execute(
+                "UPDATE orgs_organization SET ai_data_policy = 'everything' WHERE id = %s", [str(a.id)]
+            )
 
 
 def test_signup_api_creates_synthetic_only_org(anon_client):
     _require_route("/api/v1/auth/signup")
     resp = anon_client.post(
         "/api/v1/auth/signup",
-        {"email": "signup-policy@example.test", "password": TEST_PASSWORD, "full_name": "Signup Policy",
-         "org_name": "Signup Policy Org", "ai_data_policy": "full"},  # extra field must be ignored
+        {
+            "email": "signup-policy@example.test",
+            "password": TEST_PASSWORD,
+            "full_name": "Signup Policy",
+            "org_name": "Signup Policy Org",
+            "ai_data_policy": "full",
+        },  # extra field must be ignored
         format="json",
     )
     assert resp.status_code == 201, resp.content
@@ -148,8 +155,12 @@ def _consents_url(world) -> str:
 def _consent_body(policy="schema_only", **over):
     from django.conf import settings
 
-    body = {"policy": policy, "consent_text_version": settings.AI_CONSENT_TEXT_VERSION, "acknowledged": True,
-            "password": TEST_PASSWORD}
+    body = {
+        "policy": policy,
+        "consent_text_version": settings.AI_CONSENT_TEXT_VERSION,
+        "acknowledged": True,
+        "password": TEST_PASSWORD,
+    }
     body.update(over)
     return body
 
@@ -196,7 +207,9 @@ def test_non_admins_cannot_consent(two_orgs, role):
 def test_consent_requires_reauthentication(two_orgs):
     a = two_orgs.a
     _require_route(_consents_url(a))
-    resp = api_client_for(a.owner).post(_consents_url(a), _consent_body(password="wrong-password-123"), format="json")
+    resp = api_client_for(a.owner).post(
+        _consents_url(a), _consent_body(password="wrong-password-123"), format="json"
+    )
     assert resp.status_code in (400, 401, 403)
     assert _org_policy(a.id) == "synthetic_only"
 
@@ -262,7 +275,9 @@ def synthetic_asset_kind():
         ("schema_only", "SCHEMA", "qa_internal", False),  # no consent recorded
     ],
 )
-def test_policy_gate(two_orgs, settings, synthetic_asset_kind, network_spy, policy, payload_class, kind, allowed):
+def test_policy_gate(
+    two_orgs, settings, synthetic_asset_kind, network_spy, policy, payload_class, kind, allowed
+):
     from apps.core.exceptions import AIPolicyBlocked
     from nexora.contracts import PayloadClass, PayloadManifest
 
@@ -308,8 +323,15 @@ def test_blocked_gemini_call_makes_no_network_request(two_orgs, synthetic_asset_
     with tenant_context(a.id):
         with pytest.raises((AIPolicyBlocked, NexoraError)) as info:
             gemini().generate_structured(
-                feature="qa.policy", prompt_key="qa.policy.probe", system="s", prompt="p", schema={}, payload=payload
+                feature="qa.policy",
+                prompt_key="qa.policy.probe",
+                system="s",
+                prompt="p",
+                schema={},
+                payload=payload,
             )
     clear_db_tenant()
-    assert getattr(info.value, "default_code", "") == "ai_policy_blocked" or "policy" in str(info.value).lower()
+    assert (
+        getattr(info.value, "default_code", "") == "ai_policy_blocked" or "policy" in str(info.value).lower()
+    )
     assert network_spy.external == []

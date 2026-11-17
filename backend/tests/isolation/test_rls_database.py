@@ -48,8 +48,14 @@ def _count(table: str, where: str = "", params: list | None = None) -> int:
 
 def test_tenant_tables_are_discovered():
     tables = tenant_tables()
-    for expected in ("orgs_organization", "orgs_membership", "orgs_role", "orgs_rolepermission",
-                     "core_job", "core_auditevent"):
+    for expected in (
+        "orgs_organization",
+        "orgs_membership",
+        "orgs_role",
+        "orgs_rolepermission",
+        "core_job",
+        "core_auditevent",
+    ):
         assert expected in tables
 
 
@@ -72,7 +78,9 @@ def test_every_tenant_table_has_forced_rls_and_the_canonical_policy():
         # Any additional permissive policy would OR with tenant_isolation and could widen access.
         extra = sorted(set(st.policies) - {"tenant_isolation"})
         if extra:
-            problems.append(f"{table}: extra policies {extra} must be reviewed (permissive policies OR together)")
+            problems.append(
+                f"{table}: extra policies {extra} must be reviewed (permissive policies OR together)"
+            )
     assert problems == []
 
 
@@ -144,7 +152,9 @@ def test_cross_org_insert_fails_with_check(populated):
                 if sqlstate(exc) != "42501":
                     failures.append(f"{table}: expected RLS violation 42501, got {sqlstate(exc)}: {exc}")
             checked.append(table)
-    assert {"orgs_role", "orgs_membership", "core_job", "core_auditevent", "orgs_organization"} <= set(checked)
+    assert {"orgs_role", "orgs_membership", "core_job", "core_auditevent", "orgs_organization"} <= set(
+        checked
+    )
     assert failures == []
 
 

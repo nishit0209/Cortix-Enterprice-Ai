@@ -24,7 +24,11 @@ class _RecordingEditor:
 
 @pytest.mark.parametrize(
     "operation",
-    [MakeAppendOnly("qa_probe_table"), EnableTenantRLS("qa_probe_table"), EnableTenantRLS("qa_probe", column="id")],
+    [
+        MakeAppendOnly("qa_probe_table"),
+        EnableTenantRLS("qa_probe_table"),
+        EnableTenantRLS("qa_probe", column="id"),
+    ],
     ids=["MakeAppendOnly", "EnableTenantRLS", "EnableTenantRLS-id"],
 )
 @pytest.mark.parametrize("direction", ["database_forwards", "database_backwards"])

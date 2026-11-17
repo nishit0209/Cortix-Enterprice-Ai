@@ -66,7 +66,9 @@ class FakeGeminiService:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     # scripting --------------------------------------------------------------------------------
-    def respond(self, key: str, structured: Any = None, *, stream: list[str] | None = None) -> FakeGeminiService:
+    def respond(
+        self, key: str, structured: Any = None, *, stream: list[str] | None = None
+    ) -> FakeGeminiService:
         if structured is not None:
             self._structured[key].append(structured)
         if stream is not None:
@@ -78,8 +80,17 @@ class FakeGeminiService:
         return self
 
     # contract ---------------------------------------------------------------------------------
-    def generate_structured(self, *, feature: str, prompt_key: str, system: str, prompt: str, schema: dict,
-                            payload, tier: str = "fast") -> dict:
+    def generate_structured(
+        self,
+        *,
+        feature: str,
+        prompt_key: str,
+        system: str,
+        prompt: str,
+        schema: dict,
+        payload,
+        tier: str = "fast",
+    ) -> dict:
         self._record("generate_structured", feature, prompt_key, system, prompt, payload, tier, schema)
         self._maybe_raise(prompt_key, feature)
         value = self._take(self._structured, prompt_key, feature)
@@ -87,8 +98,9 @@ class FakeGeminiService:
             raise FakeGeminiError(f"no scripted structured response for {prompt_key!r}/{feature!r}")
         return copy.deepcopy(value(prompt) if callable(value) else value)
 
-    def stream(self, *, feature: str, prompt_key: str, system: str, prompt: str, payload,
-               tier: str = "fast") -> Iterator[str]:
+    def stream(
+        self, *, feature: str, prompt_key: str, system: str, prompt: str, payload, tier: str = "fast"
+    ) -> Iterator[str]:
         self._record("stream", feature, prompt_key, system, prompt, payload, tier, None)
         self._maybe_raise(prompt_key, feature)
         chunks = self._take(self._streams, prompt_key, feature)
@@ -136,9 +148,9 @@ class FakeGeminiService:
 class NetworkSpy:
     """Records (and by default blocks) outbound connections to anything that is not local infra.
 
-        with NetworkSpy() as spy:
-            run_feature()
-        assert spy.external == []
+    with NetworkSpy() as spy:
+        run_feature()
+    assert spy.external == []
     """
 
     block: bool = True
@@ -252,8 +264,7 @@ class FakeRedis:
     def events(self, key: str) -> list[tuple[str, dict]]:
         """Decoded (event, data) pairs of a stream — convenience for assertions."""
         return [
-            (f[b"event"].decode(), json.loads(f[b"data"].decode()))
-            for _eid, f in self.streams.get(key, [])
+            (f[b"event"].decode(), json.loads(f[b"data"].decode())) for _eid, f in self.streams.get(key, [])
         ]
 
 

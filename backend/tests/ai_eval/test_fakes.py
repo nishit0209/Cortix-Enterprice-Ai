@@ -16,8 +16,9 @@ PAYLOAD = PayloadManifest(items={PayloadClass.SCHEMA: ("dataset:018f0000-0000-70
 
 
 def _call(fake, key="nl2sql.generate", prompt="How much revenue in North?"):
-    return fake.generate_structured(feature="nl2sql", prompt_key=key, system="sys", prompt=prompt, schema={},
-                                    payload=PAYLOAD)
+    return fake.generate_structured(
+        feature="nl2sql", prompt_key=key, system="sys", prompt=prompt, schema={}, payload=PAYLOAD
+    )
 
 
 def test_fake_satisfies_the_gemini_contract():
@@ -39,9 +40,13 @@ def test_responses_are_consumed_in_order_then_repeat():
 
 
 def test_feature_and_default_fallbacks_and_callables():
-    fake = FakeGeminiService().respond("nl2sql", {"by": "feature"}).respond("*", lambda prompt: {"echo": prompt})
+    fake = (
+        FakeGeminiService().respond("nl2sql", {"by": "feature"}).respond("*", lambda prompt: {"echo": prompt})
+    )
     assert _call(fake, "unknown.key")["by"] == "feature"
-    other = fake.generate_structured(feature="x", prompt_key="y", system="", prompt="hi", schema={}, payload=PAYLOAD)
+    other = fake.generate_structured(
+        feature="x", prompt_key="y", system="", prompt="hi", schema={}, payload=PAYLOAD
+    )
     assert other == {"echo": "hi"}
 
 
@@ -57,7 +62,9 @@ def test_unscripted_calls_fail_loudly_and_errors_can_be_injected():
 
 def test_stream_and_prompt_assertions():
     fake = FakeGeminiService().respond("narrate", stream=["Revenue ", "grew 4%"])
-    text = "".join(fake.stream(feature="bi", prompt_key="narrate", system="s", prompt="SECRET-CANARY", payload=PAYLOAD))
+    text = "".join(
+        fake.stream(feature="bi", prompt_key="narrate", system="s", prompt="SECRET-CANARY", payload=PAYLOAD)
+    )
     assert text == "Revenue grew 4%"
     with pytest.raises(AssertionError):
         fake.assert_not_in_prompts("SECRET-CANARY")

@@ -30,11 +30,15 @@ def _next(prefix: str) -> str:
     return f"{prefix}{next(_seq):04d}"
 
 
-def make_user(email: str | None = None, *, password: str | None = TEST_PASSWORD, full_name: str = "", **extra):
+def make_user(
+    email: str | None = None, *, password: str | None = TEST_PASSWORD, full_name: str = "", **extra
+):
     from apps.accounts.models import User
 
     email = email or f"{_next('user')}@{EMAIL_DOMAIN}"
-    return User.objects.create_user(email, password, full_name=full_name or email.split("@")[0].title(), **extra)
+    return User.objects.create_user(
+        email, password, full_name=full_name or email.split("@")[0].title(), **extra
+    )
 
 
 def make_org(name: str | None = None, *, owner=None, slug: str | None = None):
@@ -148,7 +152,9 @@ class OrgWorld:
         return ids
 
 
-def make_org_world(name: str, *, slug: str | None = None, roles: tuple[str, ...] = ("analyst", "viewer")) -> OrgWorld:
+def make_org_world(
+    name: str, *, slug: str | None = None, roles: tuple[str, ...] = ("analyst", "viewer")
+) -> OrgWorld:
     tag = slug or _next("org")
     owner = make_user(f"{tag}-owner@{EMAIL_DOMAIN}", full_name=f"{name} Owner")
     org = make_org(name, owner=owner, slug=slug)

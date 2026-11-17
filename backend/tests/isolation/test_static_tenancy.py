@@ -71,7 +71,8 @@ def test_tenant_unique_constraints_include_org():
 def test_tenant_routes_use_the_tenancy_mixin():
     from apps.core.tenancy.views import TenantScopedMixin
 
-    allowed_function_views = {"job-events"}  # SSE: does its own membership check (apps.core.sse._check_access)
+    # SSE: does its own membership check (apps.core.sse._check_access)
+    allowed_function_views = {"job-events"}
     problems = []
     for r in tenant_routes():
         cls = r.view_class

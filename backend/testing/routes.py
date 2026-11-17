@@ -189,7 +189,11 @@ def verify_build(route: Route, path: str) -> bool:
         match = resolve(path)
     except Resolver404:
         return False
-    return match.func is route.callback or getattr(match.func, "__wrapped__", None) is route.callback or (
-        getattr(match.func, "cls", object()) is getattr(route.callback, "cls", None)
-        and getattr(match.func, "actions", None) == getattr(route.callback, "actions", None)
+    return (
+        match.func is route.callback
+        or getattr(match.func, "__wrapped__", None) is route.callback
+        or (
+            getattr(match.func, "cls", object()) is getattr(route.callback, "cls", None)
+            and getattr(match.func, "actions", None) == getattr(route.callback, "actions", None)
+        )
     )

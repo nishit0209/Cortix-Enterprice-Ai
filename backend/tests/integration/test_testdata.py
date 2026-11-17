@@ -18,7 +18,9 @@ MANIFEST = json.loads((GEN_DIR / "MANIFEST.json").read_text(encoding="utf-8"))
 
 
 def _load_generator():
-    spec = importlib.util.spec_from_file_location("nexora_testdata_generate", REPO / "testdata" / "generate.py")
+    spec = importlib.util.spec_from_file_location(
+        "nexora_testdata_generate", REPO / "testdata" / "generate.py"
+    )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -45,8 +47,20 @@ def test_committed_files_match_manifest():
 
 def test_sales_properties():
     rows = _rows("sales.csv")
-    assert list(rows[0]) == ["order_id", "order_date", "customer_id", "customer_name", "region", "product",
-                             "category", "quantity", "unit_price", "discount", "revenue", "channel"]
+    assert list(rows[0]) == [
+        "order_id",
+        "order_date",
+        "customer_id",
+        "customer_name",
+        "region",
+        "product",
+        "category",
+        "quantity",
+        "unit_price",
+        "discount",
+        "revenue",
+        "channel",
+    ]
     assert len(rows) == 5020
     ids = Counter(r["order_id"] for r in rows)
     assert len(ids) == 5000
@@ -77,13 +91,20 @@ def test_customer_ground_truth_is_consistent():
     assert all(t["web_id"] in web for t in truth if t["web_id"])
     # the overlap is intentionally messy: not all matches are exact on name/email
     exact = sum(
-        1 for t in matched
-        if web[t["web_id"]]["full_name"] == f"{crm[t['crm_id']]['first_name']} {crm[t['crm_id']]['last_name']}"
+        1
+        for t in matched
+        if web[t["web_id"]]["full_name"]
+        == f"{crm[t['crm_id']]['first_name']} {crm[t['crm_id']]['last_name']}"
         and web[t["web_id"]]["email"] == crm[t["crm_id"]]["email"]
     )
     assert 0 < exact < len(matched)
     for r in list(crm.values()) + list(web.values()):
-        assert r["email"].lower().rsplit("@", 1)[1] in {"example.com", "example.org", "example.net", "mail.example.test"}
+        assert r["email"].lower().rsplit("@", 1)[1] in {
+            "example.com",
+            "example.org",
+            "example.net",
+            "mail.example.test",
+        }
 
 
 def test_product_ground_truth_is_consistent():

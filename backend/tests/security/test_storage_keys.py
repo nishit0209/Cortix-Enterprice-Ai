@@ -139,7 +139,7 @@ def test_own_prefix_operations_reach_s3(s3, settings):
 )
 def test_presigned_filename_is_sanitised(s3):
     with active(ORG_A):
-        storage.presigned_get(f"orgs/{ORG_A}/f.csv", filename='evil"; filename*=UTF-8\'\'x.html\r\nX-Test: 1')
+        storage.presigned_get(f"orgs/{ORG_A}/f.csv", filename="evil\"; filename*=UTF-8''x.html\r\nX-Test: 1")
     disposition = s3.calls[-1][2]["Params"]["ResponseContentDisposition"]
     assert "\r" not in disposition and "\n" not in disposition
     assert disposition.count('"') <= 2

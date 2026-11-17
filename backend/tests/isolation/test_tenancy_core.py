@@ -181,7 +181,9 @@ def test_every_tenant_model_uses_the_fail_closed_manager():
     models = _tenant_models()
     assert models, "no TenantModel subclasses found"
     for model in models:
-        assert isinstance(model._default_manager, TenantManager) or isinstance(model.objects, TenantManager), model
+        assert isinstance(model._default_manager, TenantManager) or isinstance(
+            model.objects, TenantManager
+        ), model
         with pytest.raises(TenantContextMissing):
             model.objects.all()
         with pytest.raises(TenantContextMissing):

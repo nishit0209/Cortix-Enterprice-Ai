@@ -29,7 +29,10 @@ def test_update_and_delete_are_refused_by_the_database(two_orgs, tenant, event):
     from apps.core.models import AuditEvent
 
     with tenant(two_orgs.a.org):
-        assert _expect_denied("UPDATE core_auditevent SET action = 'tampered' WHERE id = %s", [str(event.id)]) == "42501"
+        assert (
+            _expect_denied("UPDATE core_auditevent SET action = 'tampered' WHERE id = %s", [str(event.id)])
+            == "42501"
+        )
         assert _expect_denied("DELETE FROM core_auditevent WHERE id = %s", [str(event.id)]) == "42501"
         assert _expect_denied("TRUNCATE core_auditevent") == "42501"
         with pytest.raises(DatabaseError), transaction.atomic():
@@ -68,8 +71,11 @@ def test_record_redacts_secret_keys_recursively(two_orgs, tenant):
         ev = audit.record(
             "qa.redact",
             metadata={
-                "password": "pw-1", "API_KEY": "k-1", "nested": {"refresh_token": "t-1", "keep": "ok"},
-                "items": [{"Authorization": "Bearer x"}, {"cookie": "c"}], "client_secret": "s",
+                "password": "pw-1",
+                "API_KEY": "k-1",
+                "nested": {"refresh_token": "t-1", "keep": "ok"},
+                "items": [{"Authorization": "Bearer x"}, {"cookie": "c"}],
+                "client_secret": "s",
                 "db_credential": "c-1",
             },
             changes={"password": ["old", "new"], "name": ["a", "b"]},

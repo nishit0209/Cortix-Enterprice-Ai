@@ -20,10 +20,23 @@ import yaml
 
 CORPUS_PATH = Path(__file__).resolve().parent.parent / "tests" / "security" / "sql" / "corpus.yaml"
 KNOWN_CODES = {
-    "too_large", "parse_error", "multiple_statements", "command_not_allowed", "not_select",
-    "forbidden_construct", "forbidden_function", "table_not_allowed", "system_catalog", "cte_shadowing",
-    "forbidden_type", "system_column", "column_not_allowed", "whole_row_reference", "roundtrip_mismatch",
-    "plan_relation_not_allowed", "cost_exceeded",
+    "too_large",
+    "parse_error",
+    "multiple_statements",
+    "command_not_allowed",
+    "not_select",
+    "forbidden_construct",
+    "forbidden_function",
+    "table_not_allowed",
+    "system_catalog",
+    "cte_shadowing",
+    "forbidden_type",
+    "system_column",
+    "column_not_allowed",
+    "whole_row_reference",
+    "roundtrip_mismatch",
+    "plan_relation_not_allowed",
+    "cost_exceeded",
 }
 SECURITY_CODES = KNOWN_CODES - {"parse_error", "roundtrip_mismatch"}
 
@@ -59,7 +72,10 @@ def build_policy(name: str, *, org_id: uuid.UUID | None = None):
     for key, kind in spec["column_masks"].items():
         table, column = key.split(".", 1)
         masks[(table, column)] = MaskSpec(kind=kind)
-    preds = {t: RowPredicate(conditions=tuple(tuple(c) for c in conds)) for t, conds in spec["row_predicates"].items()}
+    preds = {
+        t: RowPredicate(conditions=tuple(tuple(c) for c in conds))
+        for t, conds in spec["row_predicates"].items()
+    }
     return QueryPolicy(
         org_id=org_id or uuid.UUID("018f0000-0000-7000-8000-0000000000a1"),
         user_id=uuid.UUID("018f0000-0000-7000-8000-0000000000a2"),

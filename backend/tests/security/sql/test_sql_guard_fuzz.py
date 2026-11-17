@@ -33,18 +33,44 @@ SAFE_FUNCS = ["sum", "avg", "min", "max", "count"]
 
 # forbidden constructs by insertion slot ---------------------------------------------------------------
 FORBIDDEN_SELECT_ITEMS = [
-    "pg_sleep(1)", "current_setting('server_version')", "version()", "pg_read_file('x')", "txid_current()",
-    "email", "phone", "pan_number", "cost_price", "margin_secret", "ctid", "xmin", "row_to_json(sales)",
-    "(SELECT rolname FROM pg_roles LIMIT 1)", "(SELECT count(*) FROM org_b.ds_1)", "'pg_class'::regclass",
-    "repeat('x', 100)", "query_to_xml('select 1', true, true, '')", "inet_server_addr()",
+    "pg_sleep(1)",
+    "current_setting('server_version')",
+    "version()",
+    "pg_read_file('x')",
+    "txid_current()",
+    "email",
+    "phone",
+    "pan_number",
+    "cost_price",
+    "margin_secret",
+    "ctid",
+    "xmin",
+    "row_to_json(sales)",
+    "(SELECT rolname FROM pg_roles LIMIT 1)",
+    "(SELECT count(*) FROM org_b.ds_1)",
+    "'pg_class'::regclass",
+    "repeat('x', 100)",
+    "query_to_xml('select 1', true, true, '')",
+    "inet_server_addr()",
 ]
 FORBIDDEN_FROM = [
-    "org_b.ds_1", "pg_catalog.pg_class", "information_schema.tables", "pg_stat_activity", "nexora_wh.org_b.t",
-    "generate_series(1, 10)", "public.accounts_user", "pg_shadow",
+    "org_b.ds_1",
+    "pg_catalog.pg_class",
+    "information_schema.tables",
+    "pg_stat_activity",
+    "nexora_wh.org_b.t",
+    "generate_series(1, 10)",
+    "public.accounts_user",
+    "pg_shadow",
 ]
 FORBIDDEN_WHERE = [
-    "email LIKE 'a%'", "EXISTS (SELECT 1 FROM pg_roles)", "pg_sleep(1) IS NULL", "phone = '1'",
-    "order_id IN (SELECT order_id FROM org_b.ds_1)", "cost_price > 0", "set_config('x', 'y', true) = 'y'",
+    "email LIKE 'a%'",
+    "EXISTS (SELECT 1 FROM pg_roles)",
+    "pg_sleep(1) IS NULL",
+    "phone = '1'",
+    "order_id IN (SELECT order_id FROM org_b.ds_1)",
+    "cost_price > 0",
+    "set_config('x', 'y', true) = 'y'",
 ]
 FORBIDDEN_SUFFIX = ["; DROP TABLE sales", " FOR UPDATE", "; SELECT 1", " FOR SHARE"]
 
@@ -52,8 +78,14 @@ FORBIDDEN_SUFFIX = ["; DROP TABLE sales", " FOR UPDATE", "; SELECT 1", " FOR SHA
 @st.composite
 def clean_select(draw):
     dims = draw(st.lists(st.sampled_from(DIMENSIONS), min_size=0, max_size=2, unique=True))
-    aggs = draw(st.lists(st.tuples(st.sampled_from(SAFE_FUNCS), st.sampled_from(NUMERIC)), min_size=0, max_size=2))
-    plain = draw(st.lists(st.sampled_from(SALES_COLS), min_size=1, max_size=3, unique=True)) if not (dims or aggs) else []
+    aggs = draw(
+        st.lists(st.tuples(st.sampled_from(SAFE_FUNCS), st.sampled_from(NUMERIC)), min_size=0, max_size=2)
+    )
+    plain = (
+        draw(st.lists(st.sampled_from(SALES_COLS), min_size=1, max_size=3, unique=True))
+        if not (dims or aggs)
+        else []
+    )
     items = dims + [f"{f}({c}) AS {f}_{c}" for f, c in aggs] + plain
     sql = f"SELECT {', '.join(items)} FROM sales"
     if draw(st.booleans()):

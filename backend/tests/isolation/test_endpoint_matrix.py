@@ -95,7 +95,9 @@ def test_non_member_gets_404(two_orgs, route, method, actor):
     path = route.build(org=b.slug, **values)
     client = api_client_for(_actor(two_orgs, actor))
     resp = _call(client, method, path)
-    assert resp.status_code == 404, f"{method.upper()} {path} as {actor} -> {resp.status_code}: {_body(resp)[:300]}"
+    assert resp.status_code == 404, (
+        f"{method.upper()} {path} as {actor} -> {resp.status_code}: {_body(resp)[:300]}"
+    )
     assert _leaks(_body(resp), b.identifiers() | set(values.values())) == []
 
 
@@ -127,12 +129,16 @@ def test_member_cannot_reach_other_orgs_resource_ids(two_orgs, route, method):
     a_values = factory(a)  # resources that belong to org A
     path = route.build(org=b.slug, **a_values)  # ... requested through B's slug by B's owner
     resp = _call(api_client_for(b.owner), method, path)
-    assert resp.status_code == 404, f"{method.upper()} {path} as B owner -> {resp.status_code}: {_body(resp)[:300]}"
+    assert resp.status_code == 404, (
+        f"{method.upper()} {path} as B owner -> {resp.status_code}: {_body(resp)[:300]}"
+    )
     assert _leaks(_body(resp), a.identifiers() | set(a_values.values())) == []
 
 
 @pytest.mark.ac("P2-AC2")
-@pytest.mark.parametrize("route", [pytest.param(r, id=r.id) for r in ROUTES if not r.resource_kwargs and "get" in r.methods])
+@pytest.mark.parametrize(
+    "route", [pytest.param(r, id=r.id) for r in ROUTES if not r.resource_kwargs and "get" in r.methods]
+)
 def test_list_endpoints_never_contain_other_orgs_data(two_orgs, route):
     a, b = two_orgs
     # create one of every resource we know how to build in org A (and in B, so lists are non-empty)

@@ -45,13 +45,19 @@ def test_audit_rows_and_logs_never_contain_secret_values(canaries, capture_all, 
     with tenant(two_orgs.a.org):
         ev = audit.record(
             "qa.secrets",
-            metadata={"password": canaries.db_password, "gemini_api_key": canaries.gemini_key,
-                      "nested": {"api_key": canaries.api_key, "session_cookie": canaries.session_id}},
+            metadata={
+                "password": canaries.db_password,
+                "gemini_api_key": canaries.gemini_key,
+                "nested": {"api_key": canaries.api_key, "session_cookie": canaries.session_id},
+            },
             changes={"token": [None, canaries.api_key], "credential": canaries.kek_plain},
         )
     clear_db_tenant()
     with tenant(two_orgs.a.org), connection.cursor() as cur:
-        cur.execute("SELECT metadata::text, coalesce(changes::text, '') FROM core_auditevent WHERE id = %s", [str(ev.id)])
+        cur.execute(
+            "SELECT metadata::text, coalesce(changes::text, '') FROM core_auditevent WHERE id = %s",
+            [str(ev.id)],
+        )
         metadata, changes = cur.fetchone()
     _assert_clean(canaries, metadata, changes, capture_all.text)
 
@@ -79,7 +85,9 @@ def test_readiness_errors_expose_only_exception_types(canaries, capture_all, mon
 
     class _BrokenConn:
         def cursor(self):
-            raise OperationalError(f'connection failed: password authentication failed "{canaries.db_password}"')
+            raise OperationalError(
+                f'connection failed: password authentication failed "{canaries.db_password}"'
+            )
 
     class _BrokenRedis:
         def ping(self):
@@ -98,7 +106,9 @@ def test_readiness_errors_expose_only_exception_types(canaries, capture_all, mon
     assert resp.status_code == 503
     body = resp.json()
     assert body["checks"] == {
-        "database": "error: OperationalError", "redis": "error: ConnectionError", "object_storage": "error: RuntimeError"
+        "database": "error: OperationalError",
+        "redis": "error: ConnectionError",
+        "object_storage": "error: RuntimeError",
     }
     _assert_clean(canaries, resp.content.decode(), capture_all.text)
 
@@ -108,7 +118,9 @@ def test_login_failure_does_not_echo_or_log_the_password(canaries, capture_all, 
         pytest.skip("POST /api/v1/auth/login not implemented yet (Backend agent, wave 1)")
     make_user("canary-login@example.test")
     resp = api_client_for(None).post(
-        "/api/v1/auth/login", {"email": "canary-login@example.test", "password": canaries.user_password}, format="json"
+        "/api/v1/auth/login",
+        {"email": "canary-login@example.test", "password": canaries.user_password},
+        format="json",
     )
     assert resp.status_code in (400, 401, 403)
     _assert_clean(canaries, resp.content.decode(), capture_all.text)
@@ -119,8 +131,12 @@ def test_signup_does_not_echo_or_log_the_password(canaries, capture_all):
         pytest.skip("POST /api/v1/auth/signup not implemented yet (Backend agent, wave 1)")
     resp = api_client_for(None).post(
         "/api/v1/auth/signup",
-        {"email": "canary-signup@example.test", "password": canaries.user_password, "full_name": "Canary",
-         "org_name": "Canary Org"},
+        {
+            "email": "canary-signup@example.test",
+            "password": canaries.user_password,
+            "full_name": "Canary",
+            "org_name": "Canary Org",
+        },
         format="json",
     )
     assert resp.status_code in (201, 400)
@@ -148,6 +164,6 @@ def test_api_key_secret_is_returned_once_and_never_logged(canaries, capture_all,
         assert tables, "no API key table found"
         stored = ""
         for table in tables:
-            cur.execute(f'SELECT coalesce(string_agg(row_to_json(k)::text, \' \'), \'\') FROM "{table}" k')
+            cur.execute(f"SELECT coalesce(string_agg(row_to_json(k)::text, ' '), '') FROM \"{table}\" k")
             stored += cur.fetchone()[0]
     assert secret not in stored, "API key secrets must be stored hashed"

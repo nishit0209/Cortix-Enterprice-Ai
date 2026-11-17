@@ -44,7 +44,9 @@ def db_tenant(org_id: UUID | str | None, using: str = "default") -> Iterator[Non
 
     with transaction.atomic(using=using):
         with connections[using].cursor() as cur:
-            cur.execute("SELECT set_config(%s, %s, true)", [TENANT_GUC, "" if org_id is None else str(org_id)])
+            cur.execute(
+                "SELECT set_config(%s, %s, true)", [TENANT_GUC, "" if org_id is None else str(org_id)]
+            )
         try:
             yield
         finally:
@@ -130,7 +132,12 @@ def app_connection_params(using: str = "default") -> dict:
     from django.db import connections
 
     s = connections[using].settings_dict
-    params = {"dbname": s["NAME"], "user": s["USER"], "password": s["PASSWORD"], "host": s["HOST"] or "localhost"}
+    params = {
+        "dbname": s["NAME"],
+        "user": s["USER"],
+        "password": s["PASSWORD"],
+        "host": s["HOST"] or "localhost",
+    }
     if s.get("PORT"):
         params["port"] = int(s["PORT"])
     return params

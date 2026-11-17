@@ -88,7 +88,11 @@ def test_oracle_accepts_a_correct_rewrite():
         ("SELECT region FROM org_b.ds_1", "default", "table outside policy"),
         ("SELECT region FROM nexora_wh.org_qatest01.ds_101_v1", "default", "3-part"),
         ("SELECT region FROM org_qatest01.ds_101_v1", "north_only", "row policy not applied"),
-        ("SELECT region FROM org_qatest01.ds_101_v1 WHERE revenue > 0", "north_only", "row policy not applied"),
+        (
+            "SELECT region FROM org_qatest01.ds_101_v1 WHERE revenue > 0",
+            "north_only",
+            "row policy not applied",
+        ),
         (
             "SELECT region FROM (SELECT region FROM org_qatest01.ds_101_v1 WHERE region = %(p1)s) a "
             "UNION ALL SELECT region FROM org_qatest01.ds_101_v1",
@@ -108,7 +112,9 @@ def _params():
     for c in CASES:
         marks = [pytest.mark.ac("P4-AC1")]
         if c.get("stage") == "execute":
-            marks.append(pytest.mark.skip(reason="decided at execution (EXPLAIN); covered by the warehouse suite"))
+            marks.append(
+                pytest.mark.skip(reason="decided at execution (EXPLAIN); covered by the warehouse suite")
+            )
         yield pytest.param(c, id=c["id"], marks=marks)
 
 
@@ -120,7 +126,9 @@ def test_guard_verdict(case):
     expect = case["expect"]
     if expect == "reject":
         assert result.ok is False, f"{case['id']} accepted: {result.executed_sql}"
-        assert result.reject_code in case["codes"], f"{case['id']}: got {result.reject_code}, want {case['codes']}"
+        assert result.reject_code in case["codes"], (
+            f"{case['id']}: got {result.reject_code}, want {case['codes']}"
+        )
         assert result.executed_sql in (None, ""), "a rejected query must not carry executable SQL"
         return
     if expect == "neutralized":

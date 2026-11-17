@@ -33,7 +33,9 @@ def uploader(two_orgs):
     client = api_client_for(a.user("data_engineer"))
 
     def upload(name: str, data: bytes, content_type: str = "text/csv"):
-        return client.post(_uploads_url(a), {"file": SimpleUploadedFile(name, data, content_type)}, format="multipart")
+        return client.post(
+            _uploads_url(a), {"file": SimpleUploadedFile(name, data, content_type)}, format="multipart"
+        )
 
     upload.client = client
     upload.world = a
@@ -77,9 +79,7 @@ def test_valid_csv_is_accepted(uploader):
 @pytest.mark.django_db
 def test_zip_bomb_xlsx_is_rejected(uploader):
     data = (ADV / "zip_bomb.xlsx").read_bytes()
-    resp = uploader(
-        "report.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    resp = uploader("report.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     _assert_rejected(uploader, resp)
 
 
@@ -137,7 +137,8 @@ def test_formula_cells_are_ingested_verbatim_as_text(uploader):
     up = uploader("formula_injection.csv", raw)
     assert up.status_code == 201
     created = uploader.client.post(
-        datasets_url, {"name": "Formula probe", "upload_id": up.json()["id"], "classification": "synthetic"},
+        datasets_url,
+        {"name": "Formula probe", "upload_id": up.json()["id"], "classification": "synthetic"},
         format="json",
     )
     assert created.status_code in (201, 202), created.content[:300]
