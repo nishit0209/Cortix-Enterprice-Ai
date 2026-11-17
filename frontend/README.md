@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NEXORA web app
 
-## Getting Started
+Next.js 15 (App Router) · React 19 · TypeScript · Tailwind v4 · TanStack Query/Table · Radix · Framer Motion · Recharts.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+API_INTERNAL_URL=http://localhost:8000 npm run dev   # /api/* and /healthz are proxied to Django
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Dev server on :3000 |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm run lint` | ESLint (next/core-web-vitals + typescript) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test -- --run` | Vitest (jsdom + Testing Library) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Environment: `API_INTERNAL_URL` (default `http://localhost:8000`), `SESSION_COOKIE_NAME` (default `sessionid`),
+`NEXT_PUBLIC_MAX_UPLOAD_MB` (default 200, mirror of the backend `MAX_UPLOAD_BYTES`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Layout
 
-## Learn More
+```
+src/app/                 routes: /login /signup /onboarding /invitations/accept /o/[org]/...
+src/components/ui/       design system (tokens in app/globals.css)
+src/components/shell/    app shell: sidebar, top bar, org switcher, command menu, notifications, AI pill
+src/components/<module>/ feature components (datasets, settings, dashboard, auth)
+src/lib/api.ts           fetch wrapper: credentials, CSRF, problem+json -> ApiError
+src/lib/sse.ts           resumable SSE client (Last-Event-ID, heartbeat watchdog)
+src/lib/queries/         TanStack Query hooks (keys always include the org slug)
+src/lib/types.ts         types mirroring contracts/api/CONTRACT.md
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Conventions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Colors only through tokens (`bg-surface`, `text-fg-muted`, `border-border`, `bg-accent`, `--chart-1..8`); both themes are
+  defined in `globals.css`.
+- Every data view has loading (skeleton), empty, error (problem `code` + `request_id`) states. Never show sample numbers:
+  modules that aren't built use `PlannedModule`.
+- Permissions: use `useOrgContext().can("codename")` for UI gating; the server is authoritative.
