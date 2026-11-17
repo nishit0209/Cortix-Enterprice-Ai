@@ -1,0 +1,171 @@
+sku,product_name,category,unit,pack_size,mrp_inr,ean
+A-BEA-0001,Sunrise Sunscreen SPF50 100ml,Beauty,ml,100,574.79,8923898255352
+A-GRO-0002,Sunrise Masala Chai 500g,Grocery,g,500,450.30,8956501449176
+A-BEA-0003,Ganga Herbal Shampoo 340ml,Beauty,ml,340,302.21,8985236135035
+A-ELE-0004,Thar Smart Watch 1pc,Electronics,pc,1,3228.40,8912174014130
+A-GRO-0005,Sunrise Basmati Rice 5kg,Grocery,kg,5,725.09,8950454770608
+A-HOM-0006,Konark Cotton Bedsheet 1pc,Home,pc,1,1223.85,8999979876101
+A-HOM-0007,Sahyadri Cotton Bedsheet 1pc,Home,pc,1,828.28,8956136239947
+A-GRO-0008,Kesar Basmati Rice 5kg,Grocery,kg,5,822.06,8974189750226
+A-APP-0009,Konark Cotton Kurta 1pc,Apparel,pc,1,815.98,8992704786561
+A-APP-0010,Sahyadri Sports Shoes 1pair,Apparel,pair,1,3220.90,8940743198714
+A-GRO-0011,Sahyadri Toor Dal 1kg,Grocery,kg,1,180.53,8951154726097
+A-ELE-0012,Vindhya LED Bulb 9W 1pc,Electronics,pc,1,105.48,8933066901188
+A-HOM-0013,Sahyadri Cotton Bedsheet 1pc,Home,pc,1,970.36,8977166914877
+A-GRO-0014,Sunrise Masala Chai 500g,Grocery,g,500,405.89,8935557191209
+A-BEA-0015,Konark Sunscreen SPF50 100ml,Beauty,ml,100,542.15,8995363460950
+A-ELE-0016,Vindhya Smart Watch 1pc,Electronics,pc,1,3930.89,8986633254624
+A-HOM-0017,Kesar Steel Tiffin Box 1pc,Home,pc,1,588.42,8956682646791
+A-GRO-0018,Ganga Basmati Rice 5kg,Grocery,kg,5,665.44,8966255009030
+A-HOM-0019,Nilgiri Pressure Cooker 5L 1pc,Home,pc,1,2733.25,8951847569333
+A-ELE-0020,Sunrise Wi-Fi Router 1pc,Electronics,pc,1,2694.14,8973928944890
+A-GRO-0021,Konark Basmati Rice 5kg,Grocery,kg,5,734.55,8946562780825
+A-HOM-0022,Nilgiri Cotton Bedsheet 1pc,Home,pc,1,902.09,8973339414663
+A-ELE-0023,Ganga USB-C Cable 1pc,Electronics,pc,1,259.11,8994123292143
+A-APP-0024,Nilgiri Sports Shoes 1pair,Apparel,pair,1,3508.01,8989326119411
+A-GRO-0025,Konark Atta Flour 5kg,Grocery,kg,5,363.46,8974223441936
+A-HOM-0026,Thar Ceiling Fan 1pc,Home,pc,1,2730.04,8979389869594
+A-ELE-0027,Nilgiri LED Bulb 9W 1pc,Electronics,pc,1,110.82,8981141795926
+A-HOM-0028,Vindhya Cotton Bedsheet 1pc,Home,pc,1,814.09,8973212442551
+A-GRO-0029,Ganga Cashew Nuts 500g,Grocery,g,500,512.93,8938601913294
+A-GRO-0030,Sunrise Sunflower Oil 5l,Grocery,l,5,937.26,8935267050182
+A-GRO-0031,Sahyadri Atta Flour 5kg,Grocery,kg,5,342.07,8973905044852
+A-GRO-0032,Nilgiri Basmati Rice 5kg,Grocery,kg,5,602.50,8974921492278
+A-ELE-0033,Nilgiri Power Bank 10000mAh 1pc,Electronics,pc,1,1356.69,8945931037548
+A-BEA-0034,Vindhya Ayurvedic Face Cream 50g,Beauty,g,50,460.16,8995026595514
+A-GRO-0035,Sunrise Toor Dal 1kg,Grocery,kg,1,186.75,8915004306427
+A-ELE-0036,Vindhya USB-C Cable 1pc,Electronics,pc,1,372.45,8966141829921
+A-BEA-0037,Thar Herbal Shampoo 340ml,Beauty,ml,340,260.72,8936935883019
+A-HOM-0038,Sahyadri Steel Tiffin Box 1pc,Home,pc,1,637.46,8991652055670
+A-GRO-0039,Ganga Sunflower Oil 5l,Grocery,l,5,826.03,8978852190338
+A-HOM-0040,Kesar Cotton Bedsheet 1pc,Home,pc,1,1214.84,8914721731702
+A-HOM-0041,Nilgiri Cotton Bedsheet 1pc,Home,pc,1,1007.33,8934838186216
+A-APP-0042,Thar Silk Saree 1pc,Apparel,pc,1,5406.42,8928201219856
+A-BEA-0043,Konark Ayurvedic Face Cream 50g,Beauty,g,50,391.80,8991633300834
+A-HOM-0044,Kesar Cotton Bedsheet 1pc,Home,pc,1,967.87,8935945840789
+A-GRO-0045,Vindhya Atta Flour 5kg,Grocery,kg,5,248.92,8917296122180
+A-GRO-0046,Konark Masala Chai 500g,Grocery,g,500,447.54,8968754697403
+A-GRO-0047,Thar Sunflower Oil 5l,Grocery,l,5,1061.60,8927413299451
+A-HOM-0048,Kesar Pressure Cooker 5L 1pc,Home,pc,1,2001.45,8910368428442
+A-HOM-0049,Thar Ceiling Fan 1pc,Home,pc,1,3186.01,8992735980717
+A-GRO-0050,Sahyadri Sunflower Oil 5l,Grocery,l,5,739.53,8979796946626
+A-APP-0051,Kesar Sports Shoes 1pair,Apparel,pair,1,2961.14,8969258476825
+A-HOM-0052,Kesar Ceiling Fan 1pc,Home,pc,1,3332.52,8950950981934
+A-APP-0053,Konark Denim Jeans 1pc,Apparel,pc,1,1465.67,8989878429130
+A-HOM-0054,Sahyadri Ceiling Fan 1pc,Home,pc,1,3347.73,8985889005631
+A-BEA-0055,Kesar Herbal Shampoo 340ml,Beauty,ml,340,257.40,8946504036792
+A-APP-0056,Sahyadri Sports Shoes 1pair,Apparel,pair,1,2399.76,8959418014766
+A-ELE-0057,Nilgiri Power Bank 10000mAh 1pc,Electronics,pc,1,1362.08,8954280603044
+A-BEA-0058,Sunrise Herbal Shampoo 340ml,Beauty,ml,340,203.34,8934075371259
+A-APP-0059,Sunrise Denim Jeans 1pc,Apparel,pc,1,1562.36,8991835930099
+A-HOM-0060,Sunrise Cotton Bedsheet 1pc,Home,pc,1,1187.14,8915572168412
+A-GRO-0061,Ganga Toor Dal 1kg,Grocery,kg,1,198.24,8962098207205
+A-APP-0062,Nilgiri Denim Jeans 1pc,Apparel,pc,1,1740.10,8988836858375
+A-HOM-0063,Sunrise Steel Tiffin Box 1pc,Home,pc,1,642.86,8941706920784
+A-ELE-0064,Sahyadri Smart Watch 1pc,Electronics,pc,1,3258.95,8942637317886
+A-ELE-0065,Nilgiri Bluetooth Earbuds 1pc,Electronics,pc,1,2379.12,8922417451538
+A-GRO-0066,Ganga Cashew Nuts 500g,Grocery,g,500,619.74,8981334420045
+A-GRO-0067,Ganga Atta Flour 5kg,Grocery,kg,5,243.60,8953687849271
+A-ELE-0068,Sahyadri USB-C Cable 1pc,Electronics,pc,1,256.21,8959813864076
+A-HOM-0069,Sunrise Pressure Cooker 5L 1pc,Home,pc,1,2668.23,8966156572556
+A-GRO-0070,Sahyadri Toor Dal 1kg,Grocery,kg,1,210.04,8913398809062
+A-BEA-0071,Nilgiri Hair Oil 200ml,Beauty,ml,200,188.52,8913320017748
+A-ELE-0072,Vindhya Bluetooth Earbuds 1pc,Electronics,pc,1,2510.30,8969442326257
+A-APP-0073,Ganga Sports Shoes 1pair,Apparel,pair,1,2498.66,8981702728846
+A-GRO-0074,Ganga Atta Flour 5kg,Grocery,kg,5,318.86,8944472153288
+A-APP-0075,Konark Cotton Kurta 1pc,Apparel,pc,1,972.08,8945129643630
+A-ELE-0076,Sunrise USB-C Cable 1pc,Electronics,pc,1,362.69,8951896995447
+A-ELE-0077,Vindhya Wi-Fi Router 1pc,Electronics,pc,1,2463.20,8967155879730
+A-ELE-0078,Sahyadri Smart Watch 1pc,Electronics,pc,1,3756.87,8923922993435
+A-GRO-0079,Sunrise Toor Dal 1kg,Grocery,kg,1,230.13,8983427158219
+A-GRO-0080,Kesar Sunflower Oil 5l,Grocery,l,5,763.51,8964498231600
+A-HOM-0081,Sahyadri Cotton Bedsheet 1pc,Home,pc,1,882.61,8941592154628
+A-APP-0082,Kesar Cotton Kurta 1pc,Apparel,pc,1,857.16,8951504320543
+A-BEA-0083,Ganga Herbal Shampoo 340ml,Beauty,ml,340,320.31,8967214488562
+A-BEA-0084,Sahyadri Hair Oil 200ml,Beauty,ml,200,190.96,8979004611553
+A-APP-0085,Ganga Cotton Kurta 1pc,Apparel,pc,1,874.67,8993923245903
+A-GRO-0086,Sunrise Basmati Rice 5kg,Grocery,kg,5,790.20,8922158169036
+A-ELE-0087,Thar Wi-Fi Router 1pc,Electronics,pc,1,2163.88,8922347722411
+A-HOM-0088,Konark Cotton Bedsheet 1pc,Home,pc,1,1071.84,8911789521064
+A-APP-0089,Sunrise Cotton Kurta 1pc,Apparel,pc,1,1127.21,8957137846663
+A-BEA-0090,Nilgiri Herbal Shampoo 340ml,Beauty,ml,340,310.27,8997485856850
+A-HOM-0091,Sahyadri Pressure Cooker 5L 1pc,Home,pc,1,2128.95,8957970114831
+A-BEA-0092,Sunrise Sunscreen SPF50 100ml,Beauty,ml,100,558.77,8951415684791
+A-APP-0093,Vindhya Sports Shoes 1pair,Apparel,pair,1,2440.87,8946381417554
+A-HOM-0094,Vindhya Cotton Bedsheet 1pc,Home,pc,1,970.92,8927479425750
+A-APP-0095,Sahyadri Cotton Kurta 1pc,Apparel,pc,1,785.27,8994846702510
+A-GRO-0096,Konark Masala Chai 500g,Grocery,g,500,443.93,8928217543451
+A-HOM-0097,Kesar Cotton Bedsheet 1pc,Home,pc,1,816.72,8976329716148
+A-ELE-0098,Nilgiri LED Bulb 9W 1pc,Electronics,pc,1,123.14,8917334423297
+A-APP-0099,Konark Sports Shoes 1pair,Apparel,pair,1,2244.47,8981065275652
+A-BEA-0100,Nilgiri Herbal Shampoo 340ml,Beauty,ml,340,259.61,8967980309529
+A-ELE-0101,Vindhya Wi-Fi Router 1pc,Electronics,pc,1,2448.51,8980141104124
+A-APP-0102,Sunrise Cotton Kurta 1pc,Apparel,pc,1,1021.75,8930219858196
+A-APP-0103,Vindhya Denim Jeans 1pc,Apparel,pc,1,1746.68,8936291679304
+A-BEA-0104,Sahyadri Sunscreen SPF50 100ml,Beauty,ml,100,484.79,8950441915765
+A-BEA-0105,Nilgiri Herbal Shampoo 340ml,Beauty,ml,340,318.23,8963504350590
+A-ELE-0106,Kesar Wi-Fi Router 1pc,Electronics,pc,1,2046.33,8910547134061
+A-BEA-0107,Sahyadri Hair Oil 200ml,Beauty,ml,200,253.54,8964102379513
+A-ELE-0108,Ganga Bluetooth Earbuds 1pc,Electronics,pc,1,2239.92,8956450330570
+A-APP-0109,Sunrise Sports Shoes 1pair,Apparel,pair,1,2602.67,8911816438450
+A-ELE-0110,Konark Bluetooth Earbuds 1pc,Electronics,pc,1,2495.68,8944652710347
+A-ELE-0111,Sahyadri USB-C Cable 1pc,Electronics,pc,1,256.81,8959478329493
+A-HOM-0112,Kesar Steel Tiffin Box 1pc,Home,pc,1,665.10,8931168487479
+A-HOM-0113,Sunrise Ceiling Fan 1pc,Home,pc,1,3645.44,8915254524780
+A-GRO-0114,Sahyadri Sunflower Oil 5l,Grocery,l,5,1097.10,8941430849239
+A-ELE-0115,Nilgiri Wi-Fi Router 1pc,Electronics,pc,1,2415.38,8981503766182
+A-HOM-0116,Sahyadri Ceiling Fan 1pc,Home,pc,1,2629.04,8978444608496
+A-GRO-0117,Sahyadri Sunflower Oil 5l,Grocery,l,5,812.44,8965396918791
+A-ELE-0118,Sunrise Bluetooth Earbuds 1pc,Electronics,pc,1,1616.41,8979133033598
+A-HOM-0119,Sunrise Ceiling Fan 1pc,Home,pc,1,3583.38,8967519361692
+A-ELE-0120,Kesar USB-C Cable 1pc,Electronics,pc,1,345.29,8913909411815
+A-HOM-0121,Konark Ceiling Fan 1pc,Home,pc,1,3753.23,8998708945106
+A-ELE-0122,Konark Power Bank 10000mAh 1pc,Electronics,pc,1,1409.79,8976334142902
+A-ELE-0123,Nilgiri LED Bulb 9W 1pc,Electronics,pc,1,125.60,8910577453475
+A-GRO-0124,Sunrise Cashew Nuts 500g,Grocery,g,500,443.05,8980038310295
+A-GRO-0125,Ganga Masala Chai 500g,Grocery,g,500,425.63,8922663100474
+A-HOM-0126,Kesar Pressure Cooker 5L 1pc,Home,pc,1,2482.04,8951999425465
+A-GRO-0127,Sunrise Basmati Rice 5kg,Grocery,kg,5,572.01,8947275428105
+A-ELE-0128,Ganga Smart Watch 1pc,Electronics,pc,1,3329.18,8952389739936
+A-GRO-0129,Vindhya Atta Flour 5kg,Grocery,kg,5,281.79,8952432938871
+A-HOM-0130,Konark Cotton Bedsheet 1pc,Home,pc,1,1107.58,8937556153893
+A-ELE-0131,Sahyadri Power Bank 10000mAh 1pc,Electronics,pc,1,1603.03,8919457718531
+A-BEA-0132,Thar Hair Oil 200ml,Beauty,ml,200,160.77,8913196246312
+A-GRO-0133,Konark Atta Flour 5kg,Grocery,kg,5,299.71,8939794255003
+A-GRO-0134,Sahyadri Cashew Nuts 500g,Grocery,g,500,646.05,8915958871159
+A-GRO-0135,Thar Cashew Nuts 500g,Grocery,g,500,512.54,8929574863198
+A-ELE-0136,Sunrise LED Bulb 9W 1pc,Electronics,pc,1,147.97,8994370737840
+A-ELE-0137,Konark Power Bank 10000mAh 1pc,Electronics,pc,1,1232.04,8986096689725
+A-APP-0138,Ganga Cotton Kurta 1pc,Apparel,pc,1,725.22,8937655308762
+A-APP-0139,Sunrise Denim Jeans 1pc,Apparel,pc,1,1875.58,8983468018011
+A-APP-0140,Thar Cotton Kurta 1pc,Apparel,pc,1,781.94,8972733353237
+A-HOM-0141,Thar Steel Tiffin Box 1pc,Home,pc,1,581.85,8922653799527
+A-ELE-0142,Konark Bluetooth Earbuds 1pc,Electronics,pc,1,2113.47,8950463554625
+A-ELE-0143,Kesar Power Bank 10000mAh 1pc,Electronics,pc,1,1421.43,8985872454088
+A-BEA-0144,Konark Sunscreen SPF50 100ml,Beauty,ml,100,531.19,8912884366539
+A-ELE-0145,Vindhya LED Bulb 9W 1pc,Electronics,pc,1,145.72,8944779637953
+A-GRO-0146,Konark Cashew Nuts 500g,Grocery,g,500,527.22,8920041862087
+A-BEA-0147,Vindhya Ayurvedic Face Cream 50g,Beauty,g,50,486.84,8920493575610
+A-BEA-0148,Sunrise Ayurvedic Face Cream 50g,Beauty,g,50,417.19,8923157845260
+A-APP-0149,Kesar Denim Jeans 1pc,Apparel,pc,1,1259.94,8975374994542
+A-APP-0150,Vindhya Sports Shoes 1pair,Apparel,pair,1,2987.14,8969359057368
+A-ELE-0151,Sunrise USB-C Cable 1pc,Electronics,pc,1,275.52,8946142746579
+A-APP-0152,Konark Sports Shoes 1pair,Apparel,pair,1,2511.80,8966372375366
+A-ELE-0153,Kesar USB-C Cable 1pc,Electronics,pc,1,265.50,8978991011450
+A-GRO-0154,Sahyadri Basmati Rice 5kg,Grocery,kg,5,647.35,8936736526010
+A-ELE-0155,Nilgiri Smart Watch 1pc,Electronics,pc,1,4002.61,8992649885936
+A-ELE-0156,Konark Power Bank 10000mAh 1pc,Electronics,pc,1,1093.96,8972962371538
+A-HOM-0157,Ganga Cotton Bedsheet 1pc,Home,pc,1,955.69,8990300043162
+A-APP-0158,Sahyadri Silk Saree 1pc,Apparel,pc,1,4966.18,8921130285748
+A-APP-0159,Thar Silk Saree 1pc,Apparel,pc,1,4694.08,8934279436563
+A-ELE-0160,Thar USB-C Cable 1pc,Electronics,pc,1,283.52,8929229203989
+A-HOM-0161,Thar Cotton Bedsheet 1pc,Home,pc,1,1095.02,8923135749475
+A-HOM-0162,Konark Steel Tiffin Box 1pc,Home,pc,1,645.83,8961772901876
+A-APP-0163,Konark Denim Jeans 1pc,Apparel,pc,1,1696.10,8980935794883
+A-HOM-0164,Vindhya Cotton Bedsheet 1pc,Home,pc,1,860.19,8918761552507
+A-HOM-0165,Ganga Pressure Cooker 5L 1pc,Home,pc,1,2661.47,8951536334652
+A-GRO-0166,Ganga Basmati Rice 5kg,Grocery,kg,5,792.49,8941738376301
+A-ELE-0167,Nilgiri Wi-Fi Router 1pc,Electronics,pc,1,2832.57,8963548939296
+A-GRO-0168,Kesar Atta Flour 5kg,Grocery,kg,5,346.43,8964792049586
+A-APP-0169,Nilgiri Silk Saree 1pc,Apparel,pc,1,5219.60,8957405075726
+A-APP-0170,Sunrise Sports Shoes 1pair,Apparel,pair,1,2420.40,8927243440825

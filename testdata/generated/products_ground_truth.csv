@@ -1,0 +1,201 @@
+master_id,supplier_a_sku,supplier_b_item_code,canonical_name,category,unit,pack_size
+M0001,A-ELE-0098,,Nilgiri LED Bulb 9W,Electronics,pc,1
+M0002,A-ELE-0145,SB/00033-Y,Vindhya LED Bulb 9W,Electronics,pc,1
+M0003,A-APP-0149,SB/00133-Z,Kesar Denim Jeans,Apparel,pc,1
+M0004,A-BEA-0084,SB/00117-Z,Sahyadri Hair Oil,Beauty,ml,200
+M0005,A-GRO-0014,,Sunrise Masala Chai,Grocery,g,500
+M0006,A-HOM-0097,SB/00022-Y,Kesar Cotton Bedsheet,Home,pc,1
+M0007,A-ELE-0155,SB/00040-Y,Nilgiri Smart Watch,Electronics,pc,1
+M0008,A-HOM-0119,SB/00005-Z,Sunrise Ceiling Fan,Home,pc,1
+M0009,A-APP-0093,SB/00068-Y,Vindhya Sports Shoes,Apparel,pair,1
+M0010,A-BEA-0144,SB/00043-Y,Konark Sunscreen SPF50,Beauty,ml,100
+M0011,,,Kesar Bluetooth Earbuds,Electronics,pc,1
+M0012,A-HOM-0157,SB/00153-Y,Ganga Cotton Bedsheet,Home,pc,1
+M0013,A-HOM-0049,,Thar Ceiling Fan,Home,pc,1
+M0014,A-HOM-0081,SB/00079-Z,Sahyadri Cotton Bedsheet,Home,pc,1
+M0015,A-HOM-0091,SB/00034-X,Sahyadri Pressure Cooker 5L,Home,pc,1
+M0016,,SB/00019-X,Kesar Masala Chai,Grocery,g,500
+M0017,A-BEA-0083,,Ganga Herbal Shampoo,Beauty,ml,340
+M0018,A-HOM-0121,,Konark Ceiling Fan,Home,pc,1
+M0019,A-HOM-0041,,Nilgiri Cotton Bedsheet,Home,pc,1
+M0020,A-ELE-0016,SB/00084-X,Vindhya Smart Watch,Electronics,pc,1
+M0021,A-APP-0095,SB/00136-X,Sahyadri Cotton Kurta,Apparel,pc,1
+M0022,A-GRO-0031,SB/00044-Z,Sahyadri Atta Flour,Grocery,kg,5
+M0023,A-HOM-0164,SB/00088-Z,Vindhya Cotton Bedsheet,Home,pc,1
+M0024,A-BEA-0107,SB/00011-Y,Sahyadri Hair Oil,Beauty,ml,200
+M0025,A-ELE-0110,SB/00014-X,Konark Bluetooth Earbuds,Electronics,pc,1
+M0026,A-HOM-0126,SB/00017-Y,Kesar Pressure Cooker 5L,Home,pc,1
+M0027,,SB/00135-X,Thar Denim Jeans,Apparel,pc,1
+M0028,A-ELE-0120,SB/00108-X,Kesar USB-C Cable,Electronics,pc,1
+M0029,A-GRO-0046,SB/00149-Y,Konark Masala Chai,Grocery,g,500
+M0030,A-HOM-0007,SB/00046-Y,Sahyadri Cotton Bedsheet,Home,pc,1
+M0031,A-ELE-0033,SB/00118-X,Nilgiri Power Bank 10000mAh,Electronics,pc,1
+M0032,A-ELE-0023,SB/00082-X,Ganga USB-C Cable,Electronics,pc,1
+M0033,A-HOM-0088,SB/00083-Z,Konark Cotton Bedsheet,Home,pc,1
+M0034,A-ELE-0106,SB/00058-Z,Kesar Wi-Fi Router,Electronics,pc,1
+M0035,,,Thar Pressure Cooker 5L,Home,pc,1
+M0036,A-APP-0099,SB/00152-Y,Konark Sports Shoes,Apparel,pair,1
+M0037,A-APP-0024,SB/00131-X,Nilgiri Sports Shoes,Apparel,pair,1
+M0038,A-ELE-0087,SB/00146-Z,Thar Wi-Fi Router,Electronics,pc,1
+M0039,A-BEA-0148,SB/00050-X,Sunrise Ayurvedic Face Cream,Beauty,g,50
+M0040,A-ELE-0020,SB/00144-Z,Sunrise Wi-Fi Router,Electronics,pc,1
+M0041,A-HOM-0026,,Thar Ceiling Fan,Home,pc,1
+M0042,,SB/00143-Z,Vindhya Ceiling Fan,Home,pc,1
+M0043,A-BEA-0034,SB/00066-X,Vindhya Ayurvedic Face Cream,Beauty,g,50
+M0044,A-APP-0073,SB/00002-Z,Ganga Sports Shoes,Apparel,pair,1
+M0045,A-APP-0059,SB/00064-X,Sunrise Denim Jeans,Apparel,pc,1
+M0046,A-APP-0102,SB/00049-X,Sunrise Cotton Kurta,Apparel,pc,1
+M0047,A-ELE-0142,SB/00116-X,Konark Bluetooth Earbuds,Electronics,pc,1
+M0048,A-HOM-0130,SB/00051-Z,Konark Cotton Bedsheet,Home,pc,1
+M0049,A-HOM-0028,SB/00026-X,Vindhya Cotton Bedsheet,Home,pc,1
+M0050,A-BEA-0055,,Kesar Herbal Shampoo,Beauty,ml,340
+M0051,A-GRO-0002,SB/00012-Y,Sunrise Masala Chai,Grocery,g,500
+M0052,A-ELE-0128,SB/00137-Y,Ganga Smart Watch,Electronics,pc,1
+M0053,A-BEA-0105,SB/00140-Y,Nilgiri Herbal Shampoo,Beauty,ml,340
+M0054,A-ELE-0131,SB/00032-Z,Sahyadri Power Bank 10000mAh,Electronics,pc,1
+M0055,,SB/00150-Z,Thar Denim Jeans,Apparel,pc,1
+M0056,A-ELE-0072,SB/00054-X,Vindhya Bluetooth Earbuds,Electronics,pc,1
+M0057,A-GRO-0080,,Kesar Sunflower Oil,Grocery,l,5
+M0058,A-HOM-0162,SB/00086-Y,Konark Steel Tiffin Box,Home,pc,1
+M0059,A-ELE-0167,SB/00016-X,Nilgiri Wi-Fi Router,Electronics,pc,1
+M0060,A-BEA-0037,,Thar Herbal Shampoo,Beauty,ml,340
+M0061,,SB/00091-Z,Thar Power Bank 10000mAh,Electronics,pc,1
+M0062,A-GRO-0168,SB/00003-Y,Kesar Atta Flour,Grocery,kg,5
+M0063,A-ELE-0115,SB/00021-Z,Nilgiri Wi-Fi Router,Electronics,pc,1
+M0064,A-GRO-0021,SB/00042-Y,Konark Basmati Rice,Grocery,kg,5
+M0065,A-GRO-0124,SB/00015-X,Sunrise Cashew Nuts,Grocery,g,500
+M0066,A-APP-0170,SB/00103-Z,Sunrise Sports Shoes,Apparel,pair,1
+M0067,A-GRO-0134,,Sahyadri Cashew Nuts,Grocery,g,500
+M0068,A-GRO-0127,,Sunrise Basmati Rice,Grocery,kg,5
+M0069,,SB/00134-Z,Ganga Silk Saree,Apparel,pc,1
+M0070,A-APP-0139,SB/00074-Z,Sunrise Denim Jeans,Apparel,pc,1
+M0071,A-BEA-0071,,Nilgiri Hair Oil,Beauty,ml,200
+M0072,A-GRO-0146,SB/00059-Y,Konark Cashew Nuts,Grocery,g,500
+M0073,A-GRO-0018,SB/00075-Z,Ganga Basmati Rice,Grocery,kg,5
+M0074,A-HOM-0022,SB/00037-X,Nilgiri Cotton Bedsheet,Home,pc,1
+M0075,,SB/00047-Z,Ganga Ceiling Fan,Home,pc,1
+M0076,A-GRO-0133,SB/00061-X,Konark Atta Flour,Grocery,kg,5
+M0077,A-BEA-0132,,Thar Hair Oil,Beauty,ml,200
+M0078,A-ELE-0004,SB/00156-X,Thar Smart Watch,Electronics,pc,1
+M0079,A-APP-0140,,Thar Cotton Kurta,Apparel,pc,1
+M0080,A-ELE-0057,SB/00018-Z,Nilgiri Power Bank 10000mAh,Electronics,pc,1
+M0081,,SB/00006-X,Konark Masala Chai,Grocery,g,500
+M0082,A-GRO-0166,SB/00081-X,Ganga Basmati Rice,Grocery,kg,5
+M0083,A-GRO-0035,SB/00093-X,Sunrise Toor Dal,Grocery,kg,1
+M0084,A-ELE-0137,SB/00112-Y,Konark Power Bank 10000mAh,Electronics,pc,1
+M0085,A-APP-0085,SB/00036-X,Ganga Cotton Kurta,Apparel,pc,1
+M0086,A-HOM-0112,SB/00039-X,Kesar Steel Tiffin Box,Home,pc,1
+M0087,A-GRO-0067,,Ganga Atta Flour,Grocery,kg,5
+M0088,,,Vindhya Sports Shoes,Apparel,pair,1
+M0089,A-APP-0056,SB/00060-X,Sahyadri Sports Shoes,Apparel,pair,1
+M0090,A-HOM-0069,,Sunrise Pressure Cooker 5L,Home,pc,1
+M0091,A-GRO-0045,,Vindhya Atta Flour,Grocery,kg,5
+M0092,A-APP-0010,SB/00001-Z,Sahyadri Sports Shoes,Apparel,pair,1
+M0093,A-HOM-0013,SB/00020-Z,Sahyadri Cotton Bedsheet,Home,pc,1
+M0094,A-HOM-0094,SB/00008-Y,Vindhya Cotton Bedsheet,Home,pc,1
+M0095,A-GRO-0008,SB/00105-X,Kesar Basmati Rice,Grocery,kg,5
+M0096,A-HOM-0161,SB/00030-X,Thar Cotton Bedsheet,Home,pc,1
+M0097,A-BEA-0043,SB/00154-X,Konark Ayurvedic Face Cream,Beauty,g,50
+M0098,A-BEA-0058,,Sunrise Herbal Shampoo,Beauty,ml,340
+M0099,A-ELE-0101,SB/00048-Z,Vindhya Wi-Fi Router,Electronics,pc,1
+M0100,A-BEA-0100,SB/00089-Z,Nilgiri Herbal Shampoo,Beauty,ml,340
+M0101,,SB/00065-Z,Sahyadri Basmati Rice,Grocery,kg,5
+M0102,A-APP-0109,SB/00122-Y,Sunrise Sports Shoes,Apparel,pair,1
+M0103,A-BEA-0104,SB/00063-Z,Sahyadri Sunscreen SPF50,Beauty,ml,100
+M0104,A-GRO-0025,,Konark Atta Flour,Grocery,kg,5
+M0105,A-ELE-0153,,Kesar USB-C Cable,Electronics,pc,1
+M0106,,SB/00009-Z,Sahyadri Denim Jeans,Apparel,pc,1
+M0107,A-ELE-0036,SB/00107-Z,Vindhya USB-C Cable,Electronics,pc,1
+M0108,A-ELE-0136,SB/00024-X,Sunrise LED Bulb 9W,Electronics,pc,1
+M0109,A-HOM-0040,SB/00095-Y,Kesar Cotton Bedsheet,Home,pc,1
+M0110,A-APP-0009,,Konark Cotton Kurta,Apparel,pc,1
+M0111,A-HOM-0116,SB/00027-Z,Sahyadri Ceiling Fan,Home,pc,1
+M0112,A-ELE-0078,,Sahyadri Smart Watch,Electronics,pc,1
+M0113,,,Thar Bluetooth Earbuds,Electronics,pc,1
+M0114,A-HOM-0019,SB/00076-Y,Nilgiri Pressure Cooker 5L,Home,pc,1
+M0115,A-ELE-0118,SB/00071-Z,Sunrise Bluetooth Earbuds,Electronics,pc,1
+M0116,A-GRO-0129,SB/00004-Y,Vindhya Atta Flour,Grocery,kg,5
+M0117,A-ELE-0108,,Ganga Bluetooth Earbuds,Electronics,pc,1
+M0118,A-GRO-0032,SB/00087-X,Nilgiri Basmati Rice,Grocery,kg,5
+M0119,A-BEA-0092,SB/00073-X,Sunrise Sunscreen SPF50,Beauty,ml,100
+M0120,,,Sahyadri Toor Dal,Grocery,kg,1
+M0121,A-HOM-0006,SB/00106-X,Konark Cotton Bedsheet,Home,pc,1
+M0122,A-ELE-0122,SB/00126-X,Konark Power Bank 10000mAh,Electronics,pc,1
+M0123,A-GRO-0135,SB/00099-Y,Thar Cashew Nuts,Grocery,g,500
+M0124,A-APP-0089,,Sunrise Cotton Kurta,Apparel,pc,1
+M0125,A-GRO-0096,SB/00078-Z,Konark Masala Chai,Grocery,g,500
+M0126,,SB/00094-Z,Kesar Steel Tiffin Box,Home,pc,1
+M0127,A-GRO-0070,SB/00007-X,Sahyadri Toor Dal,Grocery,kg,1
+M0128,A-APP-0042,SB/00013-Y,Thar Silk Saree,Apparel,pc,1
+M0129,A-GRO-0061,SB/00123-Y,Ganga Toor Dal,Grocery,kg,1
+M0130,,,Sahyadri LED Bulb 9W,Electronics,pc,1
+M0131,,SB/00132-Z,Kesar Sports Shoes,Apparel,pair,1
+M0132,A-ELE-0077,SB/00035-Y,Vindhya Wi-Fi Router,Electronics,pc,1
+M0133,A-HOM-0165,SB/00138-Z,Ganga Pressure Cooker 5L,Home,pc,1
+M0134,A-APP-0075,SB/00100-Y,Konark Cotton Kurta,Apparel,pc,1
+M0135,,SB/00160-Y,Vindhya Sunscreen SPF50,Beauty,ml,100
+M0136,A-GRO-0011,,Sahyadri Toor Dal,Grocery,kg,1
+M0137,A-BEA-0147,SB/00101-X,Vindhya Ayurvedic Face Cream,Beauty,g,50
+M0138,A-APP-0138,,Ganga Cotton Kurta,Apparel,pc,1
+M0139,A-APP-0158,SB/00090-Y,Sahyadri Silk Saree,Apparel,pc,1
+M0140,,SB/00110-Y,Vindhya USB-C Cable,Electronics,pc,1
+M0141,A-GRO-0114,,Sahyadri Sunflower Oil,Grocery,l,5
+M0142,A-ELE-0160,SB/00031-X,Thar USB-C Cable,Electronics,pc,1
+M0143,,SB/00147-Y,Konark Sunscreen SPF50,Beauty,ml,100
+M0144,A-GRO-0086,SB/00062-X,Sunrise Basmati Rice,Grocery,kg,5
+M0145,A-ELE-0123,SB/00104-Y,Nilgiri LED Bulb 9W,Electronics,pc,1
+M0146,A-HOM-0052,SB/00097-Y,Kesar Ceiling Fan,Home,pc,1
+M0147,A-GRO-0050,SB/00056-Z,Sahyadri Sunflower Oil,Grocery,l,5
+M0148,A-APP-0169,SB/00028-Y,Nilgiri Silk Saree,Apparel,pc,1
+M0149,,SB/00155-Y,Konark Sports Shoes,Apparel,pair,1
+M0150,A-APP-0103,SB/00139-Y,Vindhya Denim Jeans,Apparel,pc,1
+M0151,,SB/00119-X,Sahyadri LED Bulb 9W,Electronics,pc,1
+M0152,,SB/00025-X,Nilgiri Wi-Fi Router,Electronics,pc,1
+M0153,A-BEA-0090,SB/00129-X,Nilgiri Herbal Shampoo,Beauty,ml,340
+M0154,A-GRO-0074,SB/00159-Z,Ganga Atta Flour,Grocery,kg,5
+M0155,A-GRO-0079,SB/00124-X,Sunrise Toor Dal,Grocery,kg,1
+M0156,A-ELE-0143,SB/00041-X,Kesar Power Bank 10000mAh,Electronics,pc,1
+M0157,A-GRO-0039,SB/00158-Z,Ganga Sunflower Oil,Grocery,l,5
+M0158,A-ELE-0027,SB/00128-Z,Nilgiri LED Bulb 9W,Electronics,pc,1
+M0159,,,Ganga Silk Saree,Apparel,pc,1
+M0160,A-BEA-0003,SB/00125-Z,Ganga Herbal Shampoo,Beauty,ml,340
+M0161,A-HOM-0063,SB/00080-Y,Sunrise Steel Tiffin Box,Home,pc,1
+M0162,A-ELE-0156,SB/00142-X,Konark Power Bank 10000mAh,Electronics,pc,1
+M0163,A-HOM-0054,SB/00085-Z,Sahyadri Ceiling Fan,Home,pc,1
+M0164,,SB/00052-Z,Konark Cotton Kurta,Apparel,pc,1
+M0165,A-BEA-0001,,Sunrise Sunscreen SPF50,Beauty,ml,100
+M0166,A-GRO-0125,SB/00077-Y,Ganga Masala Chai,Grocery,g,500
+M0167,A-HOM-0141,SB/00130-X,Thar Steel Tiffin Box,Home,pc,1
+M0168,,SB/00114-Z,Vindhya Cashew Nuts,Grocery,g,500
+M0169,A-APP-0152,SB/00151-Y,Konark Sports Shoes,Apparel,pair,1
+M0170,A-APP-0159,SB/00023-Z,Thar Silk Saree,Apparel,pc,1
+M0171,A-GRO-0030,SB/00127-Z,Sunrise Sunflower Oil,Grocery,l,5
+M0172,A-GRO-0005,SB/00045-Y,Sunrise Basmati Rice,Grocery,kg,5
+M0173,A-GRO-0117,,Sahyadri Sunflower Oil,Grocery,l,5
+M0174,A-ELE-0012,SB/00070-Z,Vindhya LED Bulb 9W,Electronics,pc,1
+M0175,A-ELE-0151,SB/00053-Y,Sunrise USB-C Cable,Electronics,pc,1
+M0176,A-GRO-0029,SB/00038-Y,Ganga Cashew Nuts,Grocery,g,500
+M0177,A-ELE-0111,SB/00092-X,Sahyadri USB-C Cable,Electronics,pc,1
+M0178,A-GRO-0154,SB/00145-Y,Sahyadri Basmati Rice,Grocery,kg,5
+M0179,A-HOM-0044,SB/00067-Z,Kesar Cotton Bedsheet,Home,pc,1
+M0180,A-ELE-0076,SB/00141-Y,Sunrise USB-C Cable,Electronics,pc,1
+M0181,A-HOM-0017,SB/00115-Z,Kesar Steel Tiffin Box,Home,pc,1
+M0182,A-APP-0163,SB/00157-Z,Konark Denim Jeans,Apparel,pc,1
+M0183,A-GRO-0066,SB/00072-Z,Ganga Cashew Nuts,Grocery,g,500
+M0184,A-ELE-0064,SB/00069-X,Sahyadri Smart Watch,Electronics,pc,1
+M0185,A-BEA-0015,SB/00102-X,Konark Sunscreen SPF50,Beauty,ml,100
+M0186,A-GRO-0047,SB/00057-Y,Thar Sunflower Oil,Grocery,l,5
+M0187,A-ELE-0065,SB/00121-Y,Nilgiri Bluetooth Earbuds,Electronics,pc,1
+M0188,A-HOM-0048,SB/00096-Y,Kesar Pressure Cooker 5L,Home,pc,1
+M0189,,,Konark Sunscreen SPF50,Beauty,ml,100
+M0190,A-HOM-0060,SB/00111-Y,Sunrise Cotton Bedsheet,Home,pc,1
+M0191,A-APP-0062,SB/00055-Y,Nilgiri Denim Jeans,Apparel,pc,1
+M0192,A-APP-0051,SB/00010-X,Kesar Sports Shoes,Apparel,pair,1
+M0193,A-HOM-0038,SB/00098-X,Sahyadri Steel Tiffin Box,Home,pc,1
+M0194,,,Nilgiri Herbal Shampoo,Beauty,ml,340
+M0195,A-APP-0053,SB/00148-Y,Konark Denim Jeans,Apparel,pc,1
+M0196,A-ELE-0068,SB/00029-X,Sahyadri USB-C Cable,Electronics,pc,1
+M0197,A-APP-0150,SB/00109-X,Vindhya Sports Shoes,Apparel,pair,1
+M0198,A-HOM-0113,SB/00120-X,Sunrise Ceiling Fan,Home,pc,1
+M0199,A-APP-0082,,Kesar Cotton Kurta,Apparel,pc,1
+M0200,,SB/00113-Y,Sahyadri Power Bank 10000mAh,Electronics,pc,1

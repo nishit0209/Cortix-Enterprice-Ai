@@ -1,0 +1,124 @@
+{
+  "anchor": "2026-11-17",
+  "files": {
+    "adversarial/formula_injection.csv": {
+      "bytes": 520,
+      "sha256": "ca3defc33c85a2ab5608d01dcabe6d760e9cac743dd25121c67057c35f2ad601"
+    },
+    "adversarial/huge_column.csv": {
+      "bytes": 1048618,
+      "sha256": "dcca8dadf2c7f2b059cddca734be52fea549593f6ea35a44c4a771ad424d1cdb"
+    },
+    "adversarial/malformed.csv": {
+      "bytes": 165,
+      "sha256": "4bff61df26038606ebf94c21ee9468cc78d6880388f06768d68ba2ad89701045"
+    },
+    "adversarial/mz_as.csv": {
+      "bytes": 154,
+      "sha256": "bdacfe7090be389f43595c298594a2b9e1609588659bba30d84853c10642e920"
+    },
+    "adversarial/png_as.csv": {
+      "bytes": 264,
+      "sha256": "f9973fdc578ea5f6fc8d84f298f8b3ee30326f72525aadb89c8938f25e4d0128"
+    },
+    "adversarial/text_as.xlsx": {
+      "bytes": 24,
+      "sha256": "086ae8abc1a027f403b3f5bbc9e091513c5ecff83693705fe8d792109ce45469"
+    },
+    "adversarial/wide_columns.csv": {
+      "bytes": 26890,
+      "sha256": "97896fe6c362b29d4c0e385fbfda72114b3d1bebb3c91ce230bdae888888f731"
+    },
+    "adversarial/zip_bomb.xlsx": {
+      "bytes": 230510,
+      "sha256": "b0e6710155d27b65a623b666682607f6ac9e10d7209a3806cad6a0a0818fa358"
+    },
+    "churn.csv": {
+      "bytes": 131555,
+      "sha256": "57d2b5ddca1646b5ebcb43db23fd0b226990c7b3f84bdc16d4b2477ec495f063"
+    },
+    "churn_meta.json": {
+      "bytes": 420,
+      "sha256": "094eafc670ae0a4f7b2a5fe923821071272b697c01aa7907e5dd343cf497f1ac"
+    },
+    "customers_crm.csv": {
+      "bytes": 45501,
+      "sha256": "60e531972ab220b1fa44fd196164c5e2f7981ba12344c2a42fd5dc471c5ca49b"
+    },
+    "customers_ground_truth.csv": {
+      "bytes": 13974,
+      "sha256": "2ae452ae84111a2700de9d3354a8d01fc7fa11f34bfe78bf7fa8c5c57300ad1c"
+    },
+    "customers_web.csv": {
+      "bytes": 41532,
+      "sha256": "19f7a5c5e0ccadac6c0ef2a926a72b4be90c1576852e43a9fdab792823a4c912"
+    },
+    "products_ground_truth.csv": {
+      "bytes": 11945,
+      "sha256": "86aeb90a8d03a5680375863c2babf1559ee05bc488f33951c2191f6979281cb0"
+    },
+    "products_supplier_a.csv": {
+      "bytes": 12215,
+      "sha256": "0a9006e05495e14fe1fc1dad94ad9784804f7b5f8f968c4707a2c9502dd9d712"
+    },
+    "products_supplier_b.csv": {
+      "bytes": 10189,
+      "sha256": "5aaafc9763b887531e882c350e873f2a875d9b2db5f529ac28954e90de5dee84"
+    },
+    "sales.csv": {
+      "bytes": 527922,
+      "sha256": "6b56c35f1eff41a984cc8e0546de47288aaf15d2758aee47dac07fdf408fc02c"
+    }
+  },
+  "seed": 20261117,
+  "stats": {
+    "adversarial": {
+      "formula_payloads": 10,
+      "zip_bomb": {
+        "compressed_bytes": 230510,
+        "ratio": 292.6,
+        "uncompressed_bytes": 67438125
+      }
+    },
+    "churn": {
+      "coefficients": {
+        "days_since_login": 0.035,
+        "intercept": -1.2,
+        "monthly_spend_k": -0.18,
+        "nps": -0.09,
+        "plan_basic": 0.55,
+        "support_tickets": 0.42,
+        "tenure_months": -0.045
+      },
+      "model": "logistic",
+      "note": "oracle_auc uses the TRUE probabilities: a trained model should approach but not exceed it",
+      "oracle_auc": 0.8132,
+      "positive_rate": 0.2623,
+      "rows": 3000
+    },
+    "customers": {
+      "crm_rows": 500,
+      "people": 600,
+      "true_matches": 350,
+      "web_rows": 450
+    },
+    "products": {
+      "masters": 200,
+      "supplier_a": 170,
+      "supplier_b": 160,
+      "true_matches": 139
+    },
+    "sales": {
+      "anomaly_week": [
+        "2026-05-10",
+        "2026-05-16"
+      ],
+      "currency": "INR",
+      "date_max": "2026-11-17",
+      "date_min": "2024-12-01",
+      "exact_duplicates": 20,
+      "rows": 5020,
+      "unique_orders": 5000
+    }
+  }
+}
