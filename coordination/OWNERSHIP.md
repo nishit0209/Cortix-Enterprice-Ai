@@ -38,6 +38,7 @@
 | 30 | `frontend/**` | frontend |
 | 31 | `coordination/handoffs/*/backend.md` | backend |
 | 32 | `coordination/handoffs/*/data_engineering.md` | data_engineering |
+| 32b | `coordination/handoffs/*/data_pipelines.md` | data_engineering |
 | 33 | `coordination/handoffs/*/ai_ml.md` | ai_ml |
 | 34 | `coordination/handoffs/*/frontend.md` | frontend |
 | 35 | `coordination/handoffs/*/qa_security.md` | qa_security |
