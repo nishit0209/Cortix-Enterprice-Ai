@@ -59,7 +59,7 @@ def org_url(org, path: str = "") -> str:
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache():
+def clear_cache_between_tests():  # public name: `import *` must re-export it
     """Throttle counters and login lockouts live in the cache: isolate every test."""
     cache.clear()
     yield
