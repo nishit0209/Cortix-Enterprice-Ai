@@ -1,0 +1,2 @@
+# Generated fixtures are byte-exact (MANIFEST.json sha256): never normalise line endings.
+generated/** -text -diff

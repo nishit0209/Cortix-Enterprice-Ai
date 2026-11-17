@@ -1,0 +1,16 @@
+{
+  "model": "logistic",
+  "coefficients": {
+    "intercept": -1.2,
+    "tenure_months": -0.045,
+    "monthly_spend_k": -0.18,
+    "support_tickets": 0.42,
+    "days_since_login": 0.035,
+    "plan_basic": 0.55,
+    "nps": -0.09
+  },
+  "rows": 3000,
+  "positive_rate": 0.2623,
+  "oracle_auc": 0.8132,
+  "note": "oracle_auc uses the TRUE probabilities: a trained model should approach but not exceed it"
+}
