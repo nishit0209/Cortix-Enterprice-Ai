@@ -424,12 +424,16 @@ def execute_readonly_sql(
         rows: list[tuple] = []
         truncated = False
         nbytes = 0
+        deadline = time.monotonic() + timeout_ms / 1000
         with conn.cursor(name=f"nexora_q_{uuid4().hex[:16]}") as qc:
             qc.itersize = max(1, min(row_cap + 1, 2000))
             qc.execute(sql_text, params or None)
             description = qc.description or []
             columns = tuple(ColumnMeta(name=d.name, type=_type_name(conn, d.type_code)) for d in description)
             while not truncated:
+                # statement_timeout applies per FETCH; enforce the overall budget across fetches too
+                if time.monotonic() > deadline:
+                    raise WarehouseQueryTimeout()
                 batch = qc.fetchmany(max(1, min(1000, row_cap + 1 - len(rows))))
                 if not batch:
                     break
@@ -469,5 +473,6 @@ def execute_readonly_sql(
 def preview_rows(org_id: UUID | str, table: str, column_names: Sequence[str], *, limit: int = 100) -> ResultSet:
     """First `limit` rows of a dataset version table, read through the reader role."""
     cols = ", ".join(f'"{naming.check_ident(c)}"' for c in column_names) or "*"
-    statement = f'SELECT {cols} FROM "{naming.check_ident(table)}" LIMIT %s'
+    # identifiers are validated by check_ident (lower-case [a-z0-9_] only); the limit is a bound parameter
+    statement = f'SELECT {cols} FROM "{naming.check_ident(table)}" LIMIT %s'  # noqa: S608
     return execute_readonly_sql(org_id, statement, [int(limit)], row_cap=int(limit))

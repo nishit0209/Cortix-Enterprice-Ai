@@ -182,13 +182,14 @@ def compute(
 
 
 def persist(version, computation: QualityComputation, *, run_id=None) -> QualityReport:
+    org_id = require_org_id()  # bulk_create bypasses TenantModel.save(): set the org explicitly
     results = []
     for spec, outcome in computation.outcomes:
         if not spec.id:
             continue
         results.append(
             QualityResult(
-                rule_id=spec.id, dataset_version_id=version.id, run_id=run_id, passed=outcome.passed,
+                org_id=org_id, rule_id=spec.id, dataset_version_id=version.id, run_id=run_id, passed=outcome.passed,
                 evaluated_count=outcome.evaluated_count, failed_count=outcome.failed_count,
                 sample_failures=outcome.sample_failures or None, error=outcome.error[:300],
             )

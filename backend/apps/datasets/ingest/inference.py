@@ -21,7 +21,8 @@ BOOL_TRUE = ["true", "t", "yes", "y"]
 BOOL_FALSE = ["false", "f", "no", "n"]
 
 INT_RE = r"^[+-]?(?:0|[1-9][0-9]{0,17})$"
-CURRENCY_TOKEN_RE = r"(?i)(?:₹|\brs\.?|\binr\b|\busd\b|\beur\b|\bgbp\b|\$|€|£)"
+# currency symbols are written as escapes (U+20B9 rupee, U+20AC euro, U+00A3 pound) so the regex is encoding-proof
+CURRENCY_SYMBOL_RE = r"(?i)(?:₹|\brs\.?|\binr\b|\busd\b|\beur\b|\bgbp\b|\$|€|£)"
 CURRENCY_DETECT_RE = r"(?i)(?:₹|\brs\.?\s*\d|\binr\b|\busd\b|\beur\b|\bgbp\b|\$|€|£)"
 GROUPED_RE = r"^[-+]?(?:\d{1,3}(?:,\d{3})+|\d{1,2}(?:,\d{2})+,\d{3})(?:\.\d+)?$"
 PERCENT_RE = r"%\s*$"
@@ -100,7 +101,7 @@ def int_expr(e: pl.Expr) -> pl.Expr:
 
 def numeric_expr(e: pl.Expr) -> pl.Expr:
     x = e.str.replace(r"^\((.*)\)$", "-${1}")             # accounting negatives: (1,234.50)
-    x = x.str.replace_all(CURRENCY_TOKEN_RE, "")
+    x = x.str.replace_all(CURRENCY_SYMBOL_RE, "")
     x = x.str.replace_all(r"\s+", "")
     x = x.str.replace(r"%$", "")
     x = x.str.replace(r"^-\+|^\+-", "-")
@@ -194,8 +195,9 @@ def infer_plan(cleaned_sample: pl.Series, *, is_json: bool = False, threshold: f
         return TypePlan("text")
     if _ratio(_eval(cleaned_sample, bool_expr(pl.col("v"))), total) >= threshold:
         return TypePlan("boolean")
-    # leading-zero codes ("007", "0987654321") are identifiers, never numbers
-    leading_zero = _eval(cleaned_sample, pl.col("v").str.contains(r"^0\d")).sum()
+    # leading-zero codes ("007", "0987654321") and >15-digit numbers (card/account numbers, which would lose
+    # precision as floats) are identifiers, never numbers
+    leading_zero = _eval(cleaned_sample, pl.col("v").str.contains(r"^0\d|^[+-]?\d{16,}$")).sum()
     if leading_zero / total <= 1 - threshold:
         if _ratio(_eval(cleaned_sample, int_expr(pl.col("v"))), total) >= threshold:
             return TypePlan("bigint")

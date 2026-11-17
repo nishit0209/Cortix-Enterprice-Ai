@@ -38,7 +38,13 @@ from apps.warehouse import services as warehouse
 from apps.warehouse.exceptions import WarehouseError
 from apps.warehouse.serialization import rows_to_jsonable
 
-from .exceptions import AttestationRequired, DatasetNotReady, StorageUnavailable, UploadRejected, UploadTooLarge
+from .exceptions import (
+    AttestationRequired,
+    DatasetNotReady,
+    StorageUnavailable,
+    UploadRejected,
+    UploadTooLarge,
+)
 from .ingest import filetypes, inference, parsing
 from .ingest.analyze import AnalyzedTable, analyze
 from .ingest.errors import IngestError
@@ -116,12 +122,16 @@ def unique_slug(name: str) -> str:
 
 
 def get_dataset(dataset_id, *, include_deleted: bool = False) -> Dataset:
+    try:
+        dataset_uuid = dataset_id if isinstance(dataset_id, UUID) else UUID(str(dataset_id))
+    except ValueError as exc:
+        raise NotFound() from exc
     qs = Dataset.objects.select_related("current_version")
     if not include_deleted:
         qs = qs.exclude(status="deleted")
     try:
-        return qs.get(id=dataset_id)
-    except (Dataset.DoesNotExist, ValueError, ValidationError) as exc:
+        return qs.get(id=dataset_uuid)
+    except Dataset.DoesNotExist as exc:
         raise NotFound() from exc
 
 

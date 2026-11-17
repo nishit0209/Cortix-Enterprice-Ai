@@ -14,6 +14,7 @@ import codecs
 import csv
 import datetime as dt
 import json
+import logging
 import math
 import os
 import re
@@ -26,6 +27,8 @@ import polars as pl
 from django.conf import settings
 
 from .errors import IngestError
+
+log = logging.getLogger(__name__)
 
 ENCODING_SAMPLE_BYTES = 1024 * 1024
 SNIFF_CHARS = 64 * 1024
@@ -82,11 +85,20 @@ def detect_encoding(sample: bytes) -> tuple[str, int]:
     try:
         from charset_normalizer import from_bytes
 
-        best = from_bytes(sample).best()
+        matches = from_bytes(sample)
+        best = matches.best()
         if best is not None and best.encoding:
+            # Single-byte Latin code pages often tie; prefer the far more common Windows-1252 on a tie.
+            for m in matches:
+                if (
+                    "cp1252" in (m.could_be_from_charset or [])
+                    and abs(m.chaos - best.chaos) < 0.01
+                    and m.coherence >= best.coherence - 0.01
+                ):
+                    return "cp1252", 0
             return codecs.lookup(best.encoding).name, 0
     except Exception:  # noqa: BLE001 - detection is best-effort; fall back to UTF-8 with replacement
-        pass
+        log.debug("charset detection failed; falling back to UTF-8", exc_info=True)
     return "utf-8", 0
 
 
@@ -337,8 +349,8 @@ def parse_excel(path: str, options: ParseOptions | None = None) -> ParsedTable:
     finally:
         try:
             wb.close()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:  # noqa: BLE001 - closing a broken workbook must not mask the real result
+            log.debug("closing the workbook failed", exc_info=True)
     if chosen is None:
         raise IngestError("upload_empty", "The workbook has no non-empty sheet.")
     width = max(len(r) for r in rows)
@@ -465,7 +477,7 @@ def parse_json(path: str, kind: str = "json") -> ParsedTable:
                 nested.add(key)
             col.append(value)
         n += 1
-        for key, col in columns.items():
+        for col in columns.values():
             if len(col) < n:
                 col.append(None)
         if n > max_rows():

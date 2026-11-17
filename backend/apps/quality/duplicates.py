@@ -2,7 +2,8 @@
 
 Fuzzy clustering works on DISTINCT values of a text column: values are normalized (case, whitespace,
 punctuation), blocked by a normalized prefix so comparisons stay near O(n), compared with rapidfuzz
-token_sort_ratio inside each block, and merged with union-find. Values of PII columns are never shown.
+token_sort_ratio (>= 90) or a length-aware Levenshtein typo rule inside each block, and merged with union-find.
+Values of PII columns are never shown.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Any
 
 import polars as pl
 from rapidfuzz import fuzz, process
+from rapidfuzz.distance import Levenshtein
 
 FUZZY_THRESHOLD = 90
 MAX_DISTINCT = 20_000
@@ -49,6 +51,14 @@ class _UnionFind:
         ra, rb = self.find(a), self.find(b)
         if ra != rb:
             self.parent[max(ra, rb)] = min(ra, rb)
+
+
+def _typo_match(a: str, b: str, distance: int) -> bool:
+    """Short values: token ratios are too coarse, so allow 1 edit for 5-8 chars and 2 edits for 9+ chars."""
+    shortest = min(len(a), len(b))
+    if shortest < 5:
+        return False
+    return distance <= (1 if shortest < 9 else 2)
 
 
 def _blocks(norms: Sequence[str], prefix: int = 2) -> dict[str, list[int]]:
@@ -92,9 +102,10 @@ def fuzzy_clusters(series: pl.Series, *, threshold: int = FUZZY_THRESHOLD, mask_
                 continue
             texts = [rep_norms[m] for m in block]
             scores = process.cdist(texts, texts, scorer=fuzz.token_sort_ratio, score_cutoff=threshold, workers=1)
+            edits = process.cdist(texts, texts, scorer=Levenshtein.distance, score_cutoff=2, workers=1)
             for a in range(len(block)):
                 for b in range(a + 1, len(block)):
-                    if scores[a][b] >= threshold:
+                    if scores[a][b] >= threshold or _typo_match(texts[a], texts[b], int(edits[a][b])):
                         uf.union(reps[block[a]][1], reps[block[b]][1])
     groups: dict[int, list[int]] = defaultdict(list)
     for i in range(len(values)):

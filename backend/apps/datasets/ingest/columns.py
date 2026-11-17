@@ -28,6 +28,8 @@ def to_snake(label: str) -> str:
 
 
 def _truncate(name: str, limit: int = MAX_LEN) -> str:
+    if len(name) <= limit:
+        return name
     return name[:limit].rstrip("_") or name[:limit]
 
 

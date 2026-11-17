@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -34,4 +34,7 @@ class LineageView(TenantAPIView):
             errors["depth"] = ["Must be an integer."]
         if errors:
             raise ValidationError(errors)
-        return Response(services.graph(node_type, node_id, depth=depth))
+        result = services.graph(node_type, node_id, depth=depth)
+        if not result["nodes"]:
+            raise NotFound()  # unknown node or another org's node: 404, never 403
+        return Response(result)

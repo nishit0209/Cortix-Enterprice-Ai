@@ -66,6 +66,7 @@ def _rate(values: Sequence[str], pred) -> float:
 # ---------------------------------------------------------------------------------------------------
 _PII_NAME_RULES: list[tuple[str, set[str] | None, set[str]]] = [
     # (pii_type, exact-name set, token set)
+    ("ip_address", {"ip", "ip_address", "ipaddress", "client_ip", "ip_addr"}, set()),
     ("email", {"email", "e_mail", "email_address", "mail", "email_id"}, {"email"}),
     ("phone", {"phone", "mobile", "cell", "telephone", "tel", "whatsapp", "contact_no", "contact_number"},
      {"phone", "mobile", "telephone", "whatsapp", "msisdn"}),
@@ -77,7 +78,6 @@ _PII_NAME_RULES: list[tuple[str, set[str] | None, set[str]]] = [
                  "zip_code", "postal_code", "postcode"}, {"address", "street", "pincode", "zipcode", "postcode"}),
     ("financial", {"card_number", "credit_card", "debit_card", "account_number", "account_no", "bank_account",
                    "iban", "upi_id", "cvv"}, {"iban", "cvv"}),
-    ("ip_address", {"ip", "ip_address", "ipaddress", "client_ip"}, set()),
 ]
 _PERSON_QUALIFIERS = {"first", "last", "full", "middle", "given", "sur", "father", "mother", "customer", "employee",
                       "person", "patient", "contact", "user", "owner", "member", "student", "guardian", "spouse"}
