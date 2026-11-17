@@ -1,3 +1,7 @@
-from django.urls import path  # noqa: F401
+from django.urls import path
 
-urlpatterns: list = []
+from .views import LineageView
+
+urlpatterns: list = [
+    path("lineage", LineageView.as_view(), name="lineage-graph"),
+]
