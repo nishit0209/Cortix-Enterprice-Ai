@@ -1,0 +1,33 @@
+{
+	auto_https off
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+
+	# API + SSE (no buffering for event streams)
+	handle /api/* {
+		reverse_proxy {$API_UPSTREAM:api:8000} {
+			flush_interval -1
+		}
+	}
+	handle /healthz {
+		reverse_proxy {$API_UPSTREAM:api:8000}
+	}
+	handle /readyz {
+		reverse_proxy {$API_UPSTREAM:api:8000}
+	}
+
+	# Web UI (Next.js). Dev default: Next dev server on the host.
+	handle {
+		reverse_proxy {$WEB_UPSTREAM:host.docker.internal:3000}
+	}
+}

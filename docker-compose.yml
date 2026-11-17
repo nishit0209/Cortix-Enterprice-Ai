@@ -1,0 +1,125 @@
+# NEXORA Enterprise AI — local development stack
+#   docker compose up -d                      # infra + api + worker + beat + caddy
+#   docker compose --profile web up -d        # also run the Next.js production build in a container
+# UI:  http://localhost:8080  (Caddy → Next.js on host :3000 by default, API → api:8000)
+name: nexora
+
+x-backend-env: &backend-env
+  DJANGO_SETTINGS_MODULE: nexora.settings.dev
+  DATABASE_URL_APP: postgres://nexora_app:${NEXORA_APP_PASSWORD:-nexora_app_dev}@postgres:5432/nexora_app
+  DATABASE_URL_MIGRATOR: postgres://nexora_migrator:${NEXORA_MIGRATOR_PASSWORD:-nexora_migrator_dev}@postgres:5432/nexora_app
+  DATABASE_URL_OPS: postgres://nexora_ops:${NEXORA_OPS_PASSWORD:-nexora_ops_dev}@postgres:5432/nexora_app
+  WH_DATABASE_URL_LOADER: postgres://wh_loader:${WH_LOADER_PASSWORD:-wh_loader_dev}@postgres:5432/nexora_wh
+  WH_DATABASE_URL_EXECUTOR: postgres://wh_executor:${WH_LOADER_PASSWORD:-wh_loader_dev}@postgres:5432/nexora_wh
+  REDIS_URL: redis://redis:6379/0
+  S3_ENDPOINT_URL: http://minio:9000
+  EMAIL_HOST: mailpit
+  EMAIL_PORT: "1025"
+  HF_HOME: /models
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-nexora_super_dev}
+      NEXORA_APP_PASSWORD: ${NEXORA_APP_PASSWORD:-nexora_app_dev}
+      NEXORA_MIGRATOR_PASSWORD: ${NEXORA_MIGRATOR_PASSWORD:-nexora_migrator_dev}
+      NEXORA_OPS_PASSWORD: ${NEXORA_OPS_PASSWORD:-nexora_ops_dev}
+      WH_LOADER_PASSWORD: ${WH_LOADER_PASSWORD:-wh_loader_dev}
+    ports: ["5433:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexora_app"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6380:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-nexora}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-nexora_minio_dev}
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["8025:8025", "1025:1025"]
+
+  migrate:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment:
+      <<: *backend-env
+      DJANGO_DB_ROLE: migrator
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment: *backend-env
+    command: ["uvicorn", "nexora.asgi:application", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/backend"]
+    ports: ["8000:8000"]
+    volumes: ["./backend:/app/backend", "models:/models"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  worker:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment: *backend-env
+    command: ["celery", "-A", "nexora", "worker", "-l", "info", "-Q", "default,ingest,query_wh,query_ext,llm,ml", "--concurrency", "4"]
+    volumes: ["./backend:/app/backend", "models:/models"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  beat:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment: *backend-env
+    command: ["celery", "-A", "nexora", "beat", "-l", "info", "-S", "django_celery_beat.schedulers:DatabaseScheduler"]
+    volumes: ["./backend:/app/backend"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  caddy:
+    image: caddy:2.9-alpine
+    ports: ["8080:8080"]
+    environment:
+      API_UPSTREAM: api:8000
+      WEB_UPSTREAM: ${WEB_UPSTREAM:-host.docker.internal:3000}
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: ["./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro"]
+    depends_on: [api]
+
+  web:
+    profiles: ["web"]
+    build: { context: ./frontend }
+    environment:
+      API_INTERNAL_URL: http://api:8000
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata: {}
+  redisdata: {}
+  miniodata: {}
+  models: {}

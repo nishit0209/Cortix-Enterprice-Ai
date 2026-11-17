@@ -1,0 +1,59 @@
+[project]
+name = "nexora-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "TID"]
+ignore = ["S101", "S311", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "B"]
+"tests/**" = ["S", "B"]
+"testing/**" = ["S"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"openai".msg = "Gemini is the only permitted LLM provider."
+"anthropic".msg = "Gemini is the only permitted LLM provider."
+"groq".msg = "Gemini is the only permitted LLM provider."
+"google.generativeai".msg = "Deprecated SDK. Use google-genai via apps.ai.gemini only."
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "nexora.settings.test"
+python_files = ["test_*.py", "tests.py"]
+addopts = "-q --strict-markers --reuse-db"
+markers = [
+  "ac(id): acceptance-criterion id, e.g. P2-AC2",
+  "slow: long-running test",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.importlinter]
+root_package = "apps"
+
+[[tool.importlinter.contracts]]
+name = "Only apps.ai talks to Gemini"
+type = "forbidden"
+source_modules = [
+  "apps.core", "apps.accounts", "apps.orgs", "apps.governance", "apps.bi", "apps.platform_admin",
+  "apps.automation", "apps.connectors", "apps.datasets", "apps.pipelines", "apps.quality",
+  "apps.lineage", "apps.warehouse", "apps.semantic", "apps.sqlguard", "apps.nl2sql",
+  "apps.documents", "apps.ml", "apps.customers", "apps.products",
+]
+forbidden_modules = ["google.genai"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "core is the foundation layer"
+type = "forbidden"
+source_modules = ["apps.core"]
+forbidden_modules = [
+  "apps.governance", "apps.bi", "apps.automation", "apps.connectors", "apps.datasets", "apps.pipelines",
+  "apps.quality", "apps.lineage", "apps.warehouse", "apps.semantic", "apps.sqlguard", "apps.nl2sql",
+  "apps.documents", "apps.ml", "apps.customers", "apps.products", "apps.ai",
+]

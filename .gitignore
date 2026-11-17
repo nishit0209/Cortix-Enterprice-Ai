@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Local data
+media/
+backend/staticfiles/
+*.sqlite3
+.models_cache/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Claude local settings
+.claude/settings.local.json
