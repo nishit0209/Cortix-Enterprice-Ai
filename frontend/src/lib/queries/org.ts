@@ -6,6 +6,7 @@ import type {
   ActivityEvent,
   AiPolicyState,
   AiStatus,
+  AiUsage,
   AuditEvent,
   ConsentText,
   DataStats,
@@ -33,6 +34,7 @@ export const orgKeys = {
   audit: (org: string, filters: Record<string, string>) => ["org", org, "audit", filters] as const,
   dataStats: (org: string) => ["org", org, "data-stats"] as const,
   insights: (org: string) => ["org", org, "insights"] as const,
+  aiUsage: (org: string, days: number) => ["org", org, "ai-usage", days] as const,
 };
 
 /* ---------------- org ---------------- */
@@ -223,5 +225,15 @@ export function useInsights(org: string) {
     queryKey: orgKeys.insights(org),
     retry: 1,
     queryFn: async ({ signal }) => unwrapList(await api.get<Insight[] | Paginated<Insight>>(`${o(org)}/insights`, { signal })),
+  });
+}
+
+export function useAiUsage(org: string, days: number, enabled = true) {
+  return useQuery({
+    queryKey: orgKeys.aiUsage(org, days),
+    enabled,
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: ({ signal }) => api.get<AiUsage>(`${o(org)}/ai/usage`, { signal, query: { days } }),
   });
 }

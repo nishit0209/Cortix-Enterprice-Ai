@@ -6,6 +6,7 @@ import {
   Activity,
   ArrowRight,
   Bot,
+  History,
   Database,
   Gauge,
   Lightbulb,
@@ -26,10 +27,14 @@ import { Badge } from "@/components/ui/badge";
 import { FeatureStatusBadge, POLICY_LABELS } from "@/components/ui/status";
 import { ActivityList } from "@/components/activity/activity-list";
 import { RowsByDatasetChart, RunsDonut } from "@/components/dashboard/charts";
-import { useActivity, useAiStatus, useDataStats, useInsights } from "@/lib/queries/org";
+import { useActivity, useAiStatus, useAiUsage, useDataStats, useInsights } from "@/lib/queries/org";
+import { useQueryHistory } from "@/lib/queries/bi";
+import { datasetGrowth, dailyRequests, pctChange } from "@/lib/dashboard";
+import { SourceBadge } from "@/components/ask/sql-code";
+import { VerdictBadge } from "@/components/ask/query-history";
 import { useDatasets } from "@/lib/queries/datasets";
 import { isUnavailableEndpoint } from "@/lib/errors";
-import { formatBytes, formatNumber, toPercentScore } from "@/lib/utils";
+import { formatBytes, formatNumber, formatRelative, toPercentScore } from "@/lib/utils";
 import { scoreTone } from "@/components/ui/score-ring";
 import { aiHealth } from "@/components/shell/ai-status-pill";
 
@@ -59,6 +64,9 @@ export default function DashboardPage() {
   const datasets = useDatasets(slug);
   const activity = useActivity(slug);
   const insights = useInsights(slug);
+  const canUsage = can("org.settings.edit") || can("audit.view");
+  const usage = useAiUsage(slug, 14, canUsage);
+  const history = useQueryHistory(slug, { limit: 6 }, can("bi.chat"));
   const [hello, setHello] = React.useState("Welcome");
   React.useEffect(() => setHello(greeting()), []);
 
@@ -67,6 +75,15 @@ export default function DashboardPage() {
   const avgQuality = toPercentScore(s?.avg_quality);
   const budget = ai.data?.org_budget;
   const health = aiHealth(ai.data);
+
+  // KPI deltas come only from real data (previous-period stats when the API sends them, dataset creation dates,
+  // daily AI usage). Nothing is shown when there is nothing to compare against.
+  const growth = React.useMemo(() => datasetGrowth(datasets.data ?? []), [datasets.data]);
+  const datasetsDelta = s?.previous?.datasets !== undefined ? pctChange(s.datasets, s.previous.datasets) : growth.pct;
+  const qualityDelta = s?.previous ? pctChange(toPercentScore(s.avg_quality), toPercentScore(s.previous.avg_quality)) : null;
+  const pipelinesDelta = s?.previous ? pctChange(s.pipelines_active, s.previous.pipelines_active) : null;
+  const aiDaily = React.useMemo(() => dailyRequests(usage.data), [usage.data]);
+  const aiDelta = aiDaily.length >= 2 ? pctChange(aiDaily[aiDaily.length - 1].requests, aiDaily[aiDaily.length - 2].requests) : null;
 
   const rowsByDataset = React.useMemo(
     () =>
@@ -115,6 +132,7 @@ export default function DashboardPage() {
           loading={stats.isLoading}
           value={s ? formatNumber(s.datasets) : "—"}
           hint={statHint(s ? `${formatNumber(s.rows_total, { compact: true })} rows · ${formatBytes(s.storage_bytes)}` : null)}
+          delta={datasetsDelta !== null ? { value: datasetsDelta, label: s?.previous ? "vs last period" : "last 7 days" } : null}
           href={`/o/${slug}/data/datasets`}
         />
         <StatCard
@@ -123,6 +141,8 @@ export default function DashboardPage() {
           accent="teal"
           loading={stats.isLoading}
           value={s ? formatNumber(s.pipelines_active) : "—"}
+          delta={pipelinesDelta !== null ? { value: pipelinesDelta, label: "vs last period" } : null}
+          href={`/o/${slug}/data/pipelines`}
           hint={statHint(
             s ? `${formatNumber(s.runs_7d.succeeded + s.runs_7d.failed)} runs in the last 7 days` : null,
           )}
@@ -133,12 +153,16 @@ export default function DashboardPage() {
           accent={avgQuality === null ? "accent" : scoreTone(avgQuality) === "success" ? "success" : "warning"}
           loading={stats.isLoading}
           value={avgQuality === null ? "—" : `${Math.round(avgQuality)}`}
+          delta={qualityDelta !== null ? { value: qualityDelta, label: "vs last period" } : null}
+          href={`/o/${slug}/data/quality`}
           hint={statHint(avgQuality === null ? "No profiled datasets yet" : "Score out of 100 across profiled datasets")}
         />
         <StatCard
           label="AI usage today"
           icon={<Bot />}
           loading={ai.isLoading}
+          delta={aiDelta !== null ? { value: aiDelta, label: "vs yesterday", positiveIsGood: false } : null}
+          sparkline={aiDaily.length > 1 ? aiDaily.map((d) => d.requests) : null}
           value={
             budget ? (
               <>
@@ -307,6 +331,7 @@ export default function DashboardPage() {
             policy={ai.data?.policy ?? org?.ai_data_policy}
             slug={slug}
           />
+          {can("bi.chat") && <RecentQuestions slug={slug} q={history} />}
           <Card>
             <CardHeader title="Quick actions" />
             <CardContent className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
@@ -316,13 +341,12 @@ export default function DashboardPage() {
                 label="Upload data"
                 disabled={!can("datasets.create")}
               />
-              <QuickAction href={`/o/${slug}/ask`} icon={<Sparkles />} label="Ask AI" planned disabled={!can("bi.chat")} />
+              <QuickAction href={`/o/${slug}/ask`} icon={<Sparkles />} label="Ask AI" disabled={!can("bi.chat")} />
               <QuickAction
-                href={`/o/${slug}/data/pipelines`}
+                href={`/o/${slug}/data/pipelines?new=1`}
                 icon={<Plus />}
                 label="New pipeline"
-                planned
-                disabled={!can("pipelines.view")}
+                disabled={!can("pipelines.manage")}
               />
             </CardContent>
           </Card>
@@ -442,13 +466,80 @@ function AiInsightsPanel({
                 </div>
                 <p className="mt-1.5 text-sm text-fg-muted">{ins.text}</p>
                 {ins.dataset_id && (
-                  <Link
-                    href={`/o/${slug}/data/datasets/${ins.dataset_id}`}
-                    className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
-                  >
-                    Open dataset <ArrowRight className="size-3" />
-                  </Link>
+                  <span className="mt-1.5 flex flex-wrap gap-3">
+                    <Link
+                      href={`/o/${slug}/data/datasets/${ins.dataset_id}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
+                    >
+                      Open dataset <ArrowRight className="size-3" />
+                    </Link>
+                    <Link
+                      href={`/o/${slug}/ask?dataset=${ins.dataset_id}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
+                    >
+                      Ask about it <Sparkles className="size-3" />
+                    </Link>
+                  </span>
                 )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RecentQuestions({ slug, q }: { slug: string; q: ReturnType<typeof useQueryHistory> }) {
+  return (
+    <Card>
+      <CardHeader
+        icon={<History />}
+        title="Recent questions"
+        description="From the guarded query audit log"
+        actions={
+          <Button variant="ghost" size="sm" asChild>
+            <Link href={`/o/${slug}/ask/history`}>
+              All <ArrowRight />
+            </Link>
+          </Button>
+        }
+      />
+      <CardContent>
+        {q.isLoading ? (
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-9 w-full" />
+            ))}
+          </div>
+        ) : q.isError ? (
+          isUnavailableEndpoint(q.error) ? (
+            <Unavailable what="Query history" />
+          ) : (
+            <ErrorState compact error={q.error} onRetry={() => void q.refetch()} />
+          )
+        ) : (q.data ?? []).length === 0 ? (
+          <EmptyState
+            compact
+            icon={<Sparkles />}
+            title="No questions yet"
+            description="Ask your data a question to see it here."
+            action={
+              <Button size="sm" variant="secondary" asChild>
+                <Link href={`/o/${slug}/ask`}>Ask AI</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {(q.data ?? []).slice(0, 5).map((h) => (
+              <li key={h.id} className="flex items-center gap-2 py-2">
+                <span className="min-w-0 flex-1 truncate text-sm text-fg" title={h.question ?? h.executed_sql ?? ""}>
+                  {h.question ?? <span className="font-mono text-xs text-fg-muted">{h.executed_sql}</span>}
+                </span>
+                <SourceBadge source={h.source} />
+                {h.verdict !== "allowed" && <VerdictBadge verdict={h.verdict} />}
+                <span className="shrink-0 text-xs text-fg-subtle">{formatRelative(h.occurred_at)}</span>
               </li>
             ))}
           </ul>
