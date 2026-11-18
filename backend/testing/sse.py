@@ -53,14 +53,16 @@ def read_stream(response, *, max_bytes: int = 20 * 1024 * 1024) -> str:
         return sum(map(len, chunks)) <= max_bytes
 
     if hasattr(content, "__aiter__"):
-        import asyncio
+        # async_to_sync (not asyncio.run): thread-sensitive sync_to_async DB calls inside the stream then run on
+        # THIS thread, so they see the test's transaction like the request itself did.
+        from asgiref.sync import async_to_sync
 
         async def collect():
             async for chunk in content:
                 if not add(chunk):
                     break
 
-        asyncio.run(collect())
+        async_to_sync(collect)()
     else:
         for chunk in content:
             if not add(chunk):
