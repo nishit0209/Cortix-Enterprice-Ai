@@ -51,21 +51,76 @@ def test_audit_log_is_append_only(migration_ops):
     assert "core_auditevent" in append_only
 
 
-def test_tenant_unique_constraints_include_org():
+# Intentionally GLOBAL uniqueness on tenant models (explicit, reviewed allowlist — keep it minimal).
+# Each entry is a random, high-entropy lookup token that is resolved BEFORE the tenant is known, through a
+# SECURITY DEFINER function that returns only the owning org's row. Uniqueness across orgs is required there
+# (the token alone must identify exactly one row) and leaks nothing: the value is random, never derived from
+# tenant data, and a collision attempt only yields "already exists" for a random string.
+# Anything not listed here still fails, including new fields on these same models.
+GLOBAL_LOOKUP_TOKENS: dict[tuple[str, str], str] = {
+    ("accounts.ApiKey", "prefix"): (
+        "8-char random API-key prefix (`nxk_<prefix>_<secret>`), resolved pre-tenant by the SECURITY DEFINER "
+        "function nexora_api_key_lookup(prefix); the secret is verified by HMAC afterwards"
+    ),
+    ("orgs.Invitation", "token_hash"): (
+        "sha256 of a random invitation token, resolved pre-tenant by the SECURITY DEFINER function "
+        "nexora_invitation_by_token(bytea)"
+    ),
+}
+
+
+def _unique_constraint_problems() -> list[str]:
     problems = []
     for model in _tenant_models():
         opts = model._meta
         for c in opts.constraints:
             fields = getattr(c, "fields", ()) or ()
             if c.__class__.__name__ == "UniqueConstraint" and "org" not in fields and "org_id" not in fields:
+                if len(fields) == 1 and (opts.label, fields[0]) in GLOBAL_LOOKUP_TOKENS:
+                    continue
                 problems.append(f"{opts.label}.{c.name}: {fields or c.expressions}")
         for together in opts.unique_together:
             if "org" not in together and "org_id" not in together:
                 problems.append(f"{opts.label}.unique_together {together}")
         for f in opts.local_fields:
-            if f.unique and not f.primary_key:
+            if f.unique and not f.primary_key and (opts.label, f.name) not in GLOBAL_LOOKUP_TOKENS:
                 problems.append(f"{opts.label}.{f.name}: unique=True is global across orgs")
-    assert problems == []
+    return problems
+
+
+def test_tenant_unique_constraints_include_org():
+    assert _unique_constraint_problems() == []
+
+
+def test_global_lookup_token_allowlist_is_exact_and_still_needed():
+    """Every allowlisted token must exist, really be globally unique, and be the only global unique field."""
+    by_label = {m._meta.label: m for m in _tenant_models()}
+    assert set(GLOBAL_LOOKUP_TOKENS) == {("accounts.ApiKey", "prefix"), ("orgs.Invitation", "token_hash")}
+    stale = []
+    for (label, field_name), reason in GLOBAL_LOOKUP_TOKENS.items():
+        assert reason.strip(), f"{label}.{field_name}: an allowlist entry needs a documented reason"
+        model = by_label.get(label)
+        if model is None:
+            stale.append(f"{label}: not a tenant model any more")
+            continue
+        field = model._meta.get_field(field_name)
+        single_field_uniques = {
+            c.fields[0] for c in model._meta.constraints
+            if c.__class__.__name__ == "UniqueConstraint" and len(getattr(c, "fields", ()) or ()) == 1
+        }
+        if not (field.unique or field_name in single_field_uniques):
+            stale.append(f"{label}.{field_name}: no longer globally unique; remove it from the allowlist")
+    assert stale == []
+
+
+def test_unique_allowlist_does_not_hide_other_fields(monkeypatch):
+    """Self-test: a new global unique field on an allowlisted model is still reported."""
+    from apps.accounts.models import ApiKey
+
+    name_field = ApiKey._meta.get_field("name")
+    monkeypatch.setattr(name_field, "_unique", True)
+    monkeypatch.setitem(name_field.__dict__, "unique", True)  # Field.unique is a cached_property in Django 5.x
+    assert any(p.startswith("accounts.ApiKey.name:") for p in _unique_constraint_problems())
 
 
 def test_tenant_routes_use_the_tenancy_mixin():

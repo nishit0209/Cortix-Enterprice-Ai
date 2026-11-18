@@ -168,15 +168,11 @@ def test_unsafe_methods_require_csrf_for_session_users(two_orgs, route, method):
     assert resp.status_code == 403, f"{method.upper()} without CSRF -> {resp.status_code}"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT core-finalize-rollback-outer-txn: TenantScopedMixin.finalize_response calls "
-    "transaction.set_rollback(True) whenever connection.in_atomic_block, even when the view's own tenant "
-    "transaction was never entered (non-member 404). Under any outer transaction (pytest-django db tests, "
-    "ATOMIC_REQUESTS, a service calling a view) it poisons the caller's transaction; the session save then "
-    "fails and the client gets 400 instead of 404.",
-)
 def test_non_member_404_does_not_poison_callers_transaction(two_orgs):
+    """Regression for QA defect core-finalize-rollback-outer-txn (W1; Backend fix in W2): finalize_response must
+    only roll back the transaction the tenancy mixin itself entered. Rolling back whenever
+    connection.in_atomic_block (non-member 404, anonymous 401) poisons any outer transaction (pytest-django,
+    ATOMIC_REQUESTS, a service calling a view); the session save then fails and the client gets 400."""
     from django.db import connection
 
     b = two_orgs.b
