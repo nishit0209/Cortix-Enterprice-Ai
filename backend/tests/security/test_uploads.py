@@ -1,8 +1,9 @@
 """Upload security (SECURITY_ARCHITECTURE §7, DATA_ENGINEERING_DESIGN §2): size limit, magic bytes, zip bombs,
 malformed files, formula injection. Uses testdata/generated/adversarial/*.
 
-The HTTP tests skip until the Data Engineering agent ships POST /api/v1/orgs/<org>/uploads (wave 2).
-The formula-injection oracle (testing.security) is verified now.
+HTTP tests run against the as-built upload API (Data Engineering W1): rejection codes are the specific
+`upload_*` codes of apps.datasets (CONTRACT "W1 as-built"); object storage is the in-memory fake (prefix still
+enforced) and the ingest task runs eagerly when the request's transaction commits.
 """
 
 from __future__ import annotations
@@ -19,6 +20,10 @@ REPO = Path(__file__).resolve().parents[3]
 ADV = REPO / "testdata" / "generated" / "adversarial"
 GEN = REPO / "testdata" / "generated"
 REJECT_STATUSES = (400, 413, 415, 422)
+UPLOAD_REJECT_CODES = {
+    "upload_rejected", "upload_type_not_allowed", "upload_content_mismatch", "upload_zip_bomb", "upload_empty",
+    "upload_too_large",
+}
 
 
 def _uploads_url(world) -> str:
@@ -26,7 +31,7 @@ def _uploads_url(world) -> str:
 
 
 @pytest.fixture
-def uploader(two_orgs):
+def uploader(two_orgs, memory_storage, fake_redis):
     a = two_orgs.a
     if not route_exists(_uploads_url(a)):
         pytest.skip("POST /orgs/<org>/uploads not implemented yet (Data Engineering, wave 2)")
@@ -39,6 +44,7 @@ def uploader(two_orgs):
 
     upload.client = client
     upload.world = a
+    upload.storage = memory_storage
     return upload
 
 
@@ -52,7 +58,8 @@ def _assert_rejected(uploader, resp):
         assert status == "rejected", body
         return
     assert resp.status_code in REJECT_STATUSES, (resp.status_code, resp.content[:300])
-    assert resp.json().get("code") == "upload_rejected", resp.content[:300]
+    assert resp.json().get("code") in UPLOAD_REJECT_CODES, resp.content[:300]
+    assert uploader.storage.keys_for(uploader.world.id) == [], "a rejected upload must not stay in storage"
 
 
 # ------------------------------------------------------------------------------------------- oracle
@@ -92,7 +99,7 @@ def test_oversized_upload_is_rejected(uploader, settings):
         _assert_rejected(uploader, resp)
     else:
         assert resp.status_code in (400, 413), resp.status_code
-        assert resp.json().get("code") in ("upload_rejected", "payload_too_large")
+        assert resp.json().get("code") in ("upload_too_large", "upload_rejected", "payload_too_large")
 
 
 @pytest.mark.django_db
@@ -127,7 +134,7 @@ def test_upload_is_not_visible_to_other_orgs(uploader, two_orgs):
 
 
 @pytest.mark.django_db
-def test_formula_cells_are_ingested_verbatim_as_text(uploader):
+def test_formula_cells_are_ingested_verbatim_as_text(uploader, django_capture_on_commit_callbacks):
     """Formula payloads must be stored as plain strings (never evaluated or coerced)."""
     a = uploader.world
     datasets_url = f"/api/v1/orgs/{a.slug}/datasets"
@@ -136,14 +143,18 @@ def test_formula_cells_are_ingested_verbatim_as_text(uploader):
     raw = (ADV / "formula_injection.csv").read_bytes()
     up = uploader("formula_injection.csv", raw)
     assert up.status_code == 201
-    created = uploader.client.post(
-        datasets_url,
-        {"name": "Formula probe", "upload_id": up.json()["id"], "classification": "synthetic"},
-        format="json",
-    )
+    owner = api_client_for(a.owner)  # datasets.classify: needed for the synthetic attestation
+    with django_capture_on_commit_callbacks(execute=True):
+        created = owner.post(
+            datasets_url,
+            {"name": "Formula probe", "upload_id": up.json()["id"], "classification": "synthetic", "attest": True},
+            format="json",
+        )
     assert created.status_code in (201, 202), created.content[:300]
     dataset_id = created.json()["dataset"]["id"]
-    preview = uploader.client.get(f"{datasets_url}/{dataset_id}/preview?limit=100")
+    detail = owner.get(f"{datasets_url}/{dataset_id}").json()
+    assert detail["status"] == "ready", detail.get("last_error")
+    preview = owner.get(f"{datasets_url}/{dataset_id}/preview?limit=100")
     assert preview.status_code == 200
     body = preview.json()
     names = [c["name"] for c in body["columns"]]
