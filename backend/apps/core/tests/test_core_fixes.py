@@ -70,3 +70,33 @@ def test_tenant_task_resets_actor_after_each_run(monkeypatch):
     Probe.long_running = True
     task(org_id=str(uuid4()), actor_id=str(user_id))
     assert seen[-1] == ("user", user_id) and current_actor.get() == ("system", None)
+
+
+def test_finalize_response_rolls_back_only_its_own_tenant_transaction(monkeypatch):
+    from django.db import connection
+    from rest_framework.response import Response
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.views import APIView
+
+    from apps.core.tenancy import views as views_mod
+
+    calls = []
+    monkeypatch.setattr(views_mod.transaction, "set_rollback", lambda flag, using=None: calls.append(flag))
+    monkeypatch.setattr(connection, "in_atomic_block", True)  # e.g. an outer caller/test transaction
+
+    class Probe(views_mod.TenantScopedMixin, APIView):
+        pass
+
+    request = APIView().initialize_request(APIRequestFactory().get("/x"))
+    view = Probe()
+    view.headers = {}
+    view.args, view.kwargs, view.request = (), {}, request
+    view.format_kwarg = None
+    view._tenant_atomic_entered = False  # never entered (anonymous / non-member 404)
+    view.finalize_response(request, Response(status=404))
+    assert calls == []
+    view._tenant_atomic_entered = True
+    view.finalize_response(request, Response(status=200))
+    assert calls == []
+    view.finalize_response(request, Response(status=400))
+    assert calls == [True]
