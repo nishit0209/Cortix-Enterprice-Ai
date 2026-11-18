@@ -150,3 +150,22 @@ def test_content_disposition_is_rfc6266_and_injection_free():
     assert fallback.encode("ascii") and unquote(ext) == "बिक्री रिपोर्ट.xlsx"
     assert content_disposition("../../etc/passwd").startswith('attachment; filename="_.._etc_passwd"')
     assert content_disposition("\r\n") == "attachment; filename=\"download\"; filename*=UTF-8''download"
+
+
+def test_reauth_failed_problem_marks_the_password_field():
+    from types import SimpleNamespace
+
+    import pytest
+
+    from apps.core.auth import require_password
+    from apps.core.exceptions import ReauthFailed, problem_exception_handler
+
+    user = SimpleNamespace(check_password=lambda raw: raw == "right")
+    require_password(user, "right")
+    for bad in ("wrong", "", None):
+        with pytest.raises(ReauthFailed):
+            require_password(user, bad)
+    resp = problem_exception_handler(ReauthFailed(), {})
+    assert resp.status_code == 400
+    assert resp.data["code"] == "reauth_failed"
+    assert resp.data["errors"] == [{"field": "password", "code": "reauth_failed", "message": "The password is incorrect."}]

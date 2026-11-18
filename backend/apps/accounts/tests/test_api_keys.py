@@ -10,7 +10,7 @@ from apps.accounts.models import ApiKey
 from apps.accounts.services import create_api_key, hash_api_secret, parse_api_key
 from apps.core.models import AuditEvent
 from apps.core.tenancy import tenant_context
-from apps.core.tests.fixtures import client_for, member_of, org_url
+from apps.core.tests.fixtures import DEFAULT_PASSWORD, client_for, member_of, org_url
 from apps.orgs.models import Membership, Permission, Role, RolePermission
 
 pytestmark = pytest.mark.django_db
@@ -29,7 +29,7 @@ def new_key(org, user, scopes=("org.view",), **kw):
 
 # --- management API ---------------------------------------------------------------------------------------
 def test_create_returns_secret_once_and_stores_only_hmac(org, owner_client):
-    r = owner_client.post(org_url(org, "api-keys"), {"name": "CI pipeline", "scopes": ["org.view", "ml.predict"]},
+    r = owner_client.post(org_url(org, "api-keys"), {"name": "CI pipeline", "scopes": ["org.view", "ml.predict"], "password": DEFAULT_PASSWORD},
                           format="json")
     assert r.status_code == 201, r.content
     body = r.json()
@@ -63,9 +63,25 @@ def test_create_returns_secret_once_and_stores_only_hmac(org, owner_client):
     ],
 )
 def test_create_validation(org, owner_client, payload, field):
-    r = owner_client.post(org_url(org, "api-keys"), payload, format="json")
+    r = owner_client.post(org_url(org, "api-keys"), {**payload, "password": DEFAULT_PASSWORD}, format="json")
     assert r.status_code == 400
     assert any(e["field"] == field for e in r.json()["errors"])
+
+
+def test_create_requires_password_reauth(org, owner_client):
+    url = org_url(org, "api-keys")
+    r = owner_client.post(url, {"name": "x", "scopes": ["org.view"]}, format="json")
+    assert r.status_code == 400
+    assert any(e["field"] == "password" for e in r.json()["errors"])
+    r = owner_client.post(url, {"name": "x", "scopes": ["org.view"], "password": "wrong-password"}, format="json")
+    assert r.status_code == 400
+    body = r.json()
+    assert body["code"] == "reauth_failed"
+    assert body["errors"][0]["field"] == "password"
+    assert "wrong-password" not in r.content.decode()
+    with tenant_context(org.id):
+        assert not ApiKey.objects.exists()
+        assert not AuditEvent.objects.filter(action="api_key.create").exists()
 
 
 def test_cannot_grant_scopes_beyond_own_permissions(org):
@@ -77,8 +93,8 @@ def test_cannot_grant_scopes_beyond_own_permissions(org):
     with tenant_context(org.id):
         Membership.objects.filter(user=user).update(role=role)
     client = client_for(user)
-    assert client.post(org_url(org, "api-keys"), {"name": "ok", "scopes": ["org.view"]}, format="json").status_code == 201
-    r = client.post(org_url(org, "api-keys"), {"name": "bad", "scopes": ["ml.manage"]}, format="json")
+    assert client.post(org_url(org, "api-keys"), {"name": "ok", "scopes": ["org.view"], "password": DEFAULT_PASSWORD}, format="json").status_code == 201
+    r = client.post(org_url(org, "api-keys"), {"name": "bad", "scopes": ["ml.manage"], "password": DEFAULT_PASSWORD}, format="json")
     assert r.status_code == 400
 
 

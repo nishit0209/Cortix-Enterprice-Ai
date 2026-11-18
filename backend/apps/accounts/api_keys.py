@@ -9,8 +9,10 @@ from django.utils import timezone
 from rest_framework import mixins, serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.core import audit
+from apps.core.auth import require_password
 from apps.core.permissions import DenyApiKey, HasOrgPermission
 from apps.core.tenancy.views import TenantGenericViewSet
 
@@ -22,6 +24,9 @@ class ApiKeyCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=100, trim_whitespace=True)
     scopes = serializers.ListField(child=serializers.CharField(max_length=60), allow_empty=False, max_length=60)
     expires_at = serializers.DateTimeField(required=False, allow_null=True)
+    # Re-authentication (CONTRACT W1 addendum, enforced from W2). Checked in the view AFTER field validation
+    # so a wrong password yields 400 reauth_failed with errors:[{field:"password"}].
+    password = serializers.CharField(trim_whitespace=False, max_length=256, write_only=True)
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         tenant = self.context["request"].tenant
@@ -67,9 +72,17 @@ class ApiKeyViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         page = self.paginate_queryset(self.get_queryset())
         return self.get_paginated_response([api_key_payload(k) for k in page])
 
+    def get_throttles(self):
+        if self.action == "create":
+            self.throttle_scope = "reauth"
+            return [*super().get_throttles(), ScopedRateThrottle()]
+        return super().get_throttles()
+
     def create(self, request, *args, **kwargs):
+        """POST {name, scopes, password, expires_at?} -> 201 with the secret (shown once)."""
         ser = ApiKeyCreateSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
+        require_password(request.user, ser.validated_data["password"])  # re-authentication
         key, token = services.create_api_key(
             name=ser.validated_data["name"],
             scopes=ser.validated_data["scopes"],
