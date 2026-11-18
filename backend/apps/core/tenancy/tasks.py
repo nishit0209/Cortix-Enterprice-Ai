@@ -47,18 +47,23 @@ class TenantTask(Task):
         if not org_id:
             raise ValueError(f"{self.name}: org_id kwarg is required for tenant tasks")
         org_uuid = UUID(str(org_id))
-        actor_id = kwargs.get("actor_id")
-        if actor_id and current_org.get() is None:
-            current_actor.set(("user", UUID(str(actor_id))))
         active = current_org.get()
-        if active is not None:  # eager execution inside an existing tenant context
+        if active is not None:  # eager execution inside an existing tenant context (keeps the caller's actor)
             if active != org_uuid:
                 raise RuntimeError("TenantTask invoked for a different tenant than the active context")
             return self.run(*args, **kwargs)
-        if self.long_running:
+        actor_id = kwargs.get("actor_id")
+        actor = ("user", UUID(str(actor_id))) if actor_id else ("system", None)
+        # Every ContextVar set here is reset in `finally`: worker threads run many tasks and must never let
+        # one task's actor leak into the next one's audit attribution.
+        actor_token = current_actor.set(actor)
+        try:
+            if self.long_running:
+                with tenant_context(org_uuid):
+                    _assert_org_active()
+                return self.run(*args, **kwargs)
             with tenant_context(org_uuid):
                 _assert_org_active()
-            return self.run(*args, **kwargs)
-        with tenant_context(org_uuid):
-            _assert_org_active()
-            return self.run(*args, **kwargs)
+                return self.run(*args, **kwargs)
+        finally:
+            current_actor.reset(actor_token)
