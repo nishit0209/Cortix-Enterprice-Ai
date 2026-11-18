@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import SimpleRouter
 
 from .views import (
+    AccessHistoryView,
     ColumnPolicyViewSet,
     DatasetAclViewSet,
     PolicyPreviewView,
@@ -19,5 +20,6 @@ router.register(f"{DS}/row-policies", RowPolicyViewSet, basename="row-policy")
 urlpatterns = [
     path("datasets/<uuid:dataset_id>/policy-preview", PolicyPreviewView.as_view(), name="policy-preview"),
     path("users/<uuid:user_id>/attributes", UserAttributesView.as_view(), name="user-attributes"),
+    path("access-history", AccessHistoryView.as_view(), name="access-history"),
     *router.urls,
 ]

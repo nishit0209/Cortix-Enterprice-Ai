@@ -39,7 +39,7 @@ from apps.core.registry import dataset_schema
 from apps.core.tenancy import require_org_id
 from nexora.contracts import MaskSpec, QueryPolicy, RowPredicate
 
-from .models import ColumnPolicy, DatasetAcl, RowPolicy, UserAttribute
+from .models import AccessHistory, ColumnPolicy, DatasetAcl, RowPolicy, UserAttribute
 
 VALID_OPS = frozenset({"=", "!=", "<", "<=", ">", ">=", "in", "not_in", "is_null", "not_null"})
 LIST_OPS = frozenset({"in", "not_in"})
@@ -474,4 +474,31 @@ def effective_policy(
         column_rules=column_rules,
         row_rules=row_rules,
         row_cap=_org_row_cap(),
+    )
+
+
+# --- access history ------------------------------------------------------------------------------------------
+def record_access(
+    asset_type: str,
+    asset_id: UUID | str,
+    access_type: str,
+    *,
+    user_id: UUID | str | None,
+    api_key_id: UUID | str | None = None,
+    query_audit_id: UUID | str | None = None,
+    metadata: Mapping[str, Any] | None = None,
+) -> AccessHistory:
+    """Append one access-history row (inside the caller's tenant context). Never stores data values."""
+    from django.utils import timezone
+
+    require_org_id()
+    return AccessHistory.objects.create(
+        occurred_at=timezone.now(),
+        user_id=user_id,
+        api_key_id=api_key_id,
+        asset_type=asset_type,
+        asset_id=asset_id if isinstance(asset_id, UUID) else UUID(str(asset_id)),
+        access_type=access_type,
+        query_audit_id=query_audit_id,
+        metadata=dict(metadata or {}),
     )

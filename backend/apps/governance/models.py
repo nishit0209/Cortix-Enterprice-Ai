@@ -99,3 +99,38 @@ class RowPolicy(TenantModel):
             ),
         ]
         indexes = [models.Index(fields=["org", "dataset_id"], name="row_policy_org_ds_idx")]
+
+
+ACCESS_ASSET_TYPES = [("dataset", "dataset"), ("document", "document"), ("model", "model"), ("report", "report"),
+                      ("dashboard", "dashboard")]
+ACCESS_TYPES = [("view", "view"), ("query", "query"), ("export", "export"), ("download", "download"),
+                ("predict", "predict")]
+
+
+class AccessHistory(TenantModel):
+    """Append-only record of who accessed which data asset and how (DATABASE_SCHEMA.md §4 `access_history`).
+    Written by the apps that read data (e.g. bi for every executed dataset query and export)."""
+
+    occurred_at = models.DateTimeField(db_index=True)
+    user_id = models.UUIDField(null=True, blank=True)
+    api_key_id = models.UUIDField(null=True, blank=True)
+    asset_type = models.CharField(max_length=12, choices=ACCESS_ASSET_TYPES)
+    asset_id = models.UUIDField()
+    access_type = models.CharField(max_length=10, choices=ACCESS_TYPES)
+    query_audit_id = models.UUIDField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(asset_type__in=[k for k, _ in ACCESS_ASSET_TYPES]), name="access_history_asset"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(access_type__in=[k for k, _ in ACCESS_TYPES]), name="access_history_type"
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["org", "-occurred_at"], name="access_hist_org_time_idx"),
+            models.Index(fields=["org", "asset_type", "asset_id", "-occurred_at"], name="access_hist_asset_idx"),
+            models.Index(fields=["org", "user_id", "-occurred_at"], name="access_hist_user_idx"),
+        ]

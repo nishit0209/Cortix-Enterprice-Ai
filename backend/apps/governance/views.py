@@ -5,25 +5,30 @@
     GET, POST, PATCH, DELETE     /orgs/{org}/datasets/{id}/row-policies[/{policy_id}]
     POST                         /orgs/{org}/datasets/{id}/policy-preview
     GET, PUT                     /orgs/{org}/users/{user_id}/attributes
+    GET                          /orgs/{org}/access-history   (`audit.view`)
 """
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from django.db import transaction
 from rest_framework import mixins, status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.accounts.services import users_by_id
 from apps.core import audit
 from apps.core.exceptions import Conflict
+from apps.core.pagination import DefaultCursorPagination
 from apps.core.permissions import DenyApiKey, HasOrgPermission
 from apps.core.registry import asset_exists
 from apps.core.tenancy.views import TenantAPIView, TenantGenericViewSet
 from apps.orgs.models import Membership
 
 from . import services
-from .models import ColumnPolicy, DatasetAcl, RowPolicy, UserAttribute
+from .models import AccessHistory, ColumnPolicy, DatasetAcl, RowPolicy, UserAttribute
 from .serializers import (
     ColumnPolicySerializer,
     DatasetAclSerializer,
@@ -176,3 +181,48 @@ class UserAttributesView(TenantAPIView):
             audit.record("governance.user_attributes.update", target_type="accounts.user", target_id=str(user_id),
                          changes={"attributes": [before, new]}, request=request)
         return Response(self._body(user_id), status=status.HTTP_200_OK)
+
+
+class AccessHistoryPagination(DefaultCursorPagination):
+    ordering = ("-occurred_at", "-id")
+
+
+class AccessHistoryView(TenantAPIView):
+    """GET /orgs/{org}/access-history?asset_type=&asset_id=&user_id=&access_type= (perm `audit.view`).
+
+    Append-only record of dataset queries/exports (written by apps.bi). Never contains data values."""
+
+    permission_classes = [IsAuthenticated, DenyApiKey, HasOrgPermission]
+    required_permissions = "audit.view"
+    FILTERS = ("asset_type", "asset_id", "user_id", "access_type")
+
+    def get(self, request, org):
+        qs = AccessHistory.objects.all()
+        for name in self.FILTERS:
+            value = request.query_params.get(name)
+            if not value:
+                continue
+            if name.endswith("_id"):
+                try:
+                    value = UUID(value)
+                except ValueError as exc:
+                    raise ValidationError({name: ["Must be a UUID."]}) from exc
+            qs = qs.filter(**{name: value})
+        paginator = AccessHistoryPagination()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        users = users_by_id(r.user_id for r in page if r.user_id)
+        return paginator.get_paginated_response([
+            {
+                "id": str(r.id),
+                "occurred_at": r.occurred_at,
+                "user_id": str(r.user_id) if r.user_id else None,
+                "user_email": getattr(users.get(str(r.user_id)), "email", None),
+                "api_key_id": str(r.api_key_id) if r.api_key_id else None,
+                "asset_type": r.asset_type,
+                "asset_id": str(r.asset_id),
+                "access_type": r.access_type,
+                "query_audit_id": str(r.query_audit_id) if r.query_audit_id else None,
+                "metadata": r.metadata,
+            }
+            for r in page
+        ])
