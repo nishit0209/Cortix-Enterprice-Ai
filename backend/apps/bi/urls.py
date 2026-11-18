@@ -1,3 +1,34 @@
-from django.urls import path  # noqa: F401
+from django.urls import path, re_path
 
-urlpatterns: list = []
+from .views import (
+    UUID_RE,
+    ConversationViewSet,
+    ExportView,
+    InsightsView,
+    ManualQueryView,
+    MessageFeedbackView,
+    QueryHistoryView,
+    SavedQueryViewSet,
+)
+
+conversation_list = ConversationViewSet.as_view({"get": "list", "post": "create"})
+conversation_detail = ConversationViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+conversation_messages = ConversationViewSet.as_view({"get": "messages", "post": "messages"})
+saved_query_list = SavedQueryViewSet.as_view({"get": "list", "post": "create"})
+saved_query_detail = SavedQueryViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"})
+saved_query_run = SavedQueryViewSet.as_view({"post": "run"})
+
+urlpatterns = [
+    path("bi/conversations", conversation_list, name="bi-conversation-list"),
+    re_path(rf"^bi/conversations/(?P<pk>{UUID_RE})$", conversation_detail, name="bi-conversation-detail"),
+    re_path(rf"^bi/conversations/(?P<pk>{UUID_RE})/messages$", conversation_messages,
+            name="bi-conversation-messages"),
+    re_path(rf"^bi/messages/(?P<pk>{UUID_RE})/feedback$", MessageFeedbackView.as_view(), name="bi-message-feedback"),
+    path("bi/queries", ManualQueryView.as_view(), name="bi-queries"),
+    path("bi/query-history", QueryHistoryView.as_view(), name="bi-query-history"),
+    path("saved-queries", saved_query_list, name="bi-saved-query-list"),
+    re_path(rf"^saved-queries/(?P<pk>{UUID_RE})$", saved_query_detail, name="bi-saved-query-detail"),
+    re_path(rf"^saved-queries/(?P<pk>{UUID_RE})/run$", saved_query_run, name="bi-saved-query-run"),
+    path("exports", ExportView.as_view(), name="bi-exports"),
+    path("insights", InsightsView.as_view(), name="bi-insights"),
+]

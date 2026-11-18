@@ -31,6 +31,9 @@ class TenantScopedMixin:
     """Resolves `request.tenant` and wraps the whole handler in a tenant transaction."""
 
     tenant_url_kwarg = "org"
+    # A 4xx/5xx response rolls back the tenant transaction (no partial writes). Views whose only writes on
+    # an error path are evidence that must survive (e.g. the audit row of a rejected query) set this False.
+    rollback_on_error = True
 
     def dispatch(self, request, *args, **kwargs):
         self._tenant_stack = ExitStack()
@@ -80,6 +83,7 @@ class TenantScopedMixin:
         # non-member 404, ...) any active atomic block belongs to a caller and must not be poisoned.
         if (
             getattr(response, "status_code", 200) >= 400
+            and self.rollback_on_error
             and getattr(self, "_tenant_atomic_entered", False)
             and connection.in_atomic_block
         ):
