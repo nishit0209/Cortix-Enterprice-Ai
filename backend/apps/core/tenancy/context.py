@@ -62,12 +62,34 @@ def set_db_tenant(org_id: UUID | str, using: str = "default") -> None:
         cur.execute("SELECT set_config(%s, %s, true)", [TENANT_GUC, str(org_id)])
 
 
+def _swap_db_tenant(org_id: UUID, using: str) -> str:
+    """Set the transaction-local tenant setting and return the value it had before ('' when unset)."""
+    with connections[using].cursor() as cur:
+        cur.execute("SELECT current_setting(%s, true)", [TENANT_GUC])
+        previous = cur.fetchone()[0] or ""
+        cur.execute("SELECT set_config(%s, %s, true)", [TENANT_GUC, str(org_id)])
+    return previous
+
+
+def _restore_db_tenant(previous: str, using: str) -> None:
+    conn = connections[using]
+    if conn.needs_rollback:
+        return  # the atomic exit rolls back (to the savepoint), which reverts the setting by itself
+    with conn.cursor() as cur:
+        cur.execute("SELECT set_config(%s, %s, true)", [TENANT_GUC, previous])
+
+
 @contextmanager
 def tenant_context(org_id: UUID | str, *, info: TenantInfo | None = None, using: str = "default") -> Iterator[None]:
     """Enter a tenant context: ContextVar + atomic transaction + transaction-local RLS setting.
 
     Nested calls for the same org reuse the outer transaction (savepoint). Switching org inside an
     active context is refused to prevent accidental cross-tenant work.
+
+    A transaction-local setting survives a savepoint RELEASE, so when this context is nested in an outer
+    transaction the previous value is restored on exit; otherwise code that runs after the context in the
+    same transaction would still see this tenant's rows. On an exception the savepoint/transaction
+    rollback reverts it.
     """
     org_uuid = org_id if isinstance(org_id, UUID) else UUID(str(org_id))
     outer = current_org.get()
@@ -77,8 +99,9 @@ def tenant_context(org_id: UUID | str, *, info: TenantInfo | None = None, using:
     token_info = current_tenant.set(info or current_tenant.get() or TenantInfo(org_id=org_uuid))
     try:
         with transaction.atomic(using=using):
-            set_db_tenant(org_uuid, using=using)
+            previous = _swap_db_tenant(org_uuid, using)
             yield
+            _restore_db_tenant(previous, using)
     finally:
         current_tenant.reset(token_info)
         current_org.reset(token)
