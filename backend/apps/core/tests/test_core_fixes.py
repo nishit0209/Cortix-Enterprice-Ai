@@ -100,3 +100,53 @@ def test_finalize_response_rolls_back_only_its_own_tenant_transaction(monkeypatc
     assert calls == []
     view.finalize_response(request, Response(status=400))
     assert calls == [True]
+
+
+def test_storage_keys_reject_traversal_and_malformed_parts():
+    import uuid
+
+    import pytest
+
+    from apps.core import storage
+    from apps.core.tenancy.context import current_org
+
+    org_a, org_b = uuid.uuid4(), uuid.uuid4()
+    token = current_org.set(org_a)
+    try:
+        storage._check_key(f"orgs/{org_a}/uploads/x/f.csv")
+        assert storage.org_key("uploads/x", "f.csv") == f"orgs/{org_a}/uploads/x/f.csv"
+        for bad in (
+            f"orgs/{org_a}/../{org_b}/f",
+            f"orgs/{org_a}/./f",
+            f"orgs/{org_a}//f",
+            f"orgs/{org_a}/",
+            f"orgs/{org_a}/dir/",
+            f"orgs/{org_a}/a" + chr(92) + ".." + chr(92) + "b",  # backslash traversal
+            f"orgs/{org_a}/a\nb",
+            f"/orgs/{org_a}/f",
+        ):
+            with pytest.raises(PermissionError):
+                storage._check_key(bad)
+        for parts in (("..", str(org_b), "f"), ("a/../b",), ("",), (".",), ("a" + chr(92) + "b",), ()):
+            with pytest.raises(ValueError):
+                storage.org_key(*parts)
+    finally:
+        current_org.reset(token)
+
+
+def test_content_disposition_is_rfc6266_and_injection_free():
+    from urllib.parse import unquote
+
+    from apps.core.http import content_disposition
+
+    value = content_disposition("evil\"; filename*=UTF-8''x.html\r\nX-Test: 1")
+    assert "\r" not in value and "\n" not in value
+    assert value.count('"') == 2
+    assert "filename*=UTF-8''x.html" not in value
+    assert value.startswith('attachment; filename="')
+    assert content_disposition("report.csv") == "attachment; filename=\"report.csv\"; filename*=UTF-8''report.csv"
+    uni = content_disposition("बिक्री रिपोर्ट.xlsx")
+    fallback, ext = uni.split("; filename*=UTF-8''")
+    assert fallback.encode("ascii") and unquote(ext) == "बिक्री रिपोर्ट.xlsx"
+    assert content_disposition("../../etc/passwd").startswith('attachment; filename="_.._etc_passwd"')
+    assert content_disposition("\r\n") == "attachment; filename=\"download\"; filename*=UTF-8''download"
