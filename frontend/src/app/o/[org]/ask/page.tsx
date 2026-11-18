@@ -1,5 +1,10 @@
-import { PlannedModule } from "@/components/planned-module";
+import { Suspense } from "react";
+import { AskWorkspace } from "@/components/ask/ask-workspace";
 
 export default function AskPage() {
-  return <PlannedModule id="ask" />;
+  return (
+    <Suspense fallback={null}>
+      <AskWorkspace />
+    </Suspense>
+  );
 }

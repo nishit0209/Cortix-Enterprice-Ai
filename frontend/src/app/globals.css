@@ -42,15 +42,16 @@
   --ring: #4f46e5;
   --overlay: rgb(14 17 22 / 0.42);
 
-  /* Chart palette: 8 hues, same order in both themes, distinguishable under deuteranopia. */
+  /* Chart palette: 8 hues, fixed order, stepped per theme. Validated (dataviz validate_palette.js): lightness band,
+     chroma floor, adjacent CVD dE >= 8 and normal-vision dE >= 15 in light and dark. */
   --chart-1: #4f46e5;
-  --chart-2: #0e8a7e;
+  --chart-2: #0b9a86;
   --chart-3: #d97706;
   --chart-4: #db2777;
   --chart-5: #0284c7;
-  --chart-6: #7c3aed;
-  --chart-7: #65a30d;
-  --chart-8: #64748b;
+  --chart-6: #65a30d;
+  --chart-7: #7c3aed;
+  --chart-8: #e34948;
   --chart-grid: #eceef2;
   --chart-axis: #7a8190;
 
@@ -96,14 +97,14 @@
   --ring: #8b87ff;
   --overlay: rgb(0 0 0 / 0.6);
 
-  --chart-1: #8b87ff;
-  --chart-2: #2dd4bf;
-  --chart-3: #f5a524;
-  --chart-4: #f472b6;
-  --chart-5: #38bdf8;
-  --chart-6: #b794f6;
-  --chart-7: #a3e635;
-  --chart-8: #94a3b8;
+  --chart-1: #7c76f2;
+  --chart-2: #16a08e;
+  --chart-3: #c98500;
+  --chart-4: #d55181;
+  --chart-5: #2e8fd8;
+  --chart-6: #5c9e12;
+  --chart-7: #a070ee;
+  --chart-8: #e66767;
   --chart-grid: #1f232b;
   --chart-axis: #7d8494;
 
