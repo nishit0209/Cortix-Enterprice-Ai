@@ -507,7 +507,7 @@ export interface PipelineDagNode {
 
 export interface PipelineDag {
   nodes: PipelineDagNode[];
-  edges: Array<{ from: string; to: string }>;
+  edges: Array<{ from: string; to: string; port?: "left" | "right" }>;
   settings?: Record<string, unknown>;
 }
 

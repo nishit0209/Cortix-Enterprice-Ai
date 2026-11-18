@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  BookOpen,
   CheckCircle2,
+  GitBranch,
+  Sparkles,
   Columns3,
   Copy,
   Database,
@@ -52,6 +55,8 @@ import { cn, formatDateTime, formatNumber, formatRelative, titleCase, toPercentS
 import type { Dataset, DatasetPreview, QualityReport, QualityRule } from "@/lib/types";
 import { ColumnProfileCard } from "./profile";
 import { ClassifyDialog } from "./classify-dialog";
+import { SemanticTab } from "./semantic-tab";
+import { LineageGraphView } from "@/components/lineage/lineage-graph";
 
 export function DatasetDetail() {
   const { id } = useParams<{ id: string }>();
@@ -146,6 +151,13 @@ export function DatasetDetail() {
                 score
               </div>
             </div>
+            {ready && can("bi.chat") && (
+              <Button variant="secondary" size="sm" asChild>
+                <Link href={`/o/${slug}/ask?dataset=${d.id}`}>
+                  <Sparkles /> Ask AI
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="icon-sm" aria-label="Dataset actions">
@@ -213,6 +225,12 @@ export function DatasetDetail() {
           <TabsTrigger value="quality">
             <ListChecks /> Quality
           </TabsTrigger>
+          <TabsTrigger value="semantic">
+            <BookOpen /> Semantic
+          </TabsTrigger>
+          <TabsTrigger value="lineage">
+            <GitBranch /> Lineage
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="preview">
           <PreviewTab org={slug} dataset={d} enabled={tab === "preview" && ready} processing={processing} />
@@ -222,6 +240,18 @@ export function DatasetDetail() {
         </TabsContent>
         <TabsContent value="quality">
           <QualityTab org={slug} dataset={d} enabled={tab === "quality" && ready} processing={processing} />
+        </TabsContent>
+        <TabsContent value="semantic">
+          {processing ? <ProcessingState /> : tab === "semantic" ? <SemanticTab org={slug} dataset={d} canManage={can("semantic.manage")} /> : null}
+        </TabsContent>
+        <TabsContent value="lineage">
+          {tab === "lineage" && (
+            <Card>
+              <CardContent className="pt-5">
+                <LineageGraphView org={slug} nodeType="dataset" nodeId={d.id} height={440} />
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 

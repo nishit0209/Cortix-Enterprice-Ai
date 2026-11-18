@@ -294,3 +294,44 @@
     linear-gradient(to bottom, var(--border) 1px, transparent 1px);
   background-size: 32px 32px;
 }
+
+/* React Flow (pipeline builder, lineage): theme the library chrome with our tokens in both modes. */
+.nexora-flow {
+  --xy-background-color: var(--bg);
+  --xy-edge-stroke: var(--border-strong);
+  --xy-edge-stroke-selected: var(--accent);
+  --xy-connectionline-stroke: var(--accent);
+  --xy-handle-background-color: var(--fg-subtle);
+  --xy-minimap-background-color: var(--surface);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-2);
+  --xy-controls-button-color: var(--fg-muted);
+  --xy-controls-button-color-hover: var(--fg);
+  --xy-controls-button-border-color: var(--border);
+  --xy-node-boxshadow-selected: none;
+  background: var(--bg);
+}
+.nexora-flow .react-flow__edge-path {
+  stroke-width: 1.75;
+}
+.nexora-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+}
+.nexora-flow .react-flow__controls {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+.nexora-flow .react-flow__minimap {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.nexora-flow .react-flow__edge-textbg {
+  fill: var(--surface);
+}
+.nexora-flow .react-flow__edge-text {
+  fill: var(--fg-muted);
+  font-size: 11px;
+}

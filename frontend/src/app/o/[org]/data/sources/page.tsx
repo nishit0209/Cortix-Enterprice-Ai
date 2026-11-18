@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { SourcesView } from "@/components/sources/sources-view";
 
 export default function SourcesPage() {
-  return <PlannedModule id="sources" />;
+  return <SourcesView />;
 }
