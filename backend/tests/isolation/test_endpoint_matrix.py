@@ -3,9 +3,9 @@
 Every route under /api/v1/orgs/<org>/ is discovered from the live URLconf at collection time, so endpoints that
 other agents add later are covered automatically:
 
-  1. non-members (each role of org A, and a user with no org) calling org B's slug get 404 on every method the
-     view handles — with B's REAL resource ids in the path when an isolation factory exists;
-  2. anonymous callers never get a 2xx;
+  1. authenticated non-members (each role of org A, and a user with no org) calling org B's slug get 404 on every
+     method the view handles — with B's REAL resource ids in the path when an isolation factory exists;
+  2. anonymous callers get 401 (CONTRACT "W1 as-built": existence is never revealed, no 2xx, no 404);
   3. IDOR: org B's owner calling B's own slug with org A's resource ids gets 404, and B's list endpoints never
      contain any of A's identifiers;
   4. every route with resource kwargs has an isolation factory (MissingIsolationFixture otherwise);
@@ -17,10 +17,10 @@ from __future__ import annotations
 import pytest
 
 from testing.client import api_client_for
-from testing.isolation import MissingIsolationFixture, factory_for
+from testing.isolation import MissingIsolationFixture, factory_for, stale_registrations
 from testing.routes import SAFE_METHODS, UNSAFE_METHODS, Route, tenant_routes, verify_build
 
-pytestmark = pytest.mark.django_db
+# DB access comes with the two_orgs fixture; discovery/registry tests run without a database.
 
 ROUTES: list[Route] = tenant_routes()
 NON_MEMBER_ACTORS = ("a_owner", "a_analyst", "a_viewer", "outsider")
@@ -85,6 +85,64 @@ def test_every_resource_route_has_an_isolation_factory():
     assert missing == [], "\n".join(missing)
 
 
+def test_isolation_registrations_match_live_routes():
+    """A factory/exemption registered under a route name that does not exist is a typo or a renamed route."""
+    assert stale_registrations({r.name for r in ROUTES if r.name}) == []
+
+
+# W2/W3 contract routes (CONTRACT.md + API_SPECIFICATION Phase 3/4/8). Each must be discovered by the matrix and,
+# when it has resource kwargs, have an isolation factory. A path that does not resolve yet is reported as a skip
+# (the feature is not merged), never silently ignored.
+_ID = "018f0000-0000-7000-8000-0000000000aa"
+W2_CONTRACT_PATHS = [
+    ("data-sources", "data-sources"),
+    ("data-source", f"data-sources/{_ID}"),
+    ("data-source-test", f"data-sources/{_ID}/test"),
+    ("data-source-introspect", f"data-sources/{_ID}/introspect"),
+    ("data-source-import", f"data-sources/{_ID}/import"),
+    ("pipelines", "pipelines"),
+    ("pipeline", f"pipelines/{_ID}"),
+    ("pipeline-runs", f"pipelines/{_ID}/runs"),
+    ("pipeline-run", f"pipeline-runs/{_ID}"),
+    ("semantic-models", "semantic-models"),
+    ("semantic-model", f"semantic-models/{_ID}"),
+    ("bi-conversations", "bi/conversations"),
+    ("bi-conversation", f"bi/conversations/{_ID}"),
+    ("bi-messages", f"bi/conversations/{_ID}/messages"),
+    ("bi-queries", "bi/queries"),
+    ("bi-query-history", "bi/query-history"),
+    ("exports", "exports"),
+    ("export", f"exports/{_ID}"),
+    ("documents", "documents"),
+    ("document", f"documents/{_ID}"),
+    ("documents-ask", "documents/ask"),
+]
+
+
+@pytest.mark.parametrize(("label", "suffix"), W2_CONTRACT_PATHS, ids=[p[0] for p in W2_CONTRACT_PATHS])
+def test_w2_contract_routes_are_in_the_matrix(label, suffix):
+    from django.urls import Resolver404, resolve
+
+    path = f"/api/v1/orgs/some-org/{suffix}"
+    try:
+        match = resolve(path)
+    except Resolver404:
+        pytest.skip(f"{label}: {path} not routed yet (feature not merged)")
+    route = next((r for r in ROUTES if verify_build(r, path)), None)
+    assert route is not None, f"{path} resolves to {match.view_name} but is not discovered as a tenant route"
+    if route.resource_kwargs:
+        try:
+            factory_for(route)
+        except MissingIsolationFixture as exc:
+            pytest.fail(str(exc))
+
+
+def test_anonymous_tenant_route_is_401_not_404(two_orgs):
+    """Contract: anonymous -> 401 on tenant routes, also for an org slug that does not exist."""
+    assert api_client_for(None).get("/api/v1/orgs/no-such-org-qa/jobs").status_code == 401
+    assert api_client_for(None).get(f"/api/v1/orgs/{two_orgs.b.slug}/jobs").status_code == 401
+
+
 # ------------------------------------------------------------------------------------------------ 1. non-members
 @pytest.mark.ac("P2-AC2")
 @pytest.mark.parametrize("actor", NON_MEMBER_ACTORS)
@@ -108,7 +166,7 @@ def test_anonymous_never_gets_data(two_orgs, route, method):
     values = _values(route, b)
     path = route.build(org=b.slug, **values)
     resp = _call(api_client_for(None), method, path)
-    assert resp.status_code in (401, 403, 404), f"{method.upper()} {path} anonymous -> {resp.status_code}"
+    assert resp.status_code == 401, f"{method.upper()} {path} anonymous -> {resp.status_code}: {_body(resp)[:200]}"
     assert _leaks(_body(resp), b.identifiers() | set(values.values())) == []
 
 
