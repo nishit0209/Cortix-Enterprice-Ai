@@ -27,6 +27,20 @@ def route_exists(path: str) -> bool:
     return True
 
 
+def tenant_route_exists(suffix: str) -> bool:
+    """True when /api/v1/orgs/<any org>/<suffix> is routed (URLconf only: usable at collection time, no DB)."""
+    return route_exists(f"/api/v1/orgs/qa-probe-org/{suffix.lstrip('/')}")
+
+
+def requires_tenant_route(suffix: str, owner: str):
+    """Module/test mark: skip cleanly (even without a database) until `suffix` is routed."""
+    import pytest
+
+    return pytest.mark.skipif(
+        not tenant_route_exists(suffix), reason=f"/orgs/<org>/{suffix} not implemented yet ({owner}, wave 2)"
+    )
+
+
 class CsrfAPIClient(APIClient):
     """APIClient that enforces CSRF checks and automatically attaches the X-CSRFToken header.
 

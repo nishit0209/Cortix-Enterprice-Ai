@@ -96,7 +96,7 @@ def _semantics(org_id, dataset_id):
 
 
 def test_signup_to_bi_answer_end_to_end(
-    memory_storage, fake_redis, gated_fake_gemini, network_spy, django_capture_on_commit_callbacks
+    memory_storage, fake_redis, fake_embedder, gated_fake_gemini, network_spy, django_capture_on_commit_callbacks
 ):
     flow = Flow()
     gated_fake_gemini.respond("*", stream=["Revenue is concentrated in the North and West regions."])

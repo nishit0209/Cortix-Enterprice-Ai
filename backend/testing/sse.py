@@ -42,9 +42,14 @@ def parse_sse(text: str) -> list[SseEvent]:
 
 
 def read_stream(response, *, max_bytes: int = 20 * 1024 * 1024) -> str:
-    """Body of a (possibly streaming) Django test response; async iterators included."""
+    """Text body of a (possibly streaming) Django test response; async iterators included."""
+    return read_bytes(response, max_bytes=max_bytes).decode("utf-8", errors="replace")
+
+
+def read_bytes(response, *, max_bytes: int = 20 * 1024 * 1024) -> bytes:
+    """Raw body of a (possibly streaming) Django test response; async iterators included."""
     if not getattr(response, "streaming", False):
-        return response.content.decode("utf-8", errors="replace")
+        return response.content
     content = response.streaming_content
     chunks: list[bytes] = []
 
@@ -67,7 +72,7 @@ def read_stream(response, *, max_bytes: int = 20 * 1024 * 1024) -> str:
         for chunk in content:
             if not add(chunk):
                 break
-    return b"".join(chunks).decode("utf-8", errors="replace")
+    return b"".join(chunks)
 
 
 def events_by_name(events: list[SseEvent]) -> dict[str, list[Any]]:

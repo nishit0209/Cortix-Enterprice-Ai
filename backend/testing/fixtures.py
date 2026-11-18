@@ -13,6 +13,7 @@ Fixtures (all synthetic data):
     gated_fake_gemini                                          -> same, behind the REAL AIDataPolicy gate
     gated_gemini_engine                                        -> real GeminiEngine on AI/ML's FakeTransport
     memory_storage                                             -> MemoryObjectStorage patched into apps.core.storage
+    fake_embedder                                              -> deterministic FakeEmbedder (no model download)
     network_spy                                                -> NetworkSpy (blocks non-local connections)
     fake_redis                                                 -> FakeRedis patched into apps.core.jobs
     fake_clock                                                 -> FakeClock patched into timezone.now
@@ -137,6 +138,16 @@ def gated_gemini_engine(monkeypatch):
     engine, parts = build_engine(policy_check=check_policy)
     _install_gemini(monkeypatch, engine)
     return engine, parts
+
+
+@pytest.fixture
+def fake_embedder(monkeypatch):
+    """AI/ML's deterministic FakeEmbedder as the process embedder (no model download, no network)."""
+    from apps.ai import embeddings
+
+    fake = embeddings.FakeEmbedder()
+    monkeypatch.setattr(embeddings, "_embedder", fake)
+    return fake
 
 
 @pytest.fixture
