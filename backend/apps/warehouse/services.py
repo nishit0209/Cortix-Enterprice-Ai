@@ -15,10 +15,11 @@ Every function refuses to act for an org other than the active tenant context.
 from __future__ import annotations
 
 import io
+import json
 import logging
 import re
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID, uuid4
@@ -374,6 +375,28 @@ def _row_bytes(row: Sequence[Any]) -> int:
     return total
 
 
+_SEARCH_PATH_RE = re.compile(r"^(pg_catalog|\"?[a-z_][a-z0-9_]{0,62}\"?)$")
+_WORK_MEM_RE = re.compile(r"^[1-9][0-9]{0,4}(kB|MB)$")
+DEFAULT_WORK_MEM = "32MB"
+
+
+def _check_search_path(value: str) -> str:
+    if not _SEARCH_PATH_RE.match(value or ""):
+        raise WarehouseError("invalid search_path", code="warehouse_bad_setting")
+    return value
+
+
+def _check_work_mem(value: str | None) -> str:
+    value = value or DEFAULT_WORK_MEM
+    if not _WORK_MEM_RE.match(value):
+        raise WarehouseError("invalid work_mem", code="warehouse_bad_setting")
+    return value
+
+
+def _truncate_cells(row: Sequence[Any], max_chars: int) -> tuple:
+    return tuple(v[:max_chars] if isinstance(v, str) and len(v) > max_chars else v for v in row)
+
+
 def _type_name(conn: psycopg.Connection, oid: int) -> str:
     info = conn.adapters.types.get(oid)
     name = info.name if info is not None else "unknown"
@@ -388,11 +411,21 @@ def execute_readonly_sql(
     timeout_s: int | float | None = None,
     row_cap: int | None = None,
     byte_cap: int | None = None,
+    search_path: str | None = None,
+    work_mem: str | None = None,
+    plan_check: Callable[[Any], float | None] | None = None,
+    max_cell_chars: int | None = None,
 ) -> ResultSet:
     """Run ONE read-only statement as the org's reader role and return capped rows.
 
-    BEGIN READ ONLY -> SET LOCAL ROLE <reader> -> SET LOCAL statement_timeout/search_path -> DECLARE cursor
-    -> fetch until row_cap / byte_cap -> ROLLBACK. Refuses to run for any org but the active tenant.
+    BEGIN READ ONLY -> SET LOCAL ROLE <reader> -> SET LOCAL statement_timeout/lock_timeout/work_mem/search_path
+    -> [EXPLAIN (FORMAT JSON, VERBOSE) -> plan_check(plan)] -> DECLARE cursor -> fetch until row_cap / byte_cap
+    -> ROLLBACK. Refuses to run for any org but the active tenant.
+
+    `search_path` defaults to the org schema; the SQL guard passes "pg_catalog" because every relation it emits
+    is schema-qualified. `plan_check` receives the parsed EXPLAIN JSON inside the same read-only transaction,
+    may raise to refuse the query, and returns the plan's total cost (reported as ResultSet.plan_cost).
+    `max_cell_chars` truncates long text cells (SECURITY_ARCHITECTURE §5.2: cells longer than 2 KB).
     """
     org_uuid = _assert_active_org(org_id)
     binding = ensure_provisioned(org_uuid)
@@ -412,15 +445,22 @@ def execute_readonly_sql(
         conn.read_only = True  # psycopg issues BEGIN READ ONLY on first statement
         cur = conn.cursor()
         cur.execute(sql.SQL("SET LOCAL ROLE {}").format(sql.Identifier(role)))
+        path = f'"{schema}"' if search_path is None else _check_search_path(search_path)
         cur.execute(
             "SELECT set_config('statement_timeout', %s, true), set_config('lock_timeout', %s, true), "
             "set_config('idle_in_transaction_session_timeout', %s, true), set_config('search_path', %s, true), "
-            "set_config('TimeZone', 'UTC', true)",
-            [str(timeout_ms), "2000", str(timeout_ms + 10_000), f'"{schema}"'],
+            "set_config('TimeZone', 'UTC', true), set_config('work_mem', %s, true)",
+            [str(timeout_ms), "2000", str(timeout_ms + 10_000), path, _check_work_mem(work_mem)],
         )
         cur.execute("SELECT current_user")
         if cur.fetchone()[0] != role:  # pragma: no cover - defensive
             raise WarehouseQueryDenied("reader role could not be assumed", code="query_role_error")
+        plan_cost = None
+        if plan_check is not None:
+            cur.execute("EXPLAIN (FORMAT JSON, VERBOSE) " + sql_text, params or None)
+            raw_plan = cur.fetchone()[0]
+            plan = json.loads(raw_plan) if isinstance(raw_plan, (str, bytes)) else raw_plan
+            plan_cost = plan_check(plan)
         rows: list[tuple] = []
         truncated = False
         nbytes = 0
@@ -441,6 +481,8 @@ def execute_readonly_sql(
                     if len(rows) >= row_cap:
                         truncated = True
                         break
+                    if max_cell_chars is not None:
+                        r = _truncate_cells(r, max_cell_chars)
                     size = _row_bytes(r)
                     if nbytes + size > byte_cap:
                         truncated = True
@@ -453,6 +495,7 @@ def execute_readonly_sql(
             row_count=len(rows),
             truncated=truncated,
             duration_ms=int((time.monotonic() - started) * 1000),
+            plan_cost=plan_cost,
         )
     except pg_errors.QueryCanceled as exc:
         raise WarehouseQueryTimeout() from exc
