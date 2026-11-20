@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { cn, formatDateTime, formatNumber } from "@/lib/utils";
 import { useAiStatus } from "@/lib/queries/org";
-import { aiHealthOf, quotaOf } from "@/lib/ai/quota";
+import { aiHealthOf, isOrgRequestScope, quotaOf } from "@/lib/ai/quota";
 import { formatDuration, useCountdown } from "@/hooks/use-countdown";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlays";
 import { Progress } from "@/components/ui/feedback";
@@ -18,6 +18,8 @@ import { useOrgContext } from "./org-context";
 export function aiHealth(s: AiStatus | undefined): { tone: "success" | "warning" | "danger" | "neutral"; label: string } {
   return aiHealthOf(s);
 }
+
+const DANGER_OR_WARN = { exhausted: "text-danger", low: "text-warning" } as const;
 
 const DOT = {
   success: "bg-success",
@@ -35,6 +37,8 @@ export function AiStatusPill() {
   const limit = quota?.limit_today ?? s?.org_budget?.limit ?? 0;
   const used = quota?.used_today ?? s?.org_budget?.used ?? 0;
   const remaining = useCountdown(quota && quota.state !== "ok" ? quota.resets_at : null);
+  // The bar is the org's request budget: colour it by the quota state only when that budget is the one that tripped.
+  const barTone = !isOrgRequestScope(quota) ? "accent" : health.tone === "danger" ? "danger" : health.tone === "warning" ? "warning" : "accent";
 
   return (
     <Popover>
@@ -108,17 +112,29 @@ export function AiStatusPill() {
                 <Progress
                   value={used}
                   max={limit}
-                  tone={health.tone === "danger" ? "danger" : health.tone === "warning" ? "warning" : "accent"}
+                  tone={barTone}
                   label="AI budget used"
                 />
               )}
             </div>
+            {quota?.tokens && quota.tokens.limit > 0 && (
+              <Row label="Daily tokens">
+                <span className={cn("tabular font-medium", quota.scope === "org_tokens" && quota.state !== "ok" ? DANGER_OR_WARN[quota.state] : "text-fg")}>
+                  {formatNumber(quota.tokens.used)} / {formatNumber(quota.tokens.limit)}
+                </span>
+              </Row>
+            )}
             {quota?.user && quota.user.limit > 0 && (
               <Row label="Your requests today">
-                <span className="tabular font-medium text-fg">
+                <span className={cn("tabular font-medium", quota.scope === "user" && quota.state !== "ok" ? DANGER_OR_WARN[quota.state] : "text-fg")}>
                   {formatNumber(quota.user.used)} / {formatNumber(quota.user.limit)}
                 </span>
               </Row>
+            )}
+            {quota?.scope === "platform" && quota.state !== "ok" && (
+              <p className="rounded-control bg-surface-2 px-3 py-2 text-xs text-fg-muted">
+                {quota.state === "exhausted" ? "The shared daily Gemini quota is used up." : "Most of the shared daily Gemini quota is used."}
+              </p>
             )}
             {quota?.resets_at && (
               <Row label={quota.state === "ok" ? "Quota resets" : "Resets in"}>

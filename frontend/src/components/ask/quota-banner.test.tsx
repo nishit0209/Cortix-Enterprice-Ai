@@ -107,3 +107,64 @@ describe("quota state from /ai/status", () => {
     expect(formatDuration(999)).toBe("1s");
   });
 });
+
+describe("quota copy follows quota.scope (the budget that tripped)", () => {
+  // The org has used 120 of its 500 requests; another budget is the one that is out or low.
+  const scoped = (scope: AiQuota["scope"], state: "low" | "exhausted", over: Partial<AiStatus> = {}) =>
+    status({ token_budget: { limit: 200_000, used: 200_000 }, user_budget: { limit: 50, used: 50 }, ...over }, {
+      state,
+      scope,
+      used_today: 120,
+      limit_today: 500,
+      user: { used: state === "exhausted" ? 50 : 42, limit: 50 },
+    });
+
+  it("explains a used-up personal limit with the user's own numbers", () => {
+    render(<QuotaBanner status={scoped("user", "exhausted")} />);
+    const banner = screen.getByTestId("quota-banner");
+    expect(banner).toHaveTextContent("You've used your AI requests for today");
+    expect(banner).toHaveTextContent("You have used 50 of your 50 daily AI requests.");
+    expect(banner).not.toHaveTextContent("120 of 500");
+    expect(aiHealthOf(scoped("user", "exhausted"))).toEqual({ tone: "danger", label: "Your limit reached" });
+  });
+
+  it("names the token budget, and the platform quota, instead of the org request count", () => {
+    const tokens = quotaBannerCopy(quotaOf(scoped("org_tokens", "exhausted")));
+    expect(tokens).toMatchObject({ tone: "danger", title: "Today's AI token budget is used up" });
+    expect(tokens?.text).toContain(`${(200_000).toLocaleString()} of ${(200_000).toLocaleString()} AI tokens used today.`);
+    expect(tokens?.text).not.toContain("120 of 500");
+    expect(aiHealthOf(scoped("org_tokens", "exhausted")).label).toBe("Token budget used up");
+
+    const platform = quotaBannerCopy(quotaOf(scoped("platform", "exhausted")));
+    expect(platform).toMatchObject({ tone: "danger", title: "Gemini's daily capacity is reached" });
+    expect(platform?.text).not.toContain("120 of 500");
+    expect(aiHealthOf(scoped("platform", "exhausted")).label).toBe("Paused for today");
+  });
+
+  it("says which budget is running low", () => {
+    expect(quotaBannerCopy(quotaOf(scoped("user", "low")))).toMatchObject({
+      tone: "warning",
+      title: "Your AI requests are running low",
+      text: "You have used 42 of your 50 daily AI requests. Cached and builder answers don't count against it.",
+    });
+    expect(quotaBannerCopy(quotaOf(scoped("org_tokens", "low")))?.title).toBe("AI token budget is running low");
+    expect(quotaBannerCopy(quotaOf(scoped("platform", "low")))?.title).toBe("Gemini's daily capacity is running low");
+    expect(quotaBannerCopy(quotaOf(scoped("org_requests", "low")))?.text).toContain("120 of 500 AI requests used today.");
+    // No scope (older W3 payloads): the org request budget, as before.
+    expect(quotaBannerCopy(quotaOf(scoped(null, "exhausted")))?.title).toBe("Today's AI quota is used up");
+  });
+
+  it("ignores an unknown scope and derives the scope on older payloads", () => {
+    expect(quotaOf(status({}, { state: "low", scope: "galaxy" as AiQuota["scope"] }))?.scope).toBeNull();
+    expect(quotaOf(status({ breaker: "open_day" }))?.scope).toBe("platform");
+    expect(quotaOf(status({ org_budget: { limit: 500, used: 120 }, user_budget: { limit: 50, used: 50 } }))).toMatchObject({
+      state: "exhausted",
+      scope: "user",
+    });
+    expect(quotaOf(status({ org_budget: { limit: 500, used: 120 }, token_budget: { limit: 1000, used: 850 } }))).toMatchObject({
+      state: "low",
+      scope: "org_tokens",
+    });
+    expect(quotaOf(status({ org_budget: { limit: 100, used: 100 } }))?.scope).toBe("org_requests");
+  });
+});

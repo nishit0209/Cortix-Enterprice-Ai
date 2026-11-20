@@ -342,16 +342,24 @@ export interface AiStatus {
 
 export type AiQuotaState = "ok" | "low" | "exhausted";
 
+/** Which budget decided a low/exhausted `state` (`apps.ai.services.quota_state`). */
+export type AiQuotaScope = "platform" | "org_requests" | "org_tokens" | "user";
+
 export interface AiQuota {
   state: AiQuotaState;
   resets_at: ISODate | null;
+  /** The org's daily REQUEST budget, whichever budget `scope` names. */
   used_today: number;
   limit_today: number;
   remaining_today?: number;
+  /** The budget behind a low/exhausted state; null/absent when ok (or on older backends). */
+  scope?: AiQuotaScope | null;
   /** The per-minute breaker is open (requests resume within a minute). */
   rate_limited?: boolean;
   /** The caller's own share of the daily budget, when a per-user limit applies. */
   user?: { used: number; limit: number } | null;
+  /** The org's daily token budget (from `/ai/status.token_budget`). */
+  tokens?: { used: number; limit: number } | null;
 }
 
 export interface Insight {
