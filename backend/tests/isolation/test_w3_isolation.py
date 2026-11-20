@@ -153,7 +153,7 @@ def _dashboard(world, title: str = "Org A board", *, shared: bool = True) -> dic
     )
     assert resp.status_code == 201, resp.content[:300]
     body = resp.json()
-    assert body.get("is_shared", shared) is shared, body
+    assert body["is_shared"] is shared, body  # CONTRACT W3 as-built: always in the payload
     return body
 
 
@@ -283,7 +283,7 @@ def test_unshared_dashboards_are_private_to_their_owner_inside_one_org(two_orgs)
     detail = api_client_for(a.owner).get(f"{base}/dashboards/{board['id']}")
     assert detail.status_code == 200, "the owner still sees the private board"
     assert detail.json()["title"] == "Owner private board"
-    assert detail.json().get("is_shared", False) is False
+    assert detail.json()["is_shared"] is False
     assert [w["id"] for w in detail.json()["widgets"]] == [widget["id"]]
 
 
