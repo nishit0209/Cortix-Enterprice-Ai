@@ -82,13 +82,10 @@ def test_check_key_fails_closed_without_context():
         storage._check_key(f"orgs/{ORG_A}/f.csv")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT core-storage-traversal: _check_key() only tests startswith('orgs/<org>/'), so keys with '..' "
-    "segments (orgs/<A>/../<B>/f) pass. S3 treats keys literally, but MinIO/gateways and any filesystem-backed "
-    "mirror or download_to() target path normalise them. org_key() also accepts '..' parts.",
-)
 def test_check_key_rejects_path_traversal_segments():
+    """Regression for QA defect core-storage-traversal (W1; Backend fix in W2): _check_key() must reject '.',
+    '..', empty segments and backslashes, not only test startswith('orgs/<org>/'); MinIO gateways and any
+    filesystem-backed mirror normalise orgs/<A>/../<B>/f into org B. org_key() must refuse '..' parts too."""
     with active(ORG_A):
         for bad in (
             f"orgs/{ORG_A}/../{ORG_B}/secret.csv",
@@ -131,13 +128,10 @@ def test_own_prefix_operations_reach_s3(s3, settings):
     assert presign[2]["ExpiresIn"] == 600
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT core-storage-content-disposition: presigned_get() interpolates `filename` into "
-    "ResponseContentDisposition without escaping, so a user-controlled name containing quotes/CR/LF/';' can "
-    "inject header parameters into the signed response.",
-)
 def test_presigned_filename_is_sanitised(s3):
+    """Regression for QA defect core-storage-content-disposition (W1; Backend fix in W2): presigned_get() must
+    encode `filename` (RFC 6266), so a user-controlled name with quotes/CR/LF/';' cannot inject header
+    parameters into the signed response."""
     with active(ORG_A):
         storage.presigned_get(f"orgs/{ORG_A}/f.csv", filename="evil\"; filename*=UTF-8''x.html\r\nX-Test: 1")
     disposition = s3.calls[-1][2]["Params"]["ResponseContentDisposition"]

@@ -24,7 +24,7 @@ from typing import Any
 # --------------------------------------------------------------------------------------------- Gemini
 @dataclass
 class GeminiCall:
-    method: str  # "generate_structured" | "stream"
+    method: str  # "generate_structured" | "generate_text" | "stream"
     feature: str
     prompt_key: str
     system: str
@@ -32,6 +32,7 @@ class GeminiCall:
     payload: Any
     tier: str
     schema: dict | None = None
+    extra: dict = field(default_factory=dict)  # user_id, priority, temperature, ... (engine extensions)
 
     @property
     def text(self) -> str:
@@ -57,9 +58,15 @@ class FakeGeminiService:
 
     Responses are matched by prompt_key first, then feature, then the "*" default. A list of responses is
     consumed in order (the last one repeats). Unscripted calls raise FakeGeminiError so tests notice.
+
+    `policy_check` (e.g. apps.ai.services.check_policy) runs the REAL AIDataPolicy gate before anything is
+    recorded as sent: a blocked call raises the gate's exception, lands in `.blocked` and never in `.calls`
+    (`.calls` == what would have left the process).
     """
 
     calls: list[GeminiCall] = field(default_factory=list)
+    blocked: list[GeminiCall] = field(default_factory=list)
+    policy_check: Callable[[Any], Any] | None = None
     _structured: dict[str, list[Any]] = field(default_factory=lambda: defaultdict(list))
     _streams: dict[str, list[list[str]]] = field(default_factory=lambda: defaultdict(list))
     _errors: dict[str, list[BaseException]] = field(default_factory=lambda: defaultdict(list))
@@ -90,23 +97,54 @@ class FakeGeminiService:
         schema: dict,
         payload,
         tier: str = "fast",
+        **extra: Any,
     ) -> dict:
-        self._record("generate_structured", feature, prompt_key, system, prompt, payload, tier, schema)
+        self._record("generate_structured", feature, prompt_key, system, prompt, payload, tier, schema, extra)
         self._maybe_raise(prompt_key, feature)
         value = self._take(self._structured, prompt_key, feature)
         if value is None:
             raise FakeGeminiError(f"no scripted structured response for {prompt_key!r}/{feature!r}")
         return copy.deepcopy(value(prompt) if callable(value) else value)
 
+    def generate_text(
+        self,
+        *,
+        feature: str,
+        prompt_key: str,
+        system: str,
+        prompt: str,
+        payload,
+        tier: str = "fast",
+        **extra: Any,
+    ) -> str:
+        self._record("generate_text", feature, prompt_key, system, prompt, payload, tier, None, extra)
+        self._maybe_raise(prompt_key, feature)
+        chunks = self._take(self._streams, prompt_key, feature)
+        if chunks is not None:
+            return "".join(chunks)
+        value = self._take(self._structured, prompt_key, feature)
+        if value is None:
+            raise FakeGeminiError(f"no scripted text for {prompt_key!r}/{feature!r}")
+        return value if isinstance(value, str) else json.dumps(value)
+
     def stream(
-        self, *, feature: str, prompt_key: str, system: str, prompt: str, payload, tier: str = "fast"
+        self,
+        *,
+        feature: str,
+        prompt_key: str,
+        system: str,
+        prompt: str,
+        payload,
+        tier: str = "fast",
+        **extra: Any,
     ) -> Iterator[str]:
-        self._record("stream", feature, prompt_key, system, prompt, payload, tier, None)
+        # the real engine checks policy/quota eagerly, before the first chunk is requested
+        self._record("stream", feature, prompt_key, system, prompt, payload, tier, None, extra)
         self._maybe_raise(prompt_key, feature)
         chunks = self._take(self._streams, prompt_key, feature)
         if chunks is None:
             raise FakeGeminiError(f"no scripted stream for {prompt_key!r}/{feature!r}")
-        yield from chunks
+        return iter(list(chunks))
 
     # assertions -------------------------------------------------------------------------------
     @property
@@ -125,9 +163,19 @@ class FakeGeminiService:
         assert not self.calls, f"expected no Gemini calls, got {[c.prompt_key for c in self.calls]}"
 
     # internals --------------------------------------------------------------------------------
-    def _record(self, method, feature, prompt_key, system, prompt, payload, tier, schema) -> None:
+    def _record(self, method, feature, prompt_key, system, prompt, payload, tier, schema, extra=None) -> None:
+        call = GeminiCall(
+            method, feature, prompt_key, system, prompt, payload, tier, schema, dict(extra or {})
+        )
+        if self.policy_check is not None:
+            try:
+                self.policy_check(payload)
+            except BaseException:
+                with self._lock:
+                    self.blocked.append(call)
+                raise
         with self._lock:
-            self.calls.append(GeminiCall(method, feature, prompt_key, system, prompt, payload, tier, schema))
+            self.calls.append(call)
 
     def _maybe_raise(self, *keys: str) -> None:
         for key in (*keys, "*"):

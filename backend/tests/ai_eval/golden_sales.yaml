@@ -1,0 +1,254 @@
+# Golden NL -> SQL questions over testdata/generated/sales.csv (QA/Security-owned; synthetic data only).
+#
+# Each question has an expected RESULT check, never an exact SQL string. testing/golden.py computes the expected
+# answer from the CSV in Python and compares it with the candidate SQL's result (first column = key, last = value).
+#
+# check.type:
+#   total    one value:          agg over `measure` (or `metric`), optional `period` / `where`
+#   group    key -> value:       agg by column `by`; `top: N` + `order: desc|asc` makes it an ordered ranking
+#   series   bucket -> value:    agg per `grain` (day|week|month|quarter|year) bucket of order_date
+#   compare  current_period/previous_period for `unit` relative to dataset.today (calendar periods)
+# agg: sum | avg | min | max | median | count | count_rows | count_distinct
+# period: {relative: this|last, unit: month|quarter|year}  or  {start: YYYY-MM-DD, end: YYYY-MM-DD} (half-open)
+# builder: true  -> the deterministic builder (0 Gemini calls) is expected to answer it correctly;
+#          false -> needs the LLM path (value filters, joins, ratios); evaluated only with a recorded cassette
+#                   in tests/ai_eval/cassettes/nl2sql/<id>.json ({"prompt_key", "response"}), recorded by AI/ML.
+version: 1
+
+dataset:
+  name: Sales (synthetic)
+  file: testdata/generated/sales.csv
+  table: sales
+  today: 2026-11-17          # the generator anchor: the data ends on this day
+  columns:
+    - {name: order_id, type: text, semantic_type: id, role: identifier, synonyms: [orders, order]}
+    - {name: order_date, type: date, semantic_type: date, role: time, synonyms: [date]}
+    - {name: customer_id, type: text, semantic_type: id, role: identifier, synonyms: [customers, customer]}
+    - {name: customer_name, type: text, semantic_type: person_name, role: dimension}
+    - {name: region, type: text, semantic_type: category, role: dimension}
+    - {name: product, type: text, semantic_type: category, role: dimension}
+    - {name: category, type: text, semantic_type: category, role: dimension}
+    - {name: quantity, type: bigint, semantic_type: number, role: measure, synonyms: [units, units sold, qty]}
+    - {name: unit_price, type: numeric, semantic_type: currency, role: measure, synonyms: [price]}
+    - {name: discount, type: numeric, semantic_type: percent, role: measure}
+    - {name: revenue, type: numeric, semantic_type: currency, role: measure, synonyms: [sales, turnover]}
+    - {name: channel, type: text, semantic_type: category, role: dimension}
+  metrics:
+    - key: aov
+      name: average order value
+      expression: SUM(revenue) / COUNT(DISTINCT order_id)
+      description: Revenue per distinct order
+      synonyms: [aov]
+
+questions:
+  # ------------------------------------------------------------------ totals
+  - id: g01
+    question: total revenue
+    builder: true
+    check: {type: total, agg: sum, measure: revenue}
+  - id: g02
+    question: What is the total revenue?
+    builder: true
+    check: {type: total, agg: sum, measure: revenue}
+  - id: g03
+    question: how many orders
+    builder: true
+    check: {type: total, agg: count_distinct, measure: order_id}
+    note: 5,020 rows but 5,000 distinct orders (20 exact duplicate rows)
+  - id: g04
+    question: number of customers
+    builder: true
+    check: {type: total, agg: count_distinct, measure: customer_id}
+  - id: g05
+    question: average revenue
+    builder: true
+    check: {type: total, agg: avg, measure: revenue}
+  - id: g06
+    question: average discount
+    builder: true
+    check: {type: total, agg: avg, measure: discount}
+  - id: g07
+    question: total quantity
+    builder: true
+    check: {type: total, agg: sum, measure: quantity}
+  - id: g08
+    question: maximum unit price
+    builder: true
+    check: {type: total, agg: max, measure: unit_price}
+  - id: g09
+    question: median revenue
+    builder: true
+    check: {type: total, agg: median, measure: revenue}
+  - id: g10
+    question: total revenue last month
+    builder: true
+    check: {type: total, agg: sum, measure: revenue, period: {relative: last, unit: month}}
+  - id: g11
+    question: total revenue in 2025
+    builder: true
+    check: {type: total, agg: sum, measure: revenue, period: {start: 2025-01-01, end: 2026-01-01}}
+  - id: g12
+    question: how many orders this year
+    builder: true
+    check: {type: total, agg: count_distinct, measure: order_id, period: {relative: this, unit: year}}
+  - id: g13
+    question: total units sold
+    builder: true
+    check: {type: total, agg: sum, measure: quantity}
+  - id: g14
+    question: average order value
+    builder: true
+    check: {type: total, metric: aov}
+  - id: g15
+    question: minimum revenue last quarter
+    builder: true
+    check: {type: total, agg: min, measure: revenue, period: {relative: last, unit: quarter}}
+
+  # ------------------------------------------------------------------ measure by dimension
+  - id: g16
+    question: total revenue by region
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: region}
+    note: 5 regions plus the NULL group of the 6 empty region cells
+  - id: g17
+    question: revenue by category
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: category}
+  - id: g18
+    question: revenue by channel
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: channel}
+  - id: g19
+    question: average discount by region
+    builder: true
+    check: {type: group, agg: avg, measure: discount, by: region}
+  - id: g20
+    question: number of orders by channel
+    builder: true
+    check: {type: group, agg: count_distinct, measure: order_id, by: channel}
+  - id: g21
+    question: total quantity by product
+    builder: true
+    check: {type: group, agg: sum, measure: quantity, by: product}
+  - id: g22
+    question: revenue per region last month
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: region, period: {relative: last, unit: month}}
+  - id: g23
+    question: revenue by region in 2025
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: region, period: {start: 2025-01-01, end: 2026-01-01}}
+  - id: g24
+    question: average unit price by category
+    builder: true
+    check: {type: group, agg: avg, measure: unit_price, by: category}
+  - id: g25
+    question: sales by region
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: region}
+  - id: g26
+    question: revenue split by channel
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: channel}
+  - id: g27
+    question: highest revenue by category
+    builder: true
+    check: {type: group, agg: max, measure: revenue, by: category}
+
+  # ------------------------------------------------------------------ top / bottom N
+  - id: g28
+    question: top 5 products by revenue
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: product, top: 5, order: desc}
+  - id: g29
+    question: top 3 regions by revenue
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: region, top: 3, order: desc}
+  - id: g30
+    question: bottom 3 products by quantity
+    builder: true
+    check: {type: group, agg: sum, measure: quantity, by: product, top: 3, order: asc}
+  - id: g31
+    question: top 10 customer names by revenue
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: customer_name, top: 10, order: desc}
+  - id: g32
+    question: top 3 categories by quantity
+    builder: true
+    check: {type: group, agg: sum, measure: quantity, by: category, top: 3, order: desc}
+  - id: g33
+    question: top 5 products by revenue last year
+    builder: true
+    check: {type: group, agg: sum, measure: revenue, by: product, top: 5, order: desc,
+            period: {relative: last, unit: year}}
+
+  # ------------------------------------------------------------------ time series
+  - id: g34
+    question: revenue by month
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: month}
+  - id: g35
+    question: monthly revenue
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: month}
+  - id: g36
+    question: revenue over time
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: month}
+  - id: g37
+    question: quarterly revenue
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: quarter}
+  - id: g38
+    question: revenue by year
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: year}
+  - id: g39
+    question: weekly orders last month
+    builder: true
+    known_gap: >-
+      apps/nl2sql/builder.py:_series -> match_measure("orders") has no COUNT default inside a time series, so the
+      builder declines "weekly orders" (works for "weekly revenue"); reported to AI/ML in the W2 QA handoff
+    check: {type: series, agg: count_distinct, measure: order_id, grain: week, period: {relative: last, unit: month}}
+  - id: g40
+    question: monthly revenue in 2025
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: month, period: {start: 2025-01-01, end: 2026-01-01}}
+  - id: g41
+    question: daily revenue last month
+    builder: true
+    check: {type: series, agg: sum, measure: revenue, grain: day, period: {relative: last, unit: month}}
+
+  # ------------------------------------------------------------------ period comparison
+  - id: g42
+    question: compare revenue this month vs last month
+    builder: true
+    check: {type: compare, agg: sum, measure: revenue, unit: month}
+  - id: g43
+    question: revenue this year vs last year
+    builder: true
+    check: {type: compare, agg: sum, measure: revenue, unit: year}
+  - id: g44
+    question: revenue last quarter vs this quarter
+    builder: true
+    check: {type: compare, agg: sum, measure: revenue, unit: quarter}
+
+  # ------------------------------------------------------------------ need the LLM path (filters on values, ratios)
+  - id: g45
+    question: revenue in the North region by category
+    builder: false
+    check: {type: group, agg: sum, measure: revenue, by: category, where: {region: North}}
+  - id: g46
+    question: total revenue from Electronics in 2025
+    builder: false
+    check: {type: total, agg: sum, measure: revenue, where: {category: Electronics},
+            period: {start: 2025-01-01, end: 2026-01-01}}
+  - id: g47
+    question: how many online orders did we get last month
+    builder: false
+    check: {type: total, agg: count_distinct, measure: order_id, where: {channel: Online},
+            period: {relative: last, unit: month}}
+  - id: g48
+    question: which 3 products sold the most units in the West
+    builder: false
+    check: {type: group, agg: sum, measure: quantity, by: product, top: 3, order: desc, where: {region: West}}

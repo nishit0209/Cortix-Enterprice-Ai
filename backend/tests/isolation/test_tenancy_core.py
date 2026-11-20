@@ -1,7 +1,7 @@
 """Verification of apps.core.tenancy (context, fail-closed ORM, RLS second layer, TenantTask, GUC lifetime).
 
-Runs as nexora_app (RLS enforced). Strict xfails document confirmed defects: they turn into failures (and must
-be un-marked) as soon as the owning agent fixes the defect.
+Runs as nexora_app (RLS enforced). Tests named in a "Regression for QA defect ..." docstring reproduce W1
+defects; they are plain tests now and fail until the Backend W2 fix is merged.
 """
 
 from __future__ import annotations
@@ -114,13 +114,10 @@ def test_exception_inside_context_rolls_back_its_writes(two_orgs):
     assert current_org.get() is None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT core-tenancy-guc-leak: tenant_context() does not restore the DB tenant setting on exit when "
-    "nested in an outer transaction (set_config(..., true) survives the savepoint release), so code running "
-    "after the context in the same transaction still sees that tenant's rows via RLS.",
-)
 def test_guc_is_cleared_after_context_exit_inside_outer_transaction(two_orgs):
+    """Regression for QA defect core-tenancy-guc-leak (W1; Backend fix in W2): tenant_context() must restore the
+    DB tenant setting on exit even when nested in an outer transaction (set_config(..., true) survives a savepoint
+    release), otherwise code after the context in the same transaction still sees that tenant's rows via RLS."""
     a = two_orgs.a
     with transaction.atomic():  # e.g. a request/view transaction wrapping a service call
         with tenant_context(a.id):
@@ -282,13 +279,10 @@ def test_long_running_task_body_is_outside_tenant_until_step(two_orgs):
     assert result["guc"] == str(a.id)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="DEFECT core-tenanttask-actor-leak: TenantTask.__call__ sets current_actor from actor_id and never "
-    "resets it, so the next task executed by the same worker thread inherits the previous user as actor "
-    "(wrong audit attribution).",
-)
 def test_tenant_task_does_not_leak_actor_to_later_tasks(two_orgs):
+    """Regression for QA defect core-tenanttask-actor-leak (W1; Backend fix in W2): TenantTask.__call__ must
+    reset current_actor after the task, otherwise the next task on the same worker thread inherits the previous
+    user as actor (wrong audit attribution)."""
     a = two_orgs.a
     token = current_actor.set(("system", None))
     try:

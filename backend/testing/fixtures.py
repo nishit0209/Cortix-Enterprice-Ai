@@ -9,7 +9,11 @@ Fixtures (all synthetic data):
     api_client_for(user=None, csrf=True)                       -> CsrfAPIClient (CSRF ENFORCED, session login)
     anon_client                                                -> CsrfAPIClient, not logged in
     tenant(org | world | uuid)                                 -> context manager: tenant_context + GUC cleanup
-    fake_gemini                                                -> FakeGeminiService (patched into apps.ai.services)
+    fake_gemini                                                -> FakeGeminiService installed as the Gemini singleton
+    gated_fake_gemini                                          -> same, behind the REAL AIDataPolicy gate
+    gated_gemini_engine                                        -> real GeminiEngine on AI/ML's FakeTransport
+    memory_storage                                             -> MemoryObjectStorage patched into apps.core.storage
+    fake_embedder                                              -> deterministic FakeEmbedder (no model download)
     network_spy                                                -> NetworkSpy (blocks non-local connections)
     fake_redis                                                 -> FakeRedis patched into apps.core.jobs
     fake_clock                                                 -> FakeClock patched into timezone.now
@@ -91,17 +95,67 @@ def tenant(db):
     return _tenant
 
 
+def _install_gemini(monkeypatch, engine) -> None:
+    """Make every `apps.ai.services.gemini()` caller (also `from apps.ai.services import gemini`) get `engine`."""
+    import apps.ai.services as ai_services
+
+    monkeypatch.setattr(ai_services, "_engine", engine)
+
+
 @pytest.fixture
 def fake_gemini(monkeypatch):
+    """Scripted FakeGeminiService installed as THE Gemini singleton. Never touches the network."""
     from .fakes import FakeGeminiService
 
     fake = FakeGeminiService()
-    try:
-        import apps.ai.services as ai_services
-    except ImportError:  # pragma: no cover - apps.ai always exists in this repo
-        return fake
-    monkeypatch.setattr(ai_services, "gemini", lambda: fake, raising=False)
+    _install_gemini(monkeypatch, fake)
     return fake
+
+
+@pytest.fixture
+def gated_fake_gemini(monkeypatch):
+    """FakeGeminiService behind the REAL AIDataPolicy gate (apps.ai.services.check_policy).
+
+    `.calls` holds only prompts the gate let through; blocked attempts are in `.blocked`."""
+    from apps.ai.services import check_policy
+
+    from .fakes import FakeGeminiService
+
+    fake = FakeGeminiService(policy_check=check_policy)
+    _install_gemini(monkeypatch, fake)
+    return fake
+
+
+@pytest.fixture
+def gated_gemini_engine(monkeypatch):
+    """The REAL GeminiEngine (policy gate, redaction, quota, request log) on AI/ML's FakeTransport.
+
+    Returns (engine, parts): parts["transport"].calls / .stream_calls are the requests that would have reached
+    Google; parts["recorder"].records are the request-log records (incl. blocked_by_policy)."""
+    from apps.ai.services import check_policy
+    from apps.ai.testing import build_engine
+
+    engine, parts = build_engine(policy_check=check_policy)
+    _install_gemini(monkeypatch, engine)
+    return engine, parts
+
+
+@pytest.fixture
+def fake_embedder(monkeypatch):
+    """AI/ML's deterministic FakeEmbedder as the process embedder (no model download, no network)."""
+    from apps.ai import embeddings
+
+    fake = embeddings.FakeEmbedder()
+    monkeypatch.setattr(embeddings, "_embedder", fake)
+    return fake
+
+
+@pytest.fixture
+def memory_storage(monkeypatch):
+    """In-memory object storage patched into apps.core.storage (still enforces the orgs/<org>/ prefix)."""
+    from .storage import MemoryObjectStorage
+
+    return MemoryObjectStorage().install(monkeypatch)
 
 
 @pytest.fixture

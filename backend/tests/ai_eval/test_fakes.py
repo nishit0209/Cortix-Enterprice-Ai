@@ -85,8 +85,85 @@ def test_network_spy_blocks_external_hosts_and_allows_loopback():
 
 def test_fake_gemini_fixture_patches_the_service(fake_gemini):
     from apps.ai import services
+    from apps.nl2sql import services as nl2sql_services
 
     assert services.gemini() is fake_gemini
+    # modules that did `from apps.ai.services import gemini` get the fake too (singleton swap, not attr patch)
+    assert nl2sql_services.gemini() is fake_gemini
+
+
+def test_engine_extension_kwargs_are_accepted_and_recorded():
+    fake = FakeGeminiService().respond("nl2sql.generate", {"sql": "SELECT 1"})
+    fake.generate_structured(
+        feature="nl2sql",
+        prompt_key="nl2sql.generate",
+        system="s",
+        prompt="p",
+        schema={},
+        payload=PAYLOAD,
+        tier="fast",
+        user_id="u-1",
+        priority="interactive",
+    )
+    assert fake.calls[0].extra == {"user_id": "u-1", "priority": "interactive"}
+    fake.respond("bi.narrate", stream=["a", "b"])
+    assert (
+        fake.generate_text(feature="bi", prompt_key="bi.narrate", system="s", prompt="p", payload=PAYLOAD)
+        == "ab"
+    )
+
+
+def test_stream_is_checked_eagerly_like_the_real_engine():
+    def deny(payload):
+        raise PermissionError("blocked by policy")
+
+    fake = FakeGeminiService(policy_check=deny).respond("narrate", stream=["x"])
+    with pytest.raises(PermissionError):
+        fake.stream(feature="bi", prompt_key="narrate", system="s", prompt="DOC-TEXT", payload=PAYLOAD)
+    assert fake.calls == [] and len(fake.blocked) == 1
+    assert fake.blocked[0].prompt == "DOC-TEXT"
+
+
+def test_policy_gate_lets_allowed_payloads_through():
+    seen = []
+    fake = FakeGeminiService(policy_check=seen.append).respond("k", {"ok": 1})
+    assert _call(fake, "k") == {"ok": 1}
+    assert seen == [PAYLOAD] and fake.call_count == 1 and fake.blocked == []
+
+
+def test_memory_storage_enforces_the_tenant_prefix(memory_storage):
+    import uuid
+
+    from apps.core import storage
+    from apps.core.tenancy import current_org
+
+    org_a, org_b = uuid.uuid4(), uuid.uuid4()
+    token = current_org.set(org_a)
+    try:
+        storage.put_bytes(f"orgs/{org_a}/uploads/x.csv", b"a,b\n")
+        assert storage.get_object(f"orgs/{org_a}/uploads/x.csv") == b"a,b\n"
+        with pytest.raises(PermissionError):
+            storage.put_bytes(f"orgs/{org_b}/uploads/x.csv", b"stolen")
+        assert storage.presigned_get(f"orgs/{org_a}/uploads/x.csv").startswith("https://storage.invalid/")
+    finally:
+        current_org.reset(token)
+    assert memory_storage.keys_for(org_a) == [f"orgs/{org_a}/uploads/x.csv"]
+    assert memory_storage.keys_for(org_b) == []
+
+
+def test_sse_parser():
+    from testing.sse import events_by_name, parse_sse
+
+    body = (
+        ": heartbeat\n\n"
+        'event: status\ndata: {"stage": "resolving"}\n\n'
+        "id: 7\r\nevent: token\r\ndata: plain\r\ndata: text\r\n\r\n"
+        'event: done\ndata: {"message_id": "m1"}\n\n'
+    )
+    events = parse_sse(body)
+    assert [e.event for e in events] == ["status", "token", "done"]
+    assert events[1].data == "plain\ntext" and events[1].id == "7"
+    assert events_by_name(events)["done"] == [{"message_id": "m1"}]
 
 
 def test_fake_clock(fake_clock):
