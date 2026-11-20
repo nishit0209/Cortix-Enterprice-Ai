@@ -141,3 +141,33 @@ when none), `storage_bytes`, `pipelines_active`, `pipelines_total`, `runs_7d{suc
     `datasets_by_status`; `restricted`, `restricted_count`).
 - **QA:** `tests/security/sql` oracle rejects the approved `mask_null` rendering
   (`tests/security/sql/test_sql_guard_corpus.py:239`, 9 cases).
+
+## Review fixes (W3 review pass, 2026-11-20)
+All four reviewer findings were verified on the branch and fixed (commit `842197c`). None were rejected.
+- **[medium] Builder fill_null strategies** (`backend/apps/pipelines/builder.py` `_fill_null`): `forward_fill` and
+  `backward_fill` now map to `forward` and `backward`. The inspector's hidden default `value: ""` (or null) is dropped
+  for every non-`value` strategy, so `mean`, `median`, `mode` and `forward_fill` saved from the builder now validate
+  and run. A real value with a statistic strategy is still rejected on the node.
+- **[medium] Builder filter is_null/not_null and count(\*)** (`_condition`, `_aggregate`): a blank `value` on
+  `is_null`/`not_null` is dropped. An aggregation column of `"*"` (or blank) becomes `None`, which is valid for
+  `count`. Other functions keep the per-node error "<func> needs a column."
+- **[low] Parser nesting** (`backend/apps/pipelines/expressions.py`): `MAX_PARSE_DEPTH = 32` covers parentheses,
+  function calls, unary `-`/`+` and `not`, and raises `ExpressionError(code="expression_too_deep")`. As a backstop,
+  `parse_text` also converts `RecursionError`. So `'('*150 + '1' + ')'*150` and `'-'*1500 + 'a'` now give a
+  per-node 400 or error entry, not a 500.
+- **[low] local_tick connections** (`backend/apps/pipelines/scheduling.py`): the two `close_old_connections()` calls
+  are removed. Closing the thread's default connection inside a core-scheduler tick released the core scheduler's
+  session-level advisory lock. The caller (the core scheduler loop or the Celery worker) owns connection management.
+- **Regression tests** (`apps/pipelines/tests/test_builder_dialect.py` and `test_w3_runtime_unit.py`): 20 new
+  tests that use the exact configs the inspector emits. They cover every fill strategy (validated and executed),
+  blank-value null filters, count(\*), `*` with sum, deep nesting through `validate_dag` with resolvers, and
+  `local_tick` not closing connections.
+- **Tests after the fixes (REAL counts):** my 8 apps with `-m "not slow"` give **882 passed, 159 errors**. The 159
+  errors are the same DB-backed tests as before. They were NOT EXECUTED because there is no database (password
+  authentication failed for `nexora_migrator`).
+- **Checks:** conventions OK; ownership OK; ruff OK; `manage.py check` 0 issues; `makemigrations --check` no changes.
+- **Frontend checks NOT EXECUTED:** this worktree has no `frontend/node_modules`, so `eslint`, `tsc`, `vitest` and
+  `next` are not found. The branch has no frontend diff against main.
+- **Frontend note:** the builder dialect above is now accepted as the inspector emits it. Canonical forms are still
+  preferred: `fill_null{strategy: forward|backward}` without `value`, `aggregations[{func:"count", column:null}]`, and
+  `is_null` conditions without `value`.
