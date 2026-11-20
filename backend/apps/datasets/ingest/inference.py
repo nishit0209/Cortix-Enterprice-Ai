@@ -3,6 +3,12 @@
 Ladder: boolean -> bigint -> numeric/double precision -> date -> timestamptz -> text.
 A type wins only if >= 99.5% of the non-null sample values parse. Values that fail to parse in the chosen
 type become NULL and are counted as `invalid_count` (a validity issue in the quality report).
+
+Performance (large files, e.g. 1M+ rows): each ladder rung is first tried on a small head of the sample; when that
+head alone already has more failures than the whole sample may have, the rung is skipped (an exact bound, not a
+heuristic). Full-column casts first parse with the shortest PREFIX of the format family that contains every format
+seen in the sample, then re-try only the rows that failed with the whole family. Parsing is a first-match coalesce in
+family order, so a prefix match is the same first match as in the whole family: results equal a single pass.
 """
 
 from __future__ import annotations
@@ -47,6 +53,8 @@ class TypePlan:
     formats: tuple[str, ...] = ()
     currency_ratio: float = 0.0
     percent_ratio: float = 0.0
+    # shortest prefix of `formats` holding every format that parsed a sample value: tried first on the full column
+    primary_formats: tuple[str, ...] = field(default=(), compare=False)
 
 
 @dataclass
@@ -177,13 +185,48 @@ def _ratio(parsed: pl.Series, total: int) -> float:
     return (parsed.len() - parsed.null_count()) / total if total else 0.0
 
 
-def _best_family(sample: pl.Series, families: list[tuple[str, tuple[str, ...]]], parse) -> tuple[float, tuple[str, ...]]:
+PROBE_ROWS = 2000
+
+
+def _cannot_reach(sample: pl.Series, expr: pl.Expr, threshold: float) -> bool:
+    """Exact early exit: True when the first PROBE_ROWS values alone fail more often than the whole sample may."""
+    total = sample.len()
+    if total <= PROBE_ROWS:
+        return False
+    probe = _eval(sample.head(PROBE_ROWS), expr)
+    return probe.null_count() > (1 - threshold) * total
+
+
+def _ratio_at_least(sample: pl.Series, expr: pl.Expr, threshold: float) -> bool:
+    if _cannot_reach(sample, expr, threshold):
+        return False
+    return _ratio(_eval(sample, expr), sample.len()) >= threshold
+
+
+def _best_family(sample: pl.Series, families: list[tuple[str, tuple[str, ...]]], parse,
+                 threshold: float = 0.0) -> tuple[float, tuple[str, ...]]:
     best_ratio, best_formats = 0.0, ()
     for _, formats in families:
-        ratio = _ratio(_eval(sample, parse(pl.col("v"), formats)), sample.len())
+        expr = parse(pl.col("v"), formats)
+        if threshold and _cannot_reach(sample, expr, threshold):
+            continue
+        ratio = _ratio(_eval(sample, expr), sample.len())
         if ratio > best_ratio + 1e-12:
             best_ratio, best_formats = ratio, formats
     return best_ratio, best_formats
+
+
+def _hit_formats(sample: pl.Series, formats: tuple[str, ...], parse) -> tuple[str, ...]:
+    """The shortest prefix of `formats` that contains every format parsing at least one sample value.
+
+    A prefix (not just the hits) keeps the first-match order exact: a value that an earlier, unseen format would also
+    parse still gets that earlier format's reading in the first pass.
+    """
+    last = -1
+    for i, f in enumerate(formats):
+        if _eval(sample, parse(pl.col("v"), (f,))).null_count() < sample.len():
+            last = i
+    return formats[: last + 1]
 
 
 def infer_plan(cleaned_sample: pl.Series, *, is_json: bool = False, threshold: float = PARSE_THRESHOLD) -> TypePlan:
@@ -193,16 +236,17 @@ def infer_plan(cleaned_sample: pl.Series, *, is_json: bool = False, threshold: f
     total = cleaned_sample.len()
     if total == 0:
         return TypePlan("text")
-    if _ratio(_eval(cleaned_sample, bool_expr(pl.col("v"))), total) >= threshold:
+    if _ratio_at_least(cleaned_sample, bool_expr(pl.col("v")), threshold):
         return TypePlan("boolean")
     # leading-zero codes ("007", "0987654321") and >15-digit numbers (card/account numbers, which would lose
     # precision as floats) are identifiers, never numbers
     leading_zero = _eval(cleaned_sample, pl.col("v").str.contains(r"^0\d|^[+-]?\d{16,}$")).sum()
     if leading_zero / total <= 1 - threshold:
-        if _ratio(_eval(cleaned_sample, int_expr(pl.col("v"))), total) >= threshold:
+        if _ratio_at_least(cleaned_sample, int_expr(pl.col("v")), threshold):
             return TypePlan("bigint")
-        num = _eval(cleaned_sample, numeric_expr(pl.col("v")))
-        if _ratio(num, total) >= threshold:
+        num_possible = not _cannot_reach(cleaned_sample, numeric_expr(pl.col("v")), threshold)
+        num = _eval(cleaned_sample, numeric_expr(pl.col("v"))) if num_possible else None
+        if num is not None and _ratio(num, total) >= threshold:
             currency = float(_eval(cleaned_sample, pl.col("v").str.contains(CURRENCY_DETECT_RE)).mean() or 0.0)
             percent = float(_eval(cleaned_sample, pl.col("v").str.contains(PERCENT_RE)).mean() or 0.0)
             has_point = bool(_eval(cleaned_sample, pl.col("v").str.contains(r"\.\d|[eE]")).any())
@@ -217,9 +261,11 @@ def infer_plan(cleaned_sample: pl.Series, *, is_json: bool = False, threshold: f
         cleaned_sample,
         [("dmy", ISO_DATE_FORMATS + DMY_DATE_FORMATS), ("mdy", ISO_DATE_FORMATS + MDY_DATE_FORMATS)],
         date_expr,
+        threshold,
     )
     if date_ratio >= threshold:
-        return TypePlan("date", formats=date_formats)
+        return TypePlan("date", formats=date_formats,
+                        primary_formats=_hit_formats(cleaned_sample, date_formats, date_expr))
     date_tags = lambda fmts: tuple(f"@date:{f}" for f in fmts)  # noqa: E731
     ts_ratio, ts_formats = _best_family(
         cleaned_sample,
@@ -230,9 +276,11 @@ def infer_plan(cleaned_sample: pl.Series, *, is_json: bool = False, threshold: f
              + date_tags(ISO_DATE_FORMATS + MDY_DATE_FORMATS)),
         ],
         datetime_expr,
+        threshold,
     )
     if ts_ratio >= threshold:
-        return TypePlan("timestamptz", formats=ts_formats)
+        return TypePlan("timestamptz", formats=ts_formats,
+                        primary_formats=_hit_formats(cleaned_sample, ts_formats, datetime_expr))
     return TypePlan("text")
 
 
@@ -246,9 +294,33 @@ def cast_column(raw: pl.Series, plan: TypePlan) -> CastResult:
         )
         return CastResult(series=typed, invalid_count=0, null_count=typed.null_count())
     cleaned = clean_series(raw)
-    typed = _eval(cleaned, parse_expr(pl.col("v"), plan))
+    typed = _parse_column(cleaned, plan)
     invalid = int((cleaned.is_not_null() & typed.is_null()).sum())
     return CastResult(series=typed, invalid_count=invalid, null_count=typed.null_count())
+
+
+def _retry_failed(cleaned: pl.Series, typed: pl.Series, fallback: pl.Expr) -> pl.Series:
+    """Re-parse only the rows the first pass could not parse with `fallback`, and merge the results."""
+    failed = cleaned.is_not_null() & typed.is_null()
+    if not failed.any():
+        return typed
+    idx = failed.arg_true()
+    retried = _eval(cleaned.gather(idx), fallback).cast(typed.dtype)
+    return typed.scatter(idx, retried)
+
+
+def _parse_column(cleaned: pl.Series, plan: TypePlan) -> pl.Series:
+    """`parse_expr(plan)` over a full column, staged for speed with identical results (see module docstring)."""
+    v = pl.col("v")
+    t = plan.pg_type
+    if t in ("date", "timestamptz") and plan.primary_formats and plan.primary_formats != plan.formats:
+        parse = date_expr if t == "date" else datetime_expr
+        typed = _eval(cleaned, parse(v, plan.primary_formats))
+        return _retry_failed(cleaned, typed, parse(v, plan.formats))
+    if t == "bigint" and not (plan.currency_ratio or plan.percent_ratio):
+        typed = _eval(cleaned, int_expr(v))
+        return _retry_failed(cleaned, typed, _integral_float_expr(v))
+    return _eval(cleaned, parse_expr(v, plan))
 
 
 def parse_as_type(raw: pl.Series, pg_type: str) -> pl.Series:
