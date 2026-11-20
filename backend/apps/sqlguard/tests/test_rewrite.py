@@ -146,7 +146,10 @@ def test_mask_null_preserves_the_type():
 def test_mask_hash_uses_a_bound_per_org_salt():
     policy = make_policy(masks={("customers", "phone"): MaskSpec("mask_hash")})
     result = ok("SELECT phone FROM customers", policy)
-    assert 'MD5(CAST("_src"."phone" AS TEXT) || %(p' in result.executed_sql
+    # SECURITY_ARCHITECTURE §5: encode(sha256(convert_to(col::text || <org salt param>, 'UTF8')), 'hex')
+    assert 'ENCODE(SHA256(CONVERT_TO(CAST("_src"."phone" AS TEXT) || %(p' in result.executed_sql
+    assert "'UTF8')), 'hex')" in result.executed_sql
+    assert "MD5" not in result.executed_sql.upper()
     assert mask_salt(policy.org_id) in result.params.values()
     other = make_policy(masks={("customers", "phone"): MaskSpec("mask_hash")},
                         org_id=__import__("uuid").UUID("0190a0c4-0000-7000-8000-00000000ffff"))
@@ -161,7 +164,8 @@ def test_masked_column_in_join_and_group_by_uses_the_mask():
 
 
 def test_users_cannot_call_mask_helpers_themselves():
-    for sql in ("SELECT repeat('*', 3)", "SELECT md5(city) FROM customers"):
+    for sql in ("SELECT repeat('*', 3)", "SELECT md5(city) FROM customers", "SELECT sha256(city) FROM customers",
+                "SELECT encode(convert_to(city, 'UTF8'), 'hex') FROM customers"):
         assert validate(sql, make_policy()).reject_code == "forbidden_function"
 
 

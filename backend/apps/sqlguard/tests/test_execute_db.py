@@ -97,7 +97,9 @@ def test_mask_hash_is_stable_and_hides_the_value(two_orgs):
     loaded = load(org_a)
     policy = policy_for(org_a, loaded, column_masks={("sales", "phone"): MaskSpec("mask_hash")})
     rows = run(org_a, "SELECT phone FROM sales ORDER BY order_id", policy).rows
-    assert len(rows[0][0]) == 32 and rows[0][0] != "9800000000"
+    # SECURITY_ARCHITECTURE §5: hex sha256 of the value + org salt (64 hex chars)
+    assert len(rows[0][0]) == 64 and rows[0][0] != "9800000000"
+    assert all(ch in "0123456789abcdef" for ch in rows[0][0])
     assert rows == run(org_a, "SELECT phone FROM sales ORDER BY order_id", policy).rows
 
 

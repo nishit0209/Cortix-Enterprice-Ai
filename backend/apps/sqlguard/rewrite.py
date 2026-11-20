@@ -42,7 +42,7 @@ MAX_KEEP_LAST = 64
 # Mask templates, parsed once with the guard dialect so the regenerated SQL is a round-trip fixed point.
 # `x` is replaced by the source column, `%(salt)s` / 4 by bound values.
 _MASK_NULL = "CASE WHEN FALSE THEN x END"
-_MASK_HASH = "MD5(CAST(x AS TEXT) || %(salt)s)"
+_MASK_HASH = "ENCODE(SHA256(CONVERT_TO(CAST(x AS TEXT) || %(salt)s, 'UTF8')), 'hex')"  # SECURITY_ARCHITECTURE §5
 _MASK_PARTIAL = "REPEAT('*', GREATEST(LENGTH(CAST(x AS TEXT)) - 4, 0)) || RIGHT(CAST(x AS TEXT), 4)"
 
 

@@ -76,7 +76,7 @@ FORBIDDEN_FUNCTION_PREFIXES: tuple[str, ...] = (
 )
 
 # Functions only the rewriter may insert (mask expressions). Users can never call them.
-REWRITER_ONLY_FUNCTIONS = frozenset({"md5", "repeat"})
+REWRITER_ONLY_FUNCTIONS = frozenset({"encode", "sha256", "convert_to", "repeat"})
 
 # Set-returning / table functions are forbidden in FROM / LATERAL regardless of the allowlist.
 SET_RETURNING_CLASSES: frozenset[type] = _classes(
