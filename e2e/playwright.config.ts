@@ -1,11 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * NEXORA E2E. Runs against the full stack behind Caddy (docker compose up -d + Next.js on :3000).
- *   E2E_BASE_URL   override the target (default http://localhost:8080)
- *   E2E_SKIP_IF_DOWN=1  skip every test (instead of failing) when the stack is not reachable
+ * NEXORA E2E. Local run (CONTRACT "Local runtime": PostgreSQL only, no Docker):
+ *   backend   `manage.py runserver` (or uvicorn) on :8000, after `manage.py seed_demo` if you want demo content
+ *   frontend  `npm run dev` on :3000 (Next.js proxies /api and /healthz to the backend, frontend/next.config.ts)
+ * Environment:
+ *   E2E_BASE_URL        target origin (default http://localhost:3000; use http://localhost:8080 behind Caddy)
+ *   E2E_SKIP_IF_DOWN=1  skip every test (instead of failing) when GET <base>/healthz is not reachable
  */
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:8080";
+export const DEFAULT_BASE_URL = "http://localhost:3000";
+const baseURL = process.env.E2E_BASE_URL || DEFAULT_BASE_URL;
 
 export default defineConfig({
   testDir: "./tests",

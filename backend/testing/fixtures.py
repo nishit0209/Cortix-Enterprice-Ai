@@ -167,8 +167,11 @@ def network_spy():
 
 
 @pytest.fixture
-def fake_redis(monkeypatch):
+def fake_redis(monkeypatch, settings):
+    """FakeRedis behind apps.core.jobs, and JOB_EVENTS_BACKEND="redis" (the test settings default is "db")."""
     from apps.core import jobs
+
+    settings.JOB_EVENTS_BACKEND = "redis"
 
     from .fakes import FakeRedis
 

@@ -90,7 +90,7 @@ def test_isolation_registrations_match_live_routes():
     assert stale_registrations({r.name for r in ROUTES if r.name}) == []
 
 
-# W2/W3 contract routes (CONTRACT.md + API_SPECIFICATION Phase 3/4/8). Each must be discovered by the matrix and,
+# W2/W3 contract routes (CONTRACT.md + API_SPECIFICATION Phase 3/4/8; W3 additions). Each must be discovered by the matrix and,
 # when it has resource kwargs, have an isolation factory. A path that does not resolve yet is reported as a skip
 # (the feature is not merged), never silently ignored.
 _ID = "018f0000-0000-7000-8000-0000000000aa"
@@ -104,18 +104,33 @@ W2_CONTRACT_PATHS = [
     ("pipeline", f"pipelines/{_ID}"),
     ("pipeline-runs", f"pipelines/{_ID}/runs"),
     ("pipeline-run", f"pipeline-runs/{_ID}"),
-    ("semantic-models", "semantic-models"),
-    ("semantic-model", f"semantic-models/{_ID}"),
+    # As built (CONTRACT "W2 as-built additions": semantic model of a dataset + metrics CRUD). API_SPECIFICATION's
+    # org-level /semantic-models[/{id}] paths were not built; those entries could only ever skip.
+    ("dataset-semantic-model", f"datasets/{_ID}/semantic-model"),
+    ("dataset-semantic-model-refresh", f"datasets/{_ID}/semantic-model/refresh"),
+    ("dataset-metrics", f"datasets/{_ID}/metrics"),
+    ("dataset-metric", f"datasets/{_ID}/metrics/{_ID}"),
     ("bi-conversations", "bi/conversations"),
     ("bi-conversation", f"bi/conversations/{_ID}"),
     ("bi-messages", f"bi/conversations/{_ID}/messages"),
     ("bi-queries", "bi/queries"),
     ("bi-query-history", "bi/query-history"),
-    ("exports", "exports"),
-    ("export", f"exports/{_ID}"),
+    ("exports", "exports"),  # POST streams the file (CONTRACT "W3: Conversational BI"); no exports/{id} route
     ("documents", "documents"),
     ("document", f"documents/{_ID}"),
     ("documents-ask", "documents/ask"),
+    # W3 additions (CONTRACT "W3 additions": dashboards, notifications; saved queries; AI status)
+    ("saved-queries", "saved-queries"),
+    ("saved-query", f"saved-queries/{_ID}"),
+    ("dashboards", "dashboards"),
+    ("dashboard", f"dashboards/{_ID}"),
+    ("dashboard-widgets", f"dashboards/{_ID}/widgets"),
+    ("dashboard-widget", f"dashboards/{_ID}/widgets/{_ID}"),
+    ("dashboard-widget-data", f"dashboards/{_ID}/widgets/{_ID}/data"),
+    ("notifications", "notifications"),
+    ("notification-read", f"notifications/{_ID}/read"),
+    ("notifications-read-all", "notifications/read-all"),
+    ("ai-status", "ai/status"),
 ]
 
 

@@ -1,0 +1,1535 @@
+ticket_id,customer_id,opened_on,closed_on,channel,category,priority,status,first_response_hours,csat,subject
+TCK-000001,C00171,2024-12-01,2024-12-07,email,billing,medium,closed,2.9,2,Charged twice for order TXN-0000040
+TCK-000002,C00429,2024-12-01,2024-12-02,chat,account,medium,closed,6.4,2,Cannot update my registered mobile number
+TCK-000003,C00624,2024-12-01,2024-12-03,phone,account,urgent,closed,1.5,2,Cannot update my registered mobile number
+TCK-000004,C00163,2024-12-03,2024-12-09,chat,product_defect,high,closed,9.9,2,The product stopped working after a week
+TCK-000005,C00763,2024-12-03,2024-12-04,whatsapp,payment_failed,low,closed,1.9,3,UPI payment failed but amount debited
+TCK-000006,C00063,2024-12-04,2024-12-09,chat,billing,low,resolved,5.5,4,Charged twice for order TXN-0008555
+TCK-000007,C00015,2024-12-05,2024-12-05,email,delivery_delay,low,resolved,3.1,4,Order TXN-0007637 has not arrived yet
+TCK-000008,C00123,2024-12-05,2024-12-14,chat,product_defect,medium,resolved,4.5,,The product stopped working after a week
+TCK-000009,C00215,2024-12-05,2024-12-08,email,product_defect,medium,resolved,6.5,1,USB-C Cable stopped working after a week
+TCK-000010,C00017,2024-12-06,2024-12-11,phone,returns,low,closed,4.3,2,Return pickup for The product not scheduled
+TCK-000011,C00063,2024-12-06,2024-12-11,phone,payment_failed,high,closed,2.3,,UPI payment failed but amount debited
+TCK-000012,C00088,2024-12-06,2024-12-08,chat,product_defect,low,resolved,3.9,2,Wi-Fi Router stopped working after a week
+TCK-000013,C00707,2024-12-06,2024-12-13,email,product_defect,low,closed,2.1,4,Power Bank 10000mAh stopped working after a week
+TCK-000014,C00553,2024-12-07,2024-12-09,phone,account,medium,resolved,6.1,,Cannot update my registered mobile number
+TCK-000015,C00211,2024-12-08,2024-12-08,phone,product_defect,medium,resolved,3.2,3,Pressure Cooker 5L stopped working after a week
+TCK-000016,C00215,2024-12-08,2024-12-12,phone,payment_failed,medium,resolved,11.2,2,UPI payment failed but amount debited
+TCK-000017,C00019,2024-12-09,2024-12-18,chat,payment_failed,high,closed,2.9,2,UPI payment failed but amount debited
+TCK-000018,C00027,2024-12-09,2024-12-14,chat,delivery_delay,high,closed,2.4,4,Order TXN-0008083 has not arrived yet
+TCK-000019,C00560,2024-12-09,2024-12-15,phone,billing,medium,resolved,2.2,2,Charged twice for order my order
+TCK-000020,C00587,2024-12-09,2024-12-18,phone,payment_failed,low,resolved,2.4,5,UPI payment failed but amount debited
+TCK-000021,C00698,2024-12-09,2024-12-11,phone,billing,low,resolved,3.9,4,Charged twice for order TXN-0003469
+TCK-000022,C00564,2024-12-10,2024-12-12,whatsapp,billing,low,closed,5.5,3,Charged twice for order TXN-0003652
+TCK-000023,C00587,2024-12-10,2024-12-10,phone,account,urgent,resolved,1.6,5,Cannot update my registered mobile number
+TCK-000024,C00117,2024-12-11,2024-12-11,email,product_defect,medium,resolved,5.4,2,The product stopped working after a week
+TCK-000025,C00488,2024-12-11,2024-12-17,phone,returns,high,closed,27.4,4,Return pickup for Hair Oil not scheduled
+TCK-000026,C00557,2024-12-11,2024-12-17,chat,delivery_delay,medium,closed,1.6,4,Order TXN-0004627 has not arrived yet
+TCK-000027,C00020,2024-12-13,2024-12-21,chat,payment_failed,high,closed,3.8,2,UPI payment failed but amount debited
+TCK-000028,C00225,2024-12-14,2024-12-19,whatsapp,account,medium,resolved,5.1,,Cannot update my registered mobile number
+TCK-000029,C00797,2024-12-14,2024-12-14,phone,product_defect,medium,resolved,7.5,,Wi-Fi Router stopped working after a week
+TCK-000030,C00677,2024-12-15,2024-12-18,whatsapp,billing,medium,resolved,5.4,5,Charged twice for order TXN-0008624
+TCK-000031,C00483,2024-12-16,2024-12-20,chat,returns,medium,closed,3.5,4,Return pickup for Cashew Nuts not scheduled
+TCK-000032,C00649,2024-12-16,2024-12-20,chat,delivery_delay,low,closed,3.3,,Order my order has not arrived yet
+TCK-000033,C00347,2024-12-17,2024-12-23,phone,billing,low,resolved,2.3,3,Charged twice for order TXN-0008449
+TCK-000034,C00411,2024-12-17,2024-12-23,whatsapp,payment_failed,urgent,resolved,7.4,4,UPI payment failed but amount debited
+TCK-000035,C00324,2024-12-18,2024-12-24,whatsapp,payment_failed,medium,resolved,3.3,2,UPI payment failed but amount debited
+TCK-000036,C00560,2024-12-18,2024-12-19,whatsapp,product_defect,medium,closed,4.4,3,The product stopped working after a week
+TCK-000037,C00060,2024-12-19,2024-12-24,whatsapp,delivery_delay,high,closed,2.7,3,Order TXN-0008291 has not arrived yet
+TCK-000038,C00343,2024-12-19,2024-12-25,chat,account,medium,closed,6.8,5,Cannot update my registered mobile number
+TCK-000039,C00608,2024-12-19,2024-12-21,whatsapp,product_defect,medium,resolved,2.3,3,Cotton Kurta stopped working after a week
+TCK-000040,C00059,2024-12-20,2024-12-28,chat,billing,medium,resolved,2.1,3,Charged twice for order my order
+TCK-000041,C00457,2024-12-21,2024-12-22,chat,product_defect,medium,closed,2.6,4,Denim Jeans stopped working after a week
+TCK-000042,C00560,2024-12-21,2024-12-24,chat,product_defect,urgent,resolved,13.3,3,The product stopped working after a week
+TCK-000043,C00471,2024-12-22,2024-12-25,chat,returns,medium,resolved,13.9,2,Return pickup for The product not scheduled
+TCK-000044,C00619,2024-12-22,2024-12-29,chat,payment_failed,high,closed,4.0,5,UPI payment failed but amount debited
+TCK-000045,C00788,2024-12-22,2024-12-22,whatsapp,product_defect,medium,closed,1.9,,Sports Shoes stopped working after a week
+TCK-000046,C00354,2024-12-23,2024-12-24,phone,product_defect,low,closed,5.1,,Power Bank 10000mAh stopped working after a week
+TCK-000047,C00685,2024-12-23,2025-01-01,phone,billing,medium,closed,3.1,3,Charged twice for order my order
+TCK-000048,C00537,2024-12-24,2024-12-29,phone,payment_failed,low,closed,0.5,2,UPI payment failed but amount debited
+TCK-000049,C00646,2024-12-24,2024-12-26,phone,account,urgent,closed,2.4,4,Cannot update my registered mobile number
+TCK-000050,C00123,2024-12-25,2024-12-26,whatsapp,billing,high,closed,2.4,1,Charged twice for order my order
+TCK-000051,C00537,2024-12-25,2024-12-28,email,returns,low,closed,4.1,2,Return pickup for The product not scheduled
+TCK-000052,C00560,2024-12-27,2025-01-04,chat,product_defect,low,closed,2.2,,The product stopped working after a week
+TCK-000053,C00247,2024-12-28,2025-01-04,whatsapp,delivery_delay,urgent,resolved,5.9,,Order TXN-0000773 has not arrived yet
+TCK-000054,C00357,2024-12-28,2024-12-28,chat,product_defect,low,resolved,1.9,,Ceiling Fan stopped working after a week
+TCK-000055,C00454,2024-12-28,2025-01-01,chat,billing,urgent,resolved,7.5,2,Charged twice for order my order
+TCK-000056,C00736,2024-12-28,2024-12-31,phone,returns,low,resolved,3.9,,Return pickup for Sports Shoes not scheduled
+TCK-000057,C00414,2024-12-29,2024-12-29,whatsapp,account,low,closed,2.6,3,Cannot update my registered mobile number
+TCK-000058,C00437,2024-12-29,2024-12-30,chat,payment_failed,low,resolved,2.5,,UPI payment failed but amount debited
+TCK-000059,C00437,2024-12-29,2024-12-29,chat,product_defect,medium,closed,1.8,4,The product stopped working after a week
+TCK-000060,C00578,2024-12-29,2025-01-07,email,billing,medium,closed,3.7,2,Charged twice for order TXN-0006146
+TCK-000061,C00592,2024-12-29,2025-01-06,chat,delivery_delay,high,resolved,2.1,4,Order TXN-0008185 has not arrived yet
+TCK-000062,C00030,2024-12-30,2025-01-02,whatsapp,delivery_delay,medium,resolved,5.3,2,Order TXN-0000256 has not arrived yet
+TCK-000063,C00499,2024-12-30,2025-01-05,phone,product_defect,medium,closed,2.4,4,Atta Flour stopped working after a week
+TCK-000064,C00329,2024-12-31,2025-01-07,phone,billing,urgent,resolved,6.9,4,Charged twice for order my order
+TCK-000065,C00472,2024-12-31,2025-01-09,email,account,medium,resolved,2.1,,Cannot update my registered mobile number
+TCK-000066,C00017,2025-01-01,2025-01-03,phone,account,medium,resolved,3.1,2,Cannot update my registered mobile number
+TCK-000067,C00063,2025-01-01,2025-01-01,email,delivery_delay,low,closed,2.7,5,Order TXN-0008555 has not arrived yet
+TCK-000068,C00213,2025-01-02,2025-01-05,phone,payment_failed,low,resolved,6.4,4,UPI payment failed but amount debited
+TCK-000069,C00214,2025-01-03,2025-01-08,chat,delivery_delay,medium,closed,9.9,,Order TXN-0008341 has not arrived yet
+TCK-000070,C00459,2025-01-03,2025-01-06,whatsapp,product_defect,low,resolved,6.3,3,Atta Flour stopped working after a week
+TCK-000071,C00737,2025-01-03,2025-01-06,phone,delivery_delay,medium,closed,4.1,,Order TXN-0008626 has not arrived yet
+TCK-000072,C00739,2025-01-03,2025-01-06,email,payment_failed,high,resolved,1.1,,UPI payment failed but amount debited
+TCK-000073,C00030,2025-01-04,2025-01-06,whatsapp,billing,medium,closed,6.8,3,Charged twice for order TXN-0000256
+TCK-000074,C00215,2025-01-04,2025-01-12,chat,delivery_delay,medium,closed,6.2,1,Order TXN-0000362 has not arrived yet
+TCK-000075,C00282,2025-01-04,2025-01-06,chat,delivery_delay,medium,closed,7.2,2,Order TXN-0008650 has not arrived yet
+TCK-000076,C00058,2025-01-06,2025-01-09,chat,returns,medium,resolved,3.8,,Return pickup for Ceiling Fan not scheduled
+TCK-000077,C00156,2025-01-06,2025-01-06,chat,payment_failed,low,closed,9.6,3,UPI payment failed but amount debited
+TCK-000078,C00163,2025-01-06,2025-01-15,whatsapp,product_defect,low,resolved,5.6,2,The product stopped working after a week
+TCK-000079,C00227,2025-01-06,2025-01-13,email,returns,low,resolved,4.8,2,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000080,C00766,2025-01-06,2025-01-09,chat,account,low,resolved,7.4,2,Cannot update my registered mobile number
+TCK-000081,C00202,2025-01-07,2025-01-09,email,account,medium,closed,2.5,3,Cannot update my registered mobile number
+TCK-000082,C00030,2025-01-08,2025-01-13,email,product_defect,urgent,resolved,8.6,,Sunflower Oil stopped working after a week
+TCK-000083,C00312,2025-01-08,2025-01-09,phone,returns,low,resolved,2.4,,Return pickup for USB-C Cable not scheduled
+TCK-000084,C00365,2025-01-08,2025-01-13,chat,returns,high,resolved,6.3,2,Return pickup for The product not scheduled
+TCK-000085,C00705,2025-01-08,2025-01-16,chat,billing,low,resolved,3.5,4,Charged twice for order TXN-0000292
+TCK-000086,C00215,2025-01-09,2025-01-11,phone,payment_failed,urgent,resolved,16.4,2,UPI payment failed but amount debited
+TCK-000087,C00228,2025-01-10,2025-01-10,chat,payment_failed,low,resolved,4.1,,UPI payment failed but amount debited
+TCK-000088,C00454,2025-01-10,2025-01-16,phone,delivery_delay,low,resolved,2.2,1,Order my order has not arrived yet
+TCK-000089,C00700,2025-01-10,2025-01-19,whatsapp,delivery_delay,low,closed,2.3,,Order TXN-0002130 has not arrived yet
+TCK-000090,C00044,2025-01-11,2025-01-20,whatsapp,account,urgent,resolved,3.0,4,Cannot update my registered mobile number
+TCK-000091,C00095,2025-01-11,2025-01-14,whatsapp,payment_failed,low,closed,11.7,3,UPI payment failed but amount debited
+TCK-000092,C00465,2025-01-12,2025-01-17,whatsapp,account,medium,closed,8.9,,Cannot update my registered mobile number
+TCK-000093,C00696,2025-01-12,2025-01-20,phone,payment_failed,medium,resolved,2.3,,UPI payment failed but amount debited
+TCK-000094,C00454,2025-01-13,2025-01-19,chat,payment_failed,medium,closed,3.4,,UPI payment failed but amount debited
+TCK-000095,C00669,2025-01-13,2025-01-20,phone,product_defect,medium,closed,1.5,,Ceiling Fan stopped working after a week
+TCK-000096,C00671,2025-01-13,2025-01-18,chat,payment_failed,high,closed,1.6,4,UPI payment failed but amount debited
+TCK-000097,C00600,2025-01-14,2025-01-19,whatsapp,account,medium,resolved,5.6,,Cannot update my registered mobile number
+TCK-000098,C00052,2025-01-15,2025-01-17,phone,payment_failed,medium,closed,6.1,,UPI payment failed but amount debited
+TCK-000099,C00448,2025-01-15,2025-01-16,email,account,high,resolved,1.5,4,Cannot update my registered mobile number
+TCK-000100,C00426,2025-01-16,2025-01-25,whatsapp,payment_failed,medium,resolved,3.0,,UPI payment failed but amount debited
+TCK-000101,C00685,2025-01-16,2025-01-25,whatsapp,account,high,closed,4.3,3,Cannot update my registered mobile number
+TCK-000102,C00736,2025-01-16,2025-01-17,chat,product_defect,low,resolved,3.0,3,Sports Shoes stopped working after a week
+TCK-000103,C00073,2025-01-17,2025-01-18,email,returns,medium,closed,10.0,2,Return pickup for Sunflower Oil not scheduled
+TCK-000104,C00269,2025-01-17,2025-01-23,email,product_defect,medium,closed,1.3,2,Ayurvedic Face Cream stopped working after a week
+TCK-000105,C00560,2025-01-17,2025-01-21,phone,payment_failed,medium,closed,7.3,,UPI payment failed but amount debited
+TCK-000106,C00149,2025-01-18,2025-01-22,email,billing,medium,resolved,1.6,,Charged twice for order TXN-0004385
+TCK-000107,C00215,2025-01-18,2025-01-26,email,payment_failed,medium,resolved,11.3,2,UPI payment failed but amount debited
+TCK-000108,C00049,2025-01-19,2025-01-28,email,returns,urgent,resolved,2.1,2,Return pickup for LED Bulb 9W not scheduled
+TCK-000109,C00219,2025-01-19,2025-01-26,email,product_defect,high,closed,4.6,,Steel Tiffin Box stopped working after a week
+TCK-000110,C00347,2025-01-19,2025-01-26,chat,account,medium,resolved,5.6,,Cannot update my registered mobile number
+TCK-000111,C00254,2025-01-20,2025-01-27,whatsapp,account,medium,resolved,11.3,3,Cannot update my registered mobile number
+TCK-000112,C00670,2025-01-20,2025-01-28,chat,account,medium,closed,4.1,,Cannot update my registered mobile number
+TCK-000113,C00470,2025-01-21,2025-01-28,email,returns,medium,closed,3.6,,Return pickup for The product not scheduled
+TCK-000114,C00685,2025-01-21,2025-01-27,chat,billing,medium,resolved,3.7,2,Charged twice for order my order
+TCK-000115,C00264,2025-01-23,2025-01-25,phone,payment_failed,medium,resolved,3.3,2,UPI payment failed but amount debited
+TCK-000116,C00439,2025-01-24,2025-01-25,email,delivery_delay,low,resolved,2.7,4,Order TXN-0008622 has not arrived yet
+TCK-000117,C00652,2025-01-24,2025-01-29,phone,payment_failed,medium,resolved,0.9,3,UPI payment failed but amount debited
+TCK-000118,C00710,2025-01-24,2025-01-28,chat,account,high,closed,3.0,,Cannot update my registered mobile number
+TCK-000119,C00716,2025-01-25,2025-02-02,chat,product_defect,medium,closed,6.4,5,Cotton Kurta stopped working after a week
+TCK-000120,C00760,2025-01-25,2025-01-27,email,billing,medium,resolved,8.5,3,Charged twice for order TXN-0008526
+TCK-000121,C00784,2025-01-25,2025-01-25,whatsapp,payment_failed,low,closed,6.6,3,UPI payment failed but amount debited
+TCK-000122,C00792,2025-01-25,2025-02-03,whatsapp,billing,low,resolved,6.6,2,Charged twice for order TXN-0004534
+TCK-000123,C00177,2025-01-26,2025-01-28,phone,account,low,resolved,6.0,,Cannot update my registered mobile number
+TCK-000124,C00330,2025-01-26,2025-02-03,email,product_defect,low,closed,4.5,,Sunscreen SPF50 stopped working after a week
+TCK-000125,C00540,2025-01-26,2025-01-28,chat,payment_failed,medium,resolved,1.9,4,UPI payment failed but amount debited
+TCK-000126,C00585,2025-01-26,2025-02-01,email,returns,low,resolved,0.9,4,Return pickup for Herbal Shampoo not scheduled
+TCK-000127,C00760,2025-01-28,2025-01-29,chat,account,medium,closed,3.4,4,Cannot update my registered mobile number
+TCK-000128,C00044,2025-01-29,2025-02-04,chat,product_defect,high,closed,7.1,,The product stopped working after a week
+TCK-000129,C00052,2025-01-29,2025-02-06,email,returns,low,resolved,3.8,4,Return pickup for Bluetooth Earbuds not scheduled
+TCK-000130,C00686,2025-01-29,2025-02-01,email,delivery_delay,medium,closed,8.4,3,Order TXN-0007362 has not arrived yet
+TCK-000131,C00033,2025-01-30,2025-02-01,chat,product_defect,high,resolved,6.8,4,Bluetooth Earbuds stopped working after a week
+TCK-000132,C00062,2025-01-30,2025-02-04,chat,payment_failed,medium,closed,1.8,4,UPI payment failed but amount debited
+TCK-000133,C00099,2025-01-30,2025-02-01,phone,delivery_delay,low,closed,3.3,,Order my order has not arrived yet
+TCK-000134,C00329,2025-01-30,2025-01-31,email,payment_failed,medium,resolved,3.0,4,UPI payment failed but amount debited
+TCK-000135,C00685,2025-01-30,2025-01-31,phone,returns,medium,resolved,9.0,,Return pickup for The product not scheduled
+TCK-000136,C00574,2025-01-31,2025-02-02,email,payment_failed,medium,closed,5.1,3,UPI payment failed but amount debited
+TCK-000137,C00017,2025-02-01,2025-02-08,whatsapp,product_defect,medium,resolved,5.2,3,The product stopped working after a week
+TCK-000138,C00685,2025-02-01,2025-02-10,phone,billing,low,closed,1.5,3,Charged twice for order my order
+TCK-000139,C00033,2025-02-02,2025-02-09,whatsapp,account,high,resolved,6.4,,Cannot update my registered mobile number
+TCK-000140,C00163,2025-02-02,2025-02-11,chat,product_defect,medium,closed,5.0,,The product stopped working after a week
+TCK-000141,C00382,2025-02-02,2025-02-08,email,product_defect,medium,resolved,2.8,,Sports Shoes stopped working after a week
+TCK-000142,C00522,2025-02-02,2025-02-07,email,returns,medium,resolved,1.3,4,Return pickup for USB-C Cable not scheduled
+TCK-000143,C00020,2025-02-03,2025-02-03,phone,payment_failed,low,resolved,4.3,2,UPI payment failed but amount debited
+TCK-000144,C00070,2025-02-03,2025-02-08,whatsapp,returns,low,resolved,5.7,2,Return pickup for Atta Flour not scheduled
+TCK-000145,C00099,2025-02-03,2025-02-12,whatsapp,product_defect,low,resolved,2.3,3,The product stopped working after a week
+TCK-000146,C00117,2025-02-03,2025-02-10,whatsapp,payment_failed,medium,resolved,2.0,,UPI payment failed but amount debited
+TCK-000147,C00219,2025-02-03,2025-02-05,email,account,medium,resolved,4.2,3,Cannot update my registered mobile number
+TCK-000148,C00414,2025-02-03,2025-02-09,chat,payment_failed,medium,resolved,5.5,,UPI payment failed but amount debited
+TCK-000149,C00742,2025-02-03,2025-02-03,whatsapp,returns,urgent,closed,2.3,3,Return pickup for Steel Tiffin Box not scheduled
+TCK-000150,C00792,2025-02-03,2025-02-12,email,billing,medium,closed,4.2,,Charged twice for order TXN-0004534
+TCK-000151,C00247,2025-02-04,2025-02-11,email,billing,low,closed,5.7,,Charged twice for order TXN-0000773
+TCK-000152,C00484,2025-02-04,2025-02-12,email,payment_failed,medium,resolved,2.8,4,UPI payment failed but amount debited
+TCK-000153,C00585,2025-02-04,2025-02-07,whatsapp,delivery_delay,low,resolved,6.1,4,Order TXN-0004724 has not arrived yet
+TCK-000154,C00050,2025-02-05,2025-02-14,chat,payment_failed,high,resolved,4.3,4,UPI payment failed but amount debited
+TCK-000155,C00050,2025-02-05,2025-02-05,chat,product_defect,low,resolved,0.9,3,LED Bulb 9W stopped working after a week
+TCK-000156,C00444,2025-02-05,2025-02-10,chat,billing,urgent,closed,6.5,,Charged twice for order TXN-0008586
+TCK-000157,C00157,2025-02-06,2025-02-07,whatsapp,delivery_delay,medium,resolved,3.4,2,Order TXN-0002041 has not arrived yet
+TCK-000158,C00368,2025-02-06,2025-02-06,chat,account,medium,resolved,4.3,,Cannot update my registered mobile number
+TCK-000159,C00631,2025-02-06,2025-02-13,phone,returns,low,resolved,4.3,3,Return pickup for Power Bank 10000mAh not scheduled
+TCK-000160,C00650,2025-02-06,2025-02-10,whatsapp,payment_failed,low,closed,3.5,4,UPI payment failed but amount debited
+TCK-000161,C00155,2025-02-08,2025-02-15,phone,billing,medium,resolved,3.5,,Charged twice for order TXN-0008337
+TCK-000162,C00295,2025-02-08,2025-02-15,whatsapp,payment_failed,medium,resolved,2.3,2,UPI payment failed but amount debited
+TCK-000163,C00414,2025-02-08,2025-02-17,chat,billing,medium,closed,4.2,3,Charged twice for order TXN-0000252
+TCK-000164,C00046,2025-02-09,2025-02-09,chat,payment_failed,medium,closed,7.0,5,UPI payment failed but amount debited
+TCK-000165,C00295,2025-02-09,2025-02-12,chat,delivery_delay,high,resolved,8.1,,Order TXN-0002359 has not arrived yet
+TCK-000166,C00380,2025-02-09,2025-02-17,whatsapp,product_defect,high,resolved,4.5,2,Sunflower Oil stopped working after a week
+TCK-000167,C00414,2025-02-09,2025-02-11,email,billing,low,resolved,1.9,4,Charged twice for order TXN-0000252
+TCK-000168,C00031,2025-02-10,2025-02-18,chat,returns,low,closed,6.4,4,Return pickup for Cotton Kurta not scheduled
+TCK-000169,C00042,2025-02-10,2025-02-19,whatsapp,payment_failed,urgent,closed,4.3,,UPI payment failed but amount debited
+TCK-000170,C00302,2025-02-10,2025-02-14,whatsapp,delivery_delay,medium,closed,2.6,2,Order TXN-0001683 has not arrived yet
+TCK-000171,C00448,2025-02-10,2025-02-14,whatsapp,account,high,closed,2.9,2,Cannot update my registered mobile number
+TCK-000172,C00493,2025-02-10,2025-02-17,phone,payment_failed,low,resolved,2.6,4,UPI payment failed but amount debited
+TCK-000173,C00069,2025-02-11,2025-02-12,whatsapp,delivery_delay,high,closed,3.6,4,Order TXN-0007730 has not arrived yet
+TCK-000174,C00515,2025-02-12,2025-02-20,chat,account,medium,resolved,10.1,3,Cannot update my registered mobile number
+TCK-000175,C00145,2025-02-13,2025-02-16,phone,delivery_delay,medium,closed,18.4,,Order TXN-0006956 has not arrived yet
+TCK-000176,C00207,2025-02-13,2025-02-14,email,delivery_delay,medium,resolved,5.9,,Order TXN-0008262 has not arrived yet
+TCK-000177,C00409,2025-02-13,2025-02-22,email,delivery_delay,medium,closed,10.3,2,Order TXN-0001623 has not arrived yet
+TCK-000178,C00488,2025-02-13,2025-02-15,chat,delivery_delay,low,resolved,16.0,3,Order TXN-0008672 has not arrived yet
+TCK-000179,C00430,2025-02-14,2025-02-20,chat,delivery_delay,medium,closed,1.9,4,Order my order has not arrived yet
+TCK-000180,C00476,2025-02-14,2025-02-20,phone,account,high,resolved,3.5,4,Cannot update my registered mobile number
+TCK-000181,C00511,2025-02-14,2025-02-23,phone,product_defect,high,closed,3.7,,Pressure Cooker 5L stopped working after a week
+TCK-000182,C00073,2025-02-16,2025-02-17,email,account,medium,resolved,7.6,4,Cannot update my registered mobile number
+TCK-000183,C00400,2025-02-18,2025-02-22,chat,account,urgent,closed,2.7,2,Cannot update my registered mobile number
+TCK-000184,C00595,2025-02-18,2025-02-18,phone,account,medium,closed,6.3,4,Cannot update my registered mobile number
+TCK-000185,C00145,2025-02-19,2025-02-23,phone,product_defect,medium,resolved,2.2,,Ceiling Fan stopped working after a week
+TCK-000186,C00422,2025-02-19,2025-02-25,phone,product_defect,low,resolved,3.5,,Cashew Nuts stopped working after a week
+TCK-000187,C00543,2025-02-19,2025-02-19,chat,product_defect,low,resolved,1.0,,Herbal Shampoo stopped working after a week
+TCK-000188,C00357,2025-02-20,2025-02-24,chat,billing,low,resolved,2.7,3,Charged twice for order TXN-0006688
+TCK-000189,C00506,2025-02-20,2025-02-25,email,billing,medium,closed,11.7,,Charged twice for order my order
+TCK-000190,C00548,2025-02-20,2025-02-20,whatsapp,billing,medium,resolved,4.0,3,Charged twice for order TXN-0001898
+TCK-000191,C00576,2025-02-20,2025-02-20,email,returns,low,closed,2.7,4,Return pickup for LED Bulb 9W not scheduled
+TCK-000192,C00586,2025-02-20,2025-02-23,chat,returns,medium,closed,8.6,3,Return pickup for Denim Jeans not scheduled
+TCK-000193,C00289,2025-02-21,2025-02-24,phone,billing,high,resolved,7.0,3,Charged twice for order TXN-0008295
+TCK-000194,C00475,2025-02-21,2025-02-22,whatsapp,account,high,closed,7.3,3,Cannot update my registered mobile number
+TCK-000195,C00334,2025-02-22,2025-02-26,phone,returns,medium,resolved,4.6,3,Return pickup for Wi-Fi Router not scheduled
+TCK-000196,C00107,2025-02-24,2025-03-04,chat,product_defect,low,closed,2.7,4,Ayurvedic Face Cream stopped working after a week
+TCK-000197,C00594,2025-02-24,2025-02-27,whatsapp,product_defect,low,closed,1.4,5,Smart Watch stopped working after a week
+TCK-000198,C00081,2025-02-25,2025-03-03,chat,account,low,closed,7.4,,Cannot update my registered mobile number
+TCK-000199,C00521,2025-02-25,2025-03-05,phone,delivery_delay,low,closed,4.6,4,Order TXN-0007898 has not arrived yet
+TCK-000200,C00592,2025-02-26,2025-02-28,whatsapp,returns,low,resolved,3.5,4,Return pickup for Cashew Nuts not scheduled
+TCK-000201,C00696,2025-02-26,2025-02-26,whatsapp,payment_failed,medium,closed,2.3,,UPI payment failed but amount debited
+TCK-000202,C00755,2025-02-26,2025-03-02,email,product_defect,high,closed,15.4,3,Ceiling Fan stopped working after a week
+TCK-000203,C00006,2025-02-27,2025-03-05,chat,returns,low,resolved,1.8,4,Return pickup for Steel Tiffin Box not scheduled
+TCK-000204,C00099,2025-02-27,2025-03-08,chat,billing,medium,closed,5.4,2,Charged twice for order my order
+TCK-000205,C00191,2025-02-27,2025-03-04,phone,payment_failed,medium,closed,3.2,,UPI payment failed but amount debited
+TCK-000206,C00195,2025-02-27,2025-03-02,whatsapp,product_defect,high,closed,1.6,,Cotton Bedsheet stopped working after a week
+TCK-000207,C00343,2025-02-27,2025-03-01,chat,delivery_delay,high,resolved,2.7,3,Order TXN-0007512 has not arrived yet
+TCK-000208,C00354,2025-02-27,2025-03-04,whatsapp,payment_failed,low,resolved,8.4,2,UPI payment failed but amount debited
+TCK-000209,C00188,2025-02-28,2025-02-28,email,returns,medium,closed,3.7,5,Return pickup for The product not scheduled
+TCK-000210,C00382,2025-02-28,2025-03-06,phone,delivery_delay,medium,resolved,3.2,5,Order TXN-0008668 has not arrived yet
+TCK-000211,C00766,2025-02-28,2025-03-09,email,account,low,resolved,5.0,1,Cannot update my registered mobile number
+TCK-000212,C00354,2025-03-01,2025-03-02,chat,product_defect,high,resolved,2.1,3,Power Bank 10000mAh stopped working after a week
+TCK-000213,C00355,2025-03-01,2025-03-06,chat,payment_failed,urgent,resolved,1.9,,UPI payment failed but amount debited
+TCK-000214,C00363,2025-03-01,2025-03-06,email,payment_failed,low,resolved,3.3,4,UPI payment failed but amount debited
+TCK-000215,C00640,2025-03-01,2025-03-04,email,delivery_delay,low,resolved,1.9,2,Order TXN-0001471 has not arrived yet
+TCK-000216,C00679,2025-03-01,2025-03-04,chat,account,low,resolved,1.5,5,Cannot update my registered mobile number
+TCK-000217,C00074,2025-03-02,2025-03-02,chat,billing,medium,resolved,1.6,4,Charged twice for order TXN-0005983
+TCK-000218,C00312,2025-03-02,2025-03-05,whatsapp,product_defect,medium,resolved,8.1,,USB-C Cable stopped working after a week
+TCK-000219,C00354,2025-03-02,2025-03-05,chat,account,medium,resolved,3.4,,Cannot update my registered mobile number
+TCK-000220,C00012,2025-03-03,2025-03-07,chat,billing,medium,resolved,12.0,3,Charged twice for order TXN-0001307
+TCK-000221,C00130,2025-03-03,2025-03-11,email,billing,medium,closed,2.8,,Charged twice for order TXN-0000952
+TCK-000222,C00612,2025-03-03,2025-03-05,chat,account,high,resolved,2.7,3,Cannot update my registered mobile number
+TCK-000223,C00634,2025-03-03,2025-03-06,whatsapp,payment_failed,medium,closed,2.9,,UPI payment failed but amount debited
+TCK-000224,C00399,2025-03-04,2025-03-13,email,delivery_delay,low,resolved,1.8,,Order TXN-0001269 has not arrived yet
+TCK-000225,C00428,2025-03-04,2025-03-07,email,account,high,closed,3.7,4,Cannot update my registered mobile number
+TCK-000226,C00482,2025-03-04,2025-03-04,chat,billing,low,resolved,0.7,3,Charged twice for order TXN-0008387
+TCK-000227,C00597,2025-03-05,2025-03-13,chat,delivery_delay,medium,resolved,3.3,,Order TXN-0000755 has not arrived yet
+TCK-000228,C00411,2025-03-06,2025-03-06,chat,delivery_delay,medium,closed,1.5,5,Order TXN-0008515 has not arrived yet
+TCK-000229,C00470,2025-03-06,2025-03-14,phone,product_defect,medium,resolved,6.3,,The product stopped working after a week
+TCK-000230,C00188,2025-03-07,2025-03-12,chat,billing,medium,resolved,3.7,5,Charged twice for order my order
+TCK-000231,C00537,2025-03-08,2025-03-08,chat,product_defect,high,closed,3.3,3,The product stopped working after a week
+TCK-000232,C00125,2025-03-09,2025-03-11,email,product_defect,low,closed,2.6,4,Toor Dal stopped working after a week
+TCK-000233,C00557,2025-03-09,2025-03-17,email,payment_failed,high,resolved,4.3,4,UPI payment failed but amount debited
+TCK-000234,C00233,2025-03-10,2025-03-11,whatsapp,payment_failed,low,resolved,9.0,1,UPI payment failed but amount debited
+TCK-000235,C00280,2025-03-10,2025-03-17,email,returns,high,closed,6.1,3,Return pickup for Masala Chai not scheduled
+TCK-000236,C00551,2025-03-10,2025-03-11,whatsapp,returns,low,resolved,11.0,,Return pickup for Smart Watch not scheduled
+TCK-000237,C00736,2025-03-11,2025-03-20,whatsapp,delivery_delay,high,closed,6.4,,Order TXN-0004410 has not arrived yet
+TCK-000238,C00349,2025-03-12,2025-03-19,whatsapp,product_defect,low,resolved,5.4,4,USB-C Cable stopped working after a week
+TCK-000239,C00230,2025-03-13,2025-03-20,email,billing,urgent,resolved,1.9,2,Charged twice for order TXN-0003845
+TCK-000240,C00324,2025-03-13,2025-03-22,email,account,high,resolved,1.6,3,Cannot update my registered mobile number
+TCK-000241,C00457,2025-03-13,2025-03-13,phone,payment_failed,medium,resolved,7.1,3,UPI payment failed but amount debited
+TCK-000242,C00696,2025-03-13,2025-03-16,phone,account,high,resolved,3.0,3,Cannot update my registered mobile number
+TCK-000243,C00052,2025-03-14,2025-03-18,whatsapp,delivery_delay,low,resolved,7.4,,Order TXN-0001671 has not arrived yet
+TCK-000244,C00371,2025-03-14,2025-03-23,email,product_defect,medium,resolved,3.8,,Power Bank 10000mAh stopped working after a week
+TCK-000245,C00435,2025-03-14,2025-03-19,whatsapp,account,low,closed,1.6,4,Cannot update my registered mobile number
+TCK-000246,C00680,2025-03-14,2025-03-15,whatsapp,returns,urgent,resolved,5.8,3,Return pickup for Toor Dal not scheduled
+TCK-000247,C00098,2025-03-15,2025-03-21,email,payment_failed,high,resolved,2.2,,UPI payment failed but amount debited
+TCK-000248,C00151,2025-03-15,2025-03-16,whatsapp,billing,medium,closed,17.1,,Charged twice for order TXN-0001301
+TCK-000249,C00206,2025-03-15,2025-03-18,email,account,high,resolved,11.0,3,Cannot update my registered mobile number
+TCK-000250,C00761,2025-03-15,2025-03-17,phone,returns,low,closed,2.9,,Return pickup for Silk Saree not scheduled
+TCK-000251,C00374,2025-03-16,2025-03-25,whatsapp,product_defect,high,closed,0.7,3,Cotton Bedsheet stopped working after a week
+TCK-000252,C00724,2025-03-16,2025-03-18,phone,product_defect,medium,closed,2.0,,Basmati Rice stopped working after a week
+TCK-000253,C00399,2025-03-18,2025-03-26,email,payment_failed,medium,closed,2.2,4,UPI payment failed but amount debited
+TCK-000254,C00721,2025-03-19,2025-03-28,chat,delivery_delay,low,closed,15.1,3,Order TXN-0008100 has not arrived yet
+TCK-000255,C00724,2025-03-19,2025-03-21,email,account,high,resolved,6.7,4,Cannot update my registered mobile number
+TCK-000256,C00293,2025-03-20,2025-03-23,phone,billing,medium,resolved,3.7,4,Charged twice for order TXN-0002238
+TCK-000257,C00355,2025-03-20,2025-03-28,chat,returns,medium,resolved,6.6,,Return pickup for Cotton Kurta not scheduled
+TCK-000258,C00429,2025-03-20,2025-03-27,whatsapp,product_defect,low,resolved,4.9,3,Silk Saree stopped working after a week
+TCK-000259,C00611,2025-03-20,2025-03-23,email,delivery_delay,low,closed,2.7,,Order TXN-0008521 has not arrived yet
+TCK-000260,C00755,2025-03-20,2025-03-25,chat,product_defect,low,resolved,7.3,4,Ceiling Fan stopped working after a week
+TCK-000261,C00106,2025-03-21,2025-03-25,whatsapp,account,medium,closed,2.9,4,Cannot update my registered mobile number
+TCK-000262,C00526,2025-03-21,2025-03-24,whatsapp,billing,medium,resolved,0.8,,Charged twice for order TXN-0008122
+TCK-000263,C00785,2025-03-21,2025-03-30,phone,billing,high,resolved,3.7,3,Charged twice for order TXN-0001876
+TCK-000264,C00469,2025-03-22,2025-03-24,whatsapp,delivery_delay,low,resolved,2.6,3,Order TXN-0008403 has not arrived yet
+TCK-000265,C00703,2025-03-22,2025-03-28,phone,payment_failed,medium,resolved,4.4,1,UPI payment failed but amount debited
+TCK-000266,C00110,2025-03-23,2025-03-28,phone,delivery_delay,low,closed,3.8,3,Order TXN-0000657 has not arrived yet
+TCK-000267,C00241,2025-03-23,2025-03-29,whatsapp,returns,medium,closed,11.5,,Return pickup for Sports Shoes not scheduled
+TCK-000268,C00378,2025-03-23,2025-03-26,chat,returns,medium,resolved,6.3,3,Return pickup for Bluetooth Earbuds not scheduled
+TCK-000269,C00633,2025-03-23,2025-03-23,chat,payment_failed,medium,closed,5.9,2,UPI payment failed but amount debited
+TCK-000270,C00069,2025-03-25,2025-03-31,whatsapp,account,medium,closed,5.2,3,Cannot update my registered mobile number
+TCK-000271,C00352,2025-03-25,2025-03-26,phone,payment_failed,high,resolved,5.3,,UPI payment failed but amount debited
+TCK-000272,C00557,2025-03-25,2025-04-02,whatsapp,billing,high,closed,2.1,4,Charged twice for order TXN-0004627
+TCK-000273,C00518,2025-03-26,2025-03-31,phone,returns,medium,closed,3.5,5,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000274,C00553,2025-03-27,2025-04-05,whatsapp,account,medium,resolved,4.0,,Cannot update my registered mobile number
+TCK-000275,C00730,2025-03-27,2025-04-01,phone,billing,low,closed,3.3,,Charged twice for order TXN-0007620
+TCK-000276,C00066,2025-03-28,2025-04-02,phone,billing,low,resolved,2.2,3,Charged twice for order TXN-0001174
+TCK-000277,C00066,2025-03-28,2025-04-06,whatsapp,payment_failed,low,resolved,4.7,,UPI payment failed but amount debited
+TCK-000278,C00399,2025-03-28,2025-04-03,chat,product_defect,medium,closed,3.4,5,Cashew Nuts stopped working after a week
+TCK-000279,C00763,2025-03-29,2025-03-31,phone,billing,high,resolved,4.8,3,Charged twice for order TXN-0005115
+TCK-000280,C00066,2025-03-31,2025-04-08,email,billing,medium,resolved,5.2,3,Charged twice for order TXN-0001174
+TCK-000281,C00233,2025-03-31,2025-04-09,phone,billing,medium,closed,4.5,,Charged twice for order my order
+TCK-000282,C00354,2025-03-31,2025-04-01,email,delivery_delay,high,closed,3.6,3,Order TXN-0000407 has not arrived yet
+TCK-000283,C00701,2025-03-31,2025-04-02,chat,payment_failed,urgent,resolved,2.2,4,UPI payment failed but amount debited
+TCK-000284,C00297,2025-04-01,2025-04-10,whatsapp,billing,high,resolved,4.8,,Charged twice for order TXN-0001570
+TCK-000285,C00505,2025-04-01,2025-04-09,chat,billing,low,resolved,2.3,2,Charged twice for order TXN-0006327
+TCK-000286,C00760,2025-04-02,2025-04-04,chat,product_defect,high,resolved,3.7,,Silk Saree stopped working after a week
+TCK-000287,C00107,2025-04-03,2025-04-11,email,returns,high,closed,8.1,4,Return pickup for Ayurvedic Face Cream not scheduled
+TCK-000288,C00578,2025-04-03,2025-04-11,phone,returns,low,resolved,1.2,,Return pickup for Silk Saree not scheduled
+TCK-000289,C00774,2025-04-03,2025-04-08,email,account,low,closed,1.8,,Cannot update my registered mobile number
+TCK-000290,C00035,2025-04-04,2025-04-04,chat,account,high,resolved,3.3,4,Cannot update my registered mobile number
+TCK-000291,C00131,2025-04-04,2025-04-08,chat,payment_failed,medium,closed,4.0,3,UPI payment failed but amount debited
+TCK-000292,C00324,2025-04-04,2025-04-10,phone,account,medium,closed,9.8,2,Cannot update my registered mobile number
+TCK-000293,C00426,2025-04-04,2025-04-09,whatsapp,billing,medium,resolved,1.6,3,Charged twice for order TXN-0000977
+TCK-000294,C00233,2025-04-06,2025-04-15,email,billing,low,closed,3.3,2,Charged twice for order my order
+TCK-000295,C00269,2025-04-06,2025-04-12,phone,payment_failed,high,resolved,2.4,2,UPI payment failed but amount debited
+TCK-000296,C00354,2025-04-06,2025-04-06,chat,delivery_delay,medium,resolved,5.0,3,Order TXN-0000407 has not arrived yet
+TCK-000297,C00384,2025-04-06,2025-04-12,email,billing,medium,closed,3.2,3,Charged twice for order TXN-0002374
+TCK-000298,C00675,2025-04-06,2025-04-12,phone,delivery_delay,medium,resolved,1.3,4,Order TXN-0003877 has not arrived yet
+TCK-000299,C00555,2025-04-07,2025-04-14,email,delivery_delay,medium,resolved,4.8,,Order TXN-0008712 has not arrived yet
+TCK-000300,C00015,2025-04-08,2025-04-10,phone,billing,high,resolved,0.9,2,Charged twice for order TXN-0007637
+TCK-000301,C00015,2025-04-08,2025-04-16,email,delivery_delay,medium,closed,3.5,4,Order TXN-0007637 has not arrived yet
+TCK-000302,C00139,2025-04-08,2025-04-09,whatsapp,returns,medium,closed,1.8,4,Return pickup for Bluetooth Earbuds not scheduled
+TCK-000303,C00682,2025-04-08,2025-04-13,whatsapp,returns,medium,resolved,4.4,1,Return pickup for Ayurvedic Face Cream not scheduled
+TCK-000304,C00209,2025-04-09,2025-04-09,email,account,medium,resolved,1.6,,Cannot update my registered mobile number
+TCK-000305,C00424,2025-04-09,2025-04-18,whatsapp,product_defect,medium,resolved,4.6,5,Denim Jeans stopped working after a week
+TCK-000306,C00663,2025-04-09,2025-04-16,phone,account,medium,resolved,4.0,,Cannot update my registered mobile number
+TCK-000307,C00701,2025-04-09,2025-04-12,whatsapp,product_defect,medium,closed,1.6,,Ceiling Fan stopped working after a week
+TCK-000308,C00666,2025-04-10,2025-04-19,email,delivery_delay,medium,resolved,2.8,5,Order TXN-0007950 has not arrived yet
+TCK-000309,C00002,2025-04-11,2025-04-18,whatsapp,returns,high,closed,3.7,,Return pickup for Toor Dal not scheduled
+TCK-000310,C00273,2025-04-11,2025-04-19,phone,payment_failed,medium,closed,4.2,2,UPI payment failed but amount debited
+TCK-000311,C00590,2025-04-11,2025-04-19,whatsapp,payment_failed,high,closed,2.6,3,UPI payment failed but amount debited
+TCK-000312,C00740,2025-04-11,2025-04-19,phone,product_defect,medium,closed,4.5,,Silk Saree stopped working after a week
+TCK-000313,C00386,2025-04-12,2025-04-13,email,billing,low,resolved,6.9,4,Charged twice for order TXN-0001882
+TCK-000314,C00582,2025-04-12,2025-04-13,email,billing,high,closed,4.5,5,Charged twice for order TXN-0007431
+TCK-000315,C00640,2025-04-12,2025-04-21,whatsapp,billing,medium,closed,3.2,4,Charged twice for order TXN-0001471
+TCK-000316,C00682,2025-04-13,2025-04-15,whatsapp,account,medium,closed,5.1,2,Cannot update my registered mobile number
+TCK-000317,C00682,2025-04-13,2025-04-19,phone,delivery_delay,high,resolved,5.6,2,Order TXN-0006361 has not arrived yet
+TCK-000318,C00347,2025-04-14,2025-04-22,phone,account,medium,resolved,3.7,2,Cannot update my registered mobile number
+TCK-000319,C00407,2025-04-14,2025-04-16,email,returns,medium,resolved,4.6,3,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000320,C00439,2025-04-14,2025-04-23,phone,delivery_delay,medium,resolved,3.6,4,Order TXN-0008622 has not arrived yet
+TCK-000321,C00510,2025-04-14,2025-04-18,email,account,low,closed,3.7,4,Cannot update my registered mobile number
+TCK-000322,C00589,2025-04-14,2025-04-20,chat,product_defect,medium,closed,3.1,,The product stopped working after a week
+TCK-000323,C00611,2025-04-14,2025-04-23,chat,delivery_delay,medium,resolved,9.8,,Order TXN-0008521 has not arrived yet
+TCK-000324,C00341,2025-04-15,2025-04-16,whatsapp,payment_failed,medium,resolved,8.8,2,UPI payment failed but amount debited
+TCK-000325,C00415,2025-04-15,2025-04-21,phone,payment_failed,medium,closed,2.7,,UPI payment failed but amount debited
+TCK-000326,C00617,2025-04-15,2025-04-24,chat,returns,medium,resolved,8.3,3,Return pickup for Cashew Nuts not scheduled
+TCK-000327,C00649,2025-04-15,2025-04-22,chat,delivery_delay,urgent,closed,9.6,2,Order my order has not arrived yet
+TCK-000328,C00497,2025-04-16,2025-04-17,chat,billing,high,resolved,12.5,,Charged twice for order TXN-0002117
+TCK-000329,C00498,2025-04-16,2025-04-23,whatsapp,account,low,resolved,4.2,,Cannot update my registered mobile number
+TCK-000330,C00757,2025-04-16,2025-04-20,phone,delivery_delay,low,resolved,6.2,3,Order TXN-0000717 has not arrived yet
+TCK-000331,C00429,2025-04-17,2025-04-18,whatsapp,payment_failed,urgent,closed,10.3,2,UPI payment failed but amount debited
+TCK-000332,C00568,2025-04-18,2025-04-18,whatsapp,billing,low,closed,0.9,4,Charged twice for order TXN-0007830
+TCK-000333,C00041,2025-04-19,2025-04-26,phone,returns,medium,closed,3.5,4,Return pickup for Denim Jeans not scheduled
+TCK-000334,C00779,2025-04-19,2025-04-28,chat,account,medium,closed,1.4,5,Cannot update my registered mobile number
+TCK-000335,C00188,2025-04-20,2025-04-28,phone,account,urgent,resolved,4.7,,Cannot update my registered mobile number
+TCK-000336,C00273,2025-04-20,2025-04-23,email,account,medium,closed,1.9,2,Cannot update my registered mobile number
+TCK-000337,C00399,2025-04-20,2025-04-27,chat,account,low,closed,2.4,3,Cannot update my registered mobile number
+TCK-000338,C00719,2025-04-20,2025-04-24,chat,payment_failed,low,resolved,1.3,4,UPI payment failed but amount debited
+TCK-000339,C00135,2025-04-21,2025-04-25,email,account,medium,resolved,3.6,5,Cannot update my registered mobile number
+TCK-000340,C00188,2025-04-21,2025-04-21,chat,product_defect,medium,resolved,7.3,,The product stopped working after a week
+TCK-000341,C00255,2025-04-21,2025-04-24,phone,returns,medium,resolved,2.8,4,Return pickup for The product not scheduled
+TCK-000342,C00326,2025-04-21,2025-04-23,chat,payment_failed,medium,closed,3.8,3,UPI payment failed but amount debited
+TCK-000343,C00399,2025-04-21,2025-04-21,chat,billing,low,closed,3.3,3,Charged twice for order TXN-0001269
+TCK-000344,C00694,2025-04-22,2025-04-30,phone,returns,low,closed,2.8,4,Return pickup for The product not scheduled
+TCK-000345,C00797,2025-04-22,2025-04-23,phone,delivery_delay,medium,resolved,3.6,4,Order TXN-0008723 has not arrived yet
+TCK-000346,C00035,2025-04-24,2025-04-28,email,delivery_delay,high,closed,12.7,4,Order TXN-0001994 has not arrived yet
+TCK-000347,C00255,2025-04-24,2025-05-02,chat,returns,medium,resolved,1.0,4,Return pickup for The product not scheduled
+TCK-000348,C00399,2025-04-24,2025-05-03,chat,returns,urgent,closed,7.8,,Return pickup for Cashew Nuts not scheduled
+TCK-000349,C00612,2025-04-24,2025-04-29,chat,product_defect,medium,resolved,9.1,,Herbal Shampoo stopped working after a week
+TCK-000350,C00694,2025-04-24,2025-04-27,email,billing,low,closed,2.6,5,Charged twice for order my order
+TCK-000351,C00386,2025-04-25,2025-05-04,whatsapp,payment_failed,high,resolved,3.0,4,UPI payment failed but amount debited
+TCK-000352,C00475,2025-04-25,2025-04-30,email,account,high,closed,6.1,3,Cannot update my registered mobile number
+TCK-000353,C00710,2025-04-25,2025-05-03,chat,returns,low,closed,1.4,3,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000354,C00431,2025-04-26,2025-04-28,phone,delivery_delay,low,resolved,2.0,,Order TXN-0007771 has not arrived yet
+TCK-000355,C00457,2025-04-26,2025-04-30,chat,billing,medium,resolved,2.4,,Charged twice for order TXN-0006189
+TCK-000356,C00612,2025-04-26,2025-04-26,whatsapp,returns,medium,resolved,9.6,2,Return pickup for Herbal Shampoo not scheduled
+TCK-000357,C00789,2025-04-26,2025-05-04,whatsapp,account,medium,closed,1.1,,Cannot update my registered mobile number
+TCK-000358,C00036,2025-04-27,2025-05-05,phone,delivery_delay,high,resolved,9.7,3,Order TXN-0008618 has not arrived yet
+TCK-000359,C00149,2025-04-28,2025-05-04,phone,product_defect,medium,closed,6.5,4,Basmati Rice stopped working after a week
+TCK-000360,C00682,2025-04-28,2025-05-05,phone,delivery_delay,medium,resolved,8.1,1,Order TXN-0006361 has not arrived yet
+TCK-000361,C00012,2025-04-29,2025-05-04,whatsapp,returns,medium,closed,3.6,2,Return pickup for Cotton Bedsheet not scheduled
+TCK-000362,C00364,2025-04-29,2025-05-08,whatsapp,delivery_delay,medium,resolved,2.9,,Order TXN-0001907 has not arrived yet
+TCK-000363,C00426,2025-04-29,2025-05-05,email,payment_failed,medium,resolved,1.7,3,UPI payment failed but amount debited
+TCK-000364,C00012,2025-04-30,2025-05-01,whatsapp,returns,low,closed,3.2,3,Return pickup for Cotton Bedsheet not scheduled
+TCK-000365,C00191,2025-04-30,2025-05-05,chat,billing,medium,closed,7.7,,Charged twice for order TXN-0006018
+TCK-000366,C00649,2025-04-30,2025-05-07,whatsapp,returns,high,resolved,4.9,2,Return pickup for The product not scheduled
+TCK-000367,C00741,2025-04-30,2025-05-07,whatsapp,billing,low,resolved,2.0,3,Charged twice for order TXN-0008480
+TCK-000368,C00011,2025-05-01,2025-05-09,email,account,high,closed,4.5,3,Cannot update my registered mobile number
+TCK-000369,C00295,2025-05-01,2025-05-02,phone,returns,urgent,resolved,4.7,3,Return pickup for Cashew Nuts not scheduled
+TCK-000370,C00583,2025-05-01,2025-05-08,chat,billing,high,resolved,2.7,3,Charged twice for order TXN-0008714
+TCK-000371,C00777,2025-05-01,2025-05-03,phone,billing,medium,closed,7.0,5,Charged twice for order TXN-0008680
+TCK-000372,C00230,2025-05-02,2025-05-05,whatsapp,billing,medium,resolved,10.7,2,Charged twice for order TXN-0003845
+TCK-000373,C00421,2025-05-03,2025-05-10,email,delivery_delay,medium,resolved,1.9,5,Order TXN-0002010 has not arrived yet
+TCK-000374,C00533,2025-05-03,2025-05-05,email,returns,high,resolved,2.6,,Return pickup for Steel Tiffin Box not scheduled
+TCK-000375,C00328,2025-05-04,2025-05-12,phone,account,low,resolved,1.2,,Cannot update my registered mobile number
+TCK-000376,C00580,2025-05-04,2025-05-06,whatsapp,billing,low,closed,4.7,2,Charged twice for order TXN-0001440
+TCK-000377,C00221,2025-05-05,2025-05-06,chat,returns,medium,resolved,4.1,2,Return pickup for Ceiling Fan not scheduled
+TCK-000378,C00241,2025-05-05,2025-05-11,whatsapp,account,medium,closed,3.0,5,Cannot update my registered mobile number
+TCK-000379,C00652,2025-05-05,2025-05-11,phone,delivery_delay,medium,resolved,2.8,3,Order TXN-0001944 has not arrived yet
+TCK-000380,C00694,2025-05-05,2025-05-14,email,payment_failed,medium,resolved,1.0,,UPI payment failed but amount debited
+TCK-000381,C00700,2025-05-05,2025-05-09,email,product_defect,low,resolved,3.7,,Atta Flour stopped working after a week
+TCK-000382,C00012,2025-05-06,2025-05-14,chat,payment_failed,medium,closed,6.6,3,UPI payment failed but amount debited
+TCK-000383,C00364,2025-05-06,2025-05-06,chat,payment_failed,low,resolved,7.6,2,UPI payment failed but amount debited
+TCK-000384,C00297,2025-05-07,2025-05-10,email,delivery_delay,medium,closed,1.9,2,Order TXN-0001570 has not arrived yet
+TCK-000385,C00426,2025-05-07,2025-05-08,whatsapp,billing,low,closed,3.1,,Charged twice for order TXN-0000977
+TCK-000386,C00604,2025-05-08,2025-05-08,chat,product_defect,high,resolved,2.5,,Denim Jeans stopped working after a week
+TCK-000387,C00605,2025-05-08,2025-05-10,email,payment_failed,medium,resolved,1.0,,UPI payment failed but amount debited
+TCK-000388,C00633,2025-05-08,2025-05-10,email,billing,urgent,resolved,5.1,1,Charged twice for order TXN-0005785
+TCK-000389,C00638,2025-05-08,2025-05-17,chat,payment_failed,low,closed,4.4,,UPI payment failed but amount debited
+TCK-000390,C00157,2025-05-09,2025-05-15,email,payment_failed,medium,resolved,8.8,3,UPI payment failed but amount debited
+TCK-000391,C00211,2025-05-09,2025-05-11,phone,product_defect,low,closed,5.6,3,Pressure Cooker 5L stopped working after a week
+TCK-000392,C00276,2025-05-09,2025-05-17,phone,returns,medium,closed,9.1,4,Return pickup for Silk Saree not scheduled
+TCK-000393,C00638,2025-05-09,2025-05-13,phone,returns,medium,resolved,1.7,3,Return pickup for Cotton Kurta not scheduled
+TCK-000394,C00788,2025-05-09,2025-05-15,phone,product_defect,medium,closed,3.5,3,Sports Shoes stopped working after a week
+TCK-000395,C00386,2025-05-10,2025-05-10,chat,product_defect,low,closed,2.1,3,Sunscreen SPF50 stopped working after a week
+TCK-000396,C00640,2025-05-10,2025-05-12,whatsapp,product_defect,medium,closed,3.2,3,Wi-Fi Router stopped working after a week
+TCK-000397,C00548,2025-05-11,2025-05-20,email,billing,low,resolved,3.8,3,Charged twice for order TXN-0001898
+TCK-000398,C00640,2025-05-11,2025-05-20,chat,account,low,closed,4.2,4,Cannot update my registered mobile number
+TCK-000399,C00333,2025-05-13,2025-05-19,chat,delivery_delay,low,closed,8.9,,Order my order has not arrived yet
+TCK-000400,C00386,2025-05-13,2025-05-22,phone,account,high,closed,14.6,5,Cannot update my registered mobile number
+TCK-000401,C00528,2025-05-13,2025-05-15,chat,billing,medium,resolved,3.0,3,Charged twice for order TXN-0007470
+TCK-000402,C00597,2025-05-13,2025-05-16,chat,payment_failed,medium,resolved,4.0,4,UPI payment failed but amount debited
+TCK-000403,C00012,2025-05-14,2025-05-17,whatsapp,product_defect,low,closed,5.5,3,Cotton Bedsheet stopped working after a week
+TCK-000404,C00258,2025-05-14,2025-05-19,chat,billing,urgent,resolved,1.1,5,Charged twice for order TXN-0007824
+TCK-000405,C00170,2025-05-15,2025-05-21,email,product_defect,medium,resolved,4.7,4,Cotton Kurta stopped working after a week
+TCK-000406,C00295,2025-05-15,2025-05-21,phone,account,low,resolved,5.8,1,Cannot update my registered mobile number
+TCK-000407,C00368,2025-05-15,2025-05-18,email,delivery_delay,high,closed,5.3,,Order TXN-0008265 has not arrived yet
+TCK-000408,C00324,2025-05-16,2025-05-16,email,billing,medium,resolved,4.9,2,Charged twice for order TXN-0000224
+TCK-000409,C00469,2025-05-16,2025-05-20,whatsapp,billing,medium,closed,2.5,3,Charged twice for order TXN-0008403
+TCK-000410,C00521,2025-05-17,2025-05-26,chat,delivery_delay,high,closed,3.2,3,Order TXN-0007898 has not arrived yet
+TCK-000411,C00241,2025-05-18,2025-05-19,whatsapp,returns,low,resolved,4.6,5,Return pickup for Sports Shoes not scheduled
+TCK-000412,C00643,2025-05-19,2025-05-22,email,payment_failed,low,resolved,1.8,,UPI payment failed but amount debited
+TCK-000413,C00160,2025-05-20,2025-05-26,email,account,urgent,resolved,6.1,2,Cannot update my registered mobile number
+TCK-000414,C00302,2025-05-20,2025-05-28,whatsapp,delivery_delay,medium,closed,4.7,,Order TXN-0001683 has not arrived yet
+TCK-000415,C00160,2025-05-21,2025-05-27,whatsapp,billing,urgent,closed,6.6,2,Charged twice for order my order
+TCK-000416,C00316,2025-05-21,2025-05-28,chat,product_defect,medium,closed,3.7,,Herbal Shampoo stopped working after a week
+TCK-000417,C00320,2025-05-21,2025-05-27,email,billing,medium,closed,5.4,5,Charged twice for order TXN-0008621
+TCK-000418,C00333,2025-05-21,2025-05-30,whatsapp,account,high,closed,9.5,3,Cannot update my registered mobile number
+TCK-000419,C00124,2025-05-22,2025-05-28,phone,payment_failed,medium,closed,5.1,3,UPI payment failed but amount debited
+TCK-000420,C00364,2025-05-22,2025-05-30,email,account,high,closed,13.5,,Cannot update my registered mobile number
+TCK-000421,C00145,2025-05-24,2025-05-30,phone,delivery_delay,medium,resolved,7.6,3,Order TXN-0006956 has not arrived yet
+TCK-000422,C00169,2025-05-24,2025-05-28,email,delivery_delay,urgent,resolved,2.8,4,Order TXN-0006936 has not arrived yet
+TCK-000423,C00638,2025-05-24,2025-05-28,phone,billing,medium,closed,13.9,3,Charged twice for order TXN-0001798
+TCK-000424,C00060,2025-05-25,2025-06-02,phone,delivery_delay,low,resolved,1.3,,Order TXN-0008291 has not arrived yet
+TCK-000425,C00145,2025-05-25,2025-05-27,chat,account,medium,resolved,3.3,3,Cannot update my registered mobile number
+TCK-000426,C00798,2025-05-25,2025-05-31,whatsapp,billing,high,resolved,2.6,,Charged twice for order TXN-0005285
+TCK-000427,C00068,2025-05-26,2025-05-29,email,account,high,resolved,2.2,4,Cannot update my registered mobile number
+TCK-000428,C00208,2025-05-26,2025-06-01,phone,billing,low,closed,3.8,3,Charged twice for order TXN-0007100
+TCK-000429,C00287,2025-05-27,2025-05-30,chat,product_defect,medium,closed,3.9,,Hair Oil stopped working after a week
+TCK-000430,C00133,2025-05-28,2025-06-04,chat,billing,low,resolved,2.2,4,Charged twice for order TXN-0008292
+TCK-000431,C00634,2025-05-28,2025-06-05,phone,account,low,resolved,3.7,2,Cannot update my registered mobile number
+TCK-000432,C00160,2025-05-29,2025-06-03,email,billing,medium,closed,27.2,3,Charged twice for order my order
+TCK-000433,C00464,2025-05-29,2025-05-30,phone,product_defect,medium,resolved,2.0,4,Denim Jeans stopped working after a week
+TCK-000434,C00512,2025-05-29,2025-06-01,phone,product_defect,medium,resolved,1.6,,Hair Oil stopped working after a week
+TCK-000435,C00540,2025-05-29,2025-05-31,chat,delivery_delay,medium,resolved,6.9,2,Order TXN-0008518 has not arrived yet
+TCK-000436,C00160,2025-05-30,2025-05-30,email,billing,medium,resolved,3.9,,Charged twice for order my order
+TCK-000437,C00280,2025-05-30,2025-05-30,whatsapp,account,low,closed,4.4,,Cannot update my registered mobile number
+TCK-000438,C00708,2025-05-30,2025-06-03,whatsapp,product_defect,medium,resolved,5.7,5,Herbal Shampoo stopped working after a week
+TCK-000439,C00302,2025-05-31,2025-06-04,chat,product_defect,high,resolved,4.2,3,Sports Shoes stopped working after a week
+TCK-000440,C00364,2025-05-31,2025-06-09,email,payment_failed,high,closed,8.2,,UPI payment failed but amount debited
+TCK-000441,C00035,2025-06-01,2025-06-01,phone,billing,medium,resolved,3.8,,Charged twice for order TXN-0001994
+TCK-000442,C00590,2025-06-01,2025-06-05,phone,payment_failed,high,resolved,10.7,4,UPI payment failed but amount debited
+TCK-000443,C00035,2025-06-02,2025-06-06,email,delivery_delay,low,closed,5.0,5,Order TXN-0001994 has not arrived yet
+TCK-000444,C00197,2025-06-02,2025-06-11,whatsapp,billing,low,closed,3.2,3,Charged twice for order TXN-0002333
+TCK-000445,C00254,2025-06-02,2025-06-04,phone,payment_failed,low,resolved,4.3,,UPI payment failed but amount debited
+TCK-000446,C00295,2025-06-02,2025-06-08,chat,account,high,closed,6.6,2,Cannot update my registered mobile number
+TCK-000447,C00376,2025-06-02,2025-06-04,phone,payment_failed,low,closed,7.1,,UPI payment failed but amount debited
+TCK-000448,C00428,2025-06-02,2025-06-04,whatsapp,payment_failed,medium,closed,3.0,,UPI payment failed but amount debited
+TCK-000449,C00519,2025-06-02,2025-06-09,whatsapp,delivery_delay,medium,resolved,1.6,,Order TXN-0008688 has not arrived yet
+TCK-000450,C00632,2025-06-03,2025-06-11,whatsapp,billing,medium,closed,2.9,,Charged twice for order TXN-0001098
+TCK-000451,C00632,2025-06-03,2025-06-05,chat,product_defect,medium,closed,3.1,2,Sports Shoes stopped working after a week
+TCK-000452,C00152,2025-06-04,2025-06-05,whatsapp,payment_failed,medium,resolved,2.3,3,UPI payment failed but amount debited
+TCK-000453,C00302,2025-06-04,2025-06-12,chat,account,medium,closed,4.8,3,Cannot update my registered mobile number
+TCK-000454,C00345,2025-06-04,2025-06-06,whatsapp,billing,low,resolved,9.1,,Charged twice for order TXN-0008560
+TCK-000455,C00632,2025-06-04,2025-06-10,whatsapp,product_defect,medium,resolved,1.3,4,Sports Shoes stopped working after a week
+TCK-000456,C00051,2025-06-05,2025-06-05,whatsapp,delivery_delay,low,resolved,2.6,5,Order TXN-0008528 has not arrived yet
+TCK-000457,C00160,2025-06-05,2025-06-12,phone,returns,medium,closed,7.0,2,Return pickup for The product not scheduled
+TCK-000458,C00169,2025-06-06,2025-06-15,email,product_defect,medium,closed,1.1,3,Smart Watch stopped working after a week
+TCK-000459,C00421,2025-06-06,2025-06-12,phone,product_defect,medium,closed,1.6,5,Sunflower Oil stopped working after a week
+TCK-000460,C00798,2025-06-06,2025-06-13,email,billing,medium,closed,6.7,3,Charged twice for order TXN-0005285
+TCK-000461,C00230,2025-06-07,2025-06-14,email,delivery_delay,low,resolved,1.6,3,Order TXN-0003845 has not arrived yet
+TCK-000462,C00265,2025-06-07,2025-06-09,whatsapp,returns,low,resolved,2.0,4,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000463,C00696,2025-06-07,2025-06-13,chat,billing,low,closed,2.7,,Charged twice for order TXN-0008572
+TCK-000464,C00620,2025-06-08,2025-06-10,phone,delivery_delay,low,closed,3.4,2,Order TXN-0007617 has not arrived yet
+TCK-000465,C00061,2025-06-09,2025-06-18,phone,product_defect,low,resolved,6.5,,Pressure Cooker 5L stopped working after a week
+TCK-000466,C00723,2025-06-09,2025-06-11,phone,account,high,closed,3.9,3,Cannot update my registered mobile number
+TCK-000467,C00149,2025-06-10,2025-06-10,whatsapp,account,high,resolved,4.3,4,Cannot update my registered mobile number
+TCK-000468,C00380,2025-06-10,2025-06-12,phone,product_defect,medium,resolved,7.1,2,Sunflower Oil stopped working after a week
+TCK-000469,C00322,2025-06-11,2025-06-17,email,payment_failed,low,closed,5.6,4,UPI payment failed but amount debited
+TCK-000470,C00592,2025-06-12,2025-06-13,whatsapp,product_defect,medium,closed,1.6,3,Cashew Nuts stopped working after a week
+TCK-000471,C00409,2025-06-13,2025-06-15,whatsapp,product_defect,high,closed,3.7,3,Masala Chai stopped working after a week
+TCK-000472,C00619,2025-06-14,2025-06-16,phone,product_defect,low,closed,1.6,5,LED Bulb 9W stopped working after a week
+TCK-000473,C00708,2025-06-15,2025-06-22,phone,product_defect,low,resolved,1.1,,Herbal Shampoo stopped working after a week
+TCK-000474,C00133,2025-06-16,2025-06-19,chat,billing,high,resolved,5.4,4,Charged twice for order TXN-0008292
+TCK-000475,C00474,2025-06-17,2025-06-18,whatsapp,billing,medium,resolved,1.5,4,Charged twice for order TXN-0008266
+TCK-000476,C00235,2025-06-18,2025-06-24,chat,returns,medium,resolved,7.5,1,Return pickup for USB-C Cable not scheduled
+TCK-000477,C00487,2025-06-19,2025-06-21,email,account,high,resolved,4.9,,Cannot update my registered mobile number
+TCK-000478,C00177,2025-06-20,2025-06-21,email,billing,low,closed,1.4,,Charged twice for order TXN-0005655
+TCK-000479,C00183,2025-06-20,2025-06-23,chat,account,low,resolved,4.1,,Cannot update my registered mobile number
+TCK-000480,C00134,2025-06-21,2025-06-30,whatsapp,billing,high,resolved,2.1,3,Charged twice for order TXN-0001857
+TCK-000481,C00159,2025-06-21,2025-06-29,phone,returns,low,resolved,6.4,3,Return pickup for Herbal Shampoo not scheduled
+TCK-000482,C00156,2025-06-22,2025-06-27,email,billing,high,resolved,1.2,,Charged twice for order TXN-0001202
+TCK-000483,C00190,2025-06-22,2025-06-27,phone,billing,medium,resolved,3.1,,Charged twice for order TXN-0002236
+TCK-000484,C00612,2025-06-22,2025-07-01,whatsapp,account,high,resolved,4.0,2,Cannot update my registered mobile number
+TCK-000485,C00211,2025-06-23,2025-06-25,chat,returns,low,closed,2.3,3,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000486,C00628,2025-06-23,2025-06-23,phone,account,high,closed,2.1,,Cannot update my registered mobile number
+TCK-000487,C00741,2025-06-23,2025-06-24,chat,product_defect,medium,resolved,14.5,,Toor Dal stopped working after a week
+TCK-000488,C00348,2025-06-24,2025-07-03,whatsapp,payment_failed,low,resolved,1.5,3,UPI payment failed but amount debited
+TCK-000489,C00498,2025-06-24,2025-06-30,whatsapp,delivery_delay,low,closed,2.6,,Order TXN-0008454 has not arrived yet
+TCK-000490,C00442,2025-06-25,2025-07-02,whatsapp,account,high,closed,3.6,,Cannot update my registered mobile number
+TCK-000491,C00725,2025-06-25,2025-06-30,phone,payment_failed,low,closed,2.7,5,UPI payment failed but amount debited
+TCK-000492,C00007,2025-06-26,2025-07-02,whatsapp,delivery_delay,medium,closed,3.2,4,Order TXN-0008334 has not arrived yet
+TCK-000493,C00058,2025-06-26,2025-07-02,phone,payment_failed,high,resolved,1.9,4,UPI payment failed but amount debited
+TCK-000494,C00326,2025-06-26,2025-06-26,whatsapp,account,low,resolved,2.9,3,Cannot update my registered mobile number
+TCK-000495,C00384,2025-06-26,2025-07-05,whatsapp,account,medium,resolved,2.4,,Cannot update my registered mobile number
+TCK-000496,C00384,2025-06-26,2025-07-01,chat,billing,low,closed,6.5,4,Charged twice for order TXN-0002374
+TCK-000497,C00404,2025-06-26,2025-07-02,email,payment_failed,low,resolved,5.2,3,UPI payment failed but amount debited
+TCK-000498,C00497,2025-06-26,2025-06-30,whatsapp,billing,low,closed,2.3,3,Charged twice for order TXN-0002117
+TCK-000499,C00267,2025-06-27,2025-07-01,chat,billing,low,resolved,4.7,5,Charged twice for order TXN-0008702
+TCK-000500,C00281,2025-06-27,2025-07-05,email,returns,urgent,resolved,5.0,,Return pickup for Cotton Bedsheet not scheduled
+TCK-000501,C00335,2025-06-27,2025-07-06,chat,returns,medium,resolved,5.1,3,Return pickup for Sports Shoes not scheduled
+TCK-000502,C00480,2025-06-27,2025-07-06,email,product_defect,medium,closed,8.8,,USB-C Cable stopped working after a week
+TCK-000503,C00631,2025-06-27,2025-06-30,email,product_defect,high,resolved,3.5,,Power Bank 10000mAh stopped working after a week
+TCK-000504,C00297,2025-06-28,2025-07-06,whatsapp,account,low,resolved,8.6,3,Cannot update my registered mobile number
+TCK-000505,C00326,2025-06-28,2025-06-29,phone,product_defect,low,closed,3.7,,The product stopped working after a week
+TCK-000506,C00597,2025-06-28,2025-07-06,chat,payment_failed,medium,resolved,2.5,4,UPI payment failed but amount debited
+TCK-000507,C00002,2025-06-29,2025-07-08,chat,product_defect,medium,resolved,2.7,,Toor Dal stopped working after a week
+TCK-000508,C00763,2025-06-29,2025-07-04,email,payment_failed,high,resolved,3.6,,UPI payment failed but amount debited
+TCK-000509,C00350,2025-06-30,2025-07-02,email,returns,low,closed,4.4,,Return pickup for Silk Saree not scheduled
+TCK-000510,C00422,2025-06-30,2025-07-07,whatsapp,payment_failed,low,resolved,17.1,,UPI payment failed but amount debited
+TCK-000511,C00783,2025-06-30,2025-07-06,whatsapp,returns,medium,resolved,4.6,3,Return pickup for LED Bulb 9W not scheduled
+TCK-000512,C00192,2025-07-01,2025-07-06,chat,billing,high,closed,2.5,4,Charged twice for order TXN-0008108
+TCK-000513,C00259,2025-07-01,2025-07-08,chat,account,medium,closed,4.4,2,Cannot update my registered mobile number
+TCK-000514,C00461,2025-07-01,2025-07-04,whatsapp,payment_failed,low,closed,6.5,1,UPI payment failed but amount debited
+TCK-000515,C00102,2025-07-02,2025-07-07,whatsapp,delivery_delay,high,closed,1.9,2,Order TXN-0008631 has not arrived yet
+TCK-000516,C00326,2025-07-02,2025-07-11,email,delivery_delay,low,resolved,2.1,4,Order my order has not arrived yet
+TCK-000517,C00564,2025-07-02,2025-07-11,whatsapp,account,medium,closed,2.4,,Cannot update my registered mobile number
+TCK-000518,C00131,2025-07-03,2025-07-06,whatsapp,delivery_delay,medium,resolved,6.1,3,Order TXN-0008697 has not arrived yet
+TCK-000519,C00322,2025-07-03,2025-07-10,email,product_defect,low,closed,3.0,3,Basmati Rice stopped working after a week
+TCK-000520,C00646,2025-07-04,2025-07-11,chat,account,low,closed,3.6,4,Cannot update my registered mobile number
+TCK-000521,C00067,2025-07-05,2025-07-07,chat,account,low,closed,1.3,5,Cannot update my registered mobile number
+TCK-000522,C00434,2025-07-05,2025-07-14,email,billing,low,resolved,5.9,2,Charged twice for order TXN-0008564
+TCK-000523,C00469,2025-07-05,2025-07-14,email,payment_failed,high,resolved,2.4,4,UPI payment failed but amount debited
+TCK-000524,C00157,2025-07-06,2025-07-11,chat,returns,medium,closed,3.6,,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000525,C00031,2025-07-08,2025-07-08,chat,account,urgent,resolved,4.5,3,Cannot update my registered mobile number
+TCK-000526,C00638,2025-07-08,2025-07-17,whatsapp,delivery_delay,medium,closed,3.9,3,Order TXN-0001798 has not arrived yet
+TCK-000527,C00293,2025-07-09,2025-07-15,whatsapp,payment_failed,medium,resolved,12.8,,UPI payment failed but amount debited
+TCK-000528,C00447,2025-07-12,2025-07-13,phone,account,high,closed,7.9,4,Cannot update my registered mobile number
+TCK-000529,C00494,2025-07-12,2025-07-15,chat,payment_failed,low,resolved,5.1,4,UPI payment failed but amount debited
+TCK-000530,C00571,2025-07-12,2025-07-18,chat,product_defect,medium,resolved,2.9,5,LED Bulb 9W stopped working after a week
+TCK-000531,C00663,2025-07-12,2025-07-21,email,account,medium,closed,4.2,,Cannot update my registered mobile number
+TCK-000532,C00129,2025-07-13,2025-07-22,chat,billing,medium,resolved,3.2,5,Charged twice for order TXN-0007890
+TCK-000533,C00280,2025-07-14,2025-07-20,chat,billing,low,resolved,5.9,,Charged twice for order TXN-0008559
+TCK-000534,C00068,2025-07-15,2025-07-17,whatsapp,returns,low,resolved,2.3,5,Return pickup for Smart Watch not scheduled
+TCK-000535,C00383,2025-07-15,2025-07-19,email,delivery_delay,high,resolved,7.5,3,Order TXN-0005093 has not arrived yet
+TCK-000536,C00623,2025-07-15,2025-07-22,chat,payment_failed,low,closed,3.3,,UPI payment failed but amount debited
+TCK-000537,C00557,2025-07-16,2025-07-22,email,account,medium,resolved,3.7,3,Cannot update my registered mobile number
+TCK-000538,C00640,2025-07-16,2025-07-20,phone,payment_failed,low,closed,3.8,4,UPI payment failed but amount debited
+TCK-000539,C00777,2025-07-16,2025-07-21,email,delivery_delay,medium,resolved,4.1,3,Order TXN-0008680 has not arrived yet
+TCK-000540,C00164,2025-07-17,2025-07-18,whatsapp,delivery_delay,low,resolved,0.7,5,Order TXN-0005724 has not arrived yet
+TCK-000541,C00202,2025-07-17,2025-07-24,phone,delivery_delay,urgent,resolved,3.0,3,Order TXN-0008665 has not arrived yet
+TCK-000542,C00136,2025-07-18,2025-07-26,email,billing,urgent,resolved,2.5,2,Charged twice for order TXN-0003622
+TCK-000543,C00246,2025-07-18,2025-07-26,phone,product_defect,medium,resolved,1.5,5,Herbal Shampoo stopped working after a week
+TCK-000544,C00271,2025-07-18,2025-07-21,email,account,medium,resolved,1.9,,Cannot update my registered mobile number
+TCK-000545,C00287,2025-07-18,2025-07-27,phone,account,low,closed,3.9,3,Cannot update my registered mobile number
+TCK-000546,C00316,2025-07-18,2025-07-24,chat,returns,low,closed,2.1,2,Return pickup for Herbal Shampoo not scheduled
+TCK-000547,C00682,2025-07-18,2025-07-27,email,payment_failed,medium,closed,5.1,2,UPI payment failed but amount debited
+TCK-000548,C00353,2025-07-19,2025-07-19,email,returns,medium,resolved,4.9,5,Return pickup for Steel Tiffin Box not scheduled
+TCK-000549,C00680,2025-07-19,2025-07-22,chat,payment_failed,medium,closed,4.9,3,UPI payment failed but amount debited
+TCK-000550,C00461,2025-07-20,2025-07-29,chat,delivery_delay,low,resolved,5.5,3,Order TXN-0002241 has not arrived yet
+TCK-000551,C00737,2025-07-21,2025-07-21,phone,returns,medium,closed,1.3,,Return pickup for Wi-Fi Router not scheduled
+TCK-000552,C00015,2025-07-22,2025-07-29,phone,product_defect,high,closed,3.9,3,USB-C Cable stopped working after a week
+TCK-000553,C00183,2025-07-22,2025-07-29,email,account,medium,resolved,9.2,,Cannot update my registered mobile number
+TCK-000554,C00429,2025-07-22,2025-07-24,whatsapp,returns,low,resolved,2.0,3,Return pickup for Silk Saree not scheduled
+TCK-000555,C00183,2025-07-23,2025-07-29,whatsapp,billing,high,resolved,4.5,,Charged twice for order TXN-0008340
+TCK-000556,C00216,2025-07-23,2025-08-01,whatsapp,returns,medium,resolved,2.7,,Return pickup for Steel Tiffin Box not scheduled
+TCK-000557,C00654,2025-07-23,2025-08-01,email,payment_failed,low,closed,5.7,,UPI payment failed but amount debited
+TCK-000558,C00678,2025-07-23,2025-07-25,chat,payment_failed,low,closed,6.2,2,UPI payment failed but amount debited
+TCK-000559,C00075,2025-07-24,2025-07-29,email,product_defect,medium,closed,1.4,,Denim Jeans stopped working after a week
+TCK-000560,C00378,2025-07-24,2025-07-24,phone,product_defect,medium,resolved,5.0,3,Bluetooth Earbuds stopped working after a week
+TCK-000561,C00570,2025-07-24,2025-07-30,email,delivery_delay,low,closed,9.6,5,Order TXN-0004108 has not arrived yet
+TCK-000562,C00723,2025-07-24,2025-07-31,email,returns,medium,closed,4.5,,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000563,C00207,2025-07-25,2025-08-01,whatsapp,returns,medium,closed,3.3,3,Return pickup for Atta Flour not scheduled
+TCK-000564,C00347,2025-07-25,2025-07-26,whatsapp,billing,medium,resolved,11.3,1,Charged twice for order TXN-0008449
+TCK-000565,C00185,2025-07-26,2025-07-28,chat,payment_failed,medium,closed,1.4,1,UPI payment failed but amount debited
+TCK-000566,C00690,2025-07-26,2025-07-30,email,returns,low,resolved,6.7,2,Return pickup for Cotton Kurta not scheduled
+TCK-000567,C00352,2025-07-27,2025-08-05,phone,account,high,closed,3.2,5,Cannot update my registered mobile number
+TCK-000568,C00511,2025-07-27,2025-07-27,chat,account,low,resolved,5.0,3,Cannot update my registered mobile number
+TCK-000569,C00014,2025-07-28,2025-07-29,phone,account,medium,closed,4.0,5,Cannot update my registered mobile number
+TCK-000570,C00088,2025-07-28,2025-07-28,email,delivery_delay,low,closed,5.1,2,Order TXN-0002014 has not arrived yet
+TCK-000571,C00412,2025-07-28,2025-07-31,whatsapp,product_defect,medium,resolved,5.7,4,Basmati Rice stopped working after a week
+TCK-000572,C00371,2025-07-29,2025-08-07,whatsapp,account,medium,resolved,5.1,2,Cannot update my registered mobile number
+TCK-000573,C00672,2025-07-29,2025-08-01,whatsapp,returns,medium,closed,1.9,5,Return pickup for The product not scheduled
+TCK-000574,C00691,2025-07-29,2025-08-05,chat,billing,medium,closed,2.5,3,Charged twice for order TXN-0008477
+TCK-000575,C00159,2025-07-31,2025-08-09,whatsapp,returns,low,resolved,5.0,3,Return pickup for Herbal Shampoo not scheduled
+TCK-000576,C00389,2025-07-31,2025-08-03,email,billing,high,resolved,4.9,4,Charged twice for order TXN-0008180
+TCK-000577,C00497,2025-07-31,2025-08-08,phone,delivery_delay,low,resolved,7.9,,Order TXN-0002117 has not arrived yet
+TCK-000578,C00712,2025-07-31,2025-08-02,email,billing,high,resolved,6.3,5,Charged twice for order TXN-0007740
+TCK-000579,C00073,2025-08-01,2025-08-10,phone,delivery_delay,low,closed,7.0,2,Order TXN-0002630 has not arrived yet
+TCK-000580,C00088,2025-08-01,2025-08-08,chat,billing,high,closed,4.2,,Charged twice for order TXN-0002014
+TCK-000581,C00134,2025-08-01,2025-08-02,whatsapp,account,high,closed,5.0,,Cannot update my registered mobile number
+TCK-000582,C00461,2025-08-01,2025-08-10,phone,product_defect,medium,resolved,9.1,1,Denim Jeans stopped working after a week
+TCK-000583,C00446,2025-08-02,2025-08-09,chat,returns,low,resolved,1.3,,Return pickup for Sports Shoes not scheduled
+TCK-000584,C00138,2025-08-04,2025-08-11,email,product_defect,medium,closed,7.5,,Cotton Kurta stopped working after a week
+TCK-000585,C00190,2025-08-04,2025-08-10,phone,billing,medium,resolved,4.5,,Charged twice for order TXN-0002236
+TCK-000586,C00555,2025-08-04,2025-08-09,phone,payment_failed,low,closed,3.8,3,UPI payment failed but amount debited
+TCK-000587,C00218,2025-08-05,2025-08-08,email,account,medium,resolved,2.6,5,Cannot update my registered mobile number
+TCK-000588,C00264,2025-08-05,2025-08-09,whatsapp,delivery_delay,medium,closed,2.6,2,Order TXN-0001850 has not arrived yet
+TCK-000589,C00334,2025-08-05,2025-08-10,chat,delivery_delay,medium,resolved,7.7,3,Order TXN-0003610 has not arrived yet
+TCK-000590,C00401,2025-08-05,2025-08-06,phone,returns,low,resolved,6.4,5,Return pickup for Silk Saree not scheduled
+TCK-000591,C00646,2025-08-05,2025-08-12,email,billing,high,closed,3.9,,Charged twice for order TXN-0008369
+TCK-000592,C00289,2025-08-08,2025-08-08,chat,account,medium,closed,8.5,,Cannot update my registered mobile number
+TCK-000593,C00378,2025-08-08,2025-08-17,email,returns,low,closed,5.7,3,Return pickup for Bluetooth Earbuds not scheduled
+TCK-000594,C00604,2025-08-08,2025-08-17,phone,billing,high,closed,2.0,,Charged twice for order TXN-0005346
+TCK-000595,C00678,2025-08-08,2025-08-15,whatsapp,billing,medium,resolved,5.4,,Charged twice for order TXN-0001812
+TCK-000596,C00700,2025-08-09,2025-08-11,email,delivery_delay,medium,resolved,2.2,3,Order TXN-0002130 has not arrived yet
+TCK-000597,C00788,2025-08-09,2025-08-10,chat,product_defect,medium,closed,5.1,3,Sports Shoes stopped working after a week
+TCK-000598,C00070,2025-08-10,2025-08-12,chat,payment_failed,medium,resolved,4.8,2,UPI payment failed but amount debited
+TCK-000599,C00076,2025-08-10,2025-08-19,chat,billing,medium,resolved,2.3,4,Charged twice for order TXN-0008629
+TCK-000600,C00159,2025-08-10,2025-08-19,email,account,medium,closed,6.4,3,Cannot update my registered mobile number
+TCK-000601,C00631,2025-08-10,2025-08-18,chat,product_defect,low,resolved,10.9,3,Power Bank 10000mAh stopped working after a week
+TCK-000602,C00798,2025-08-11,2025-08-13,chat,billing,medium,closed,1.9,3,Charged twice for order TXN-0005285
+TCK-000603,C00488,2025-08-12,2025-08-19,email,payment_failed,high,closed,10.6,3,UPI payment failed but amount debited
+TCK-000604,C00053,2025-08-13,2025-08-20,whatsapp,billing,high,closed,3.8,,Charged twice for order TXN-0007639
+TCK-000605,C00530,2025-08-13,2025-08-21,whatsapp,product_defect,medium,closed,2.0,5,Sunscreen SPF50 stopped working after a week
+TCK-000606,C00557,2025-08-13,2025-08-21,email,product_defect,low,resolved,10.3,2,Cotton Bedsheet stopped working after a week
+TCK-000607,C00082,2025-08-14,2025-08-14,phone,payment_failed,medium,closed,3.2,,UPI payment failed but amount debited
+TCK-000608,C00670,2025-08-14,2025-08-21,phone,product_defect,medium,resolved,6.7,,Sports Shoes stopped working after a week
+TCK-000609,C00023,2025-08-15,2025-08-16,chat,payment_failed,medium,resolved,2.9,3,UPI payment failed but amount debited
+TCK-000610,C00058,2025-08-15,2025-08-17,email,product_defect,medium,closed,17.5,,Ceiling Fan stopped working after a week
+TCK-000611,C00263,2025-08-15,2025-08-16,email,returns,medium,resolved,6.0,3,Return pickup for Basmati Rice not scheduled
+TCK-000612,C00653,2025-08-15,2025-08-20,email,account,medium,resolved,2.6,3,Cannot update my registered mobile number
+TCK-000613,C00428,2025-08-16,2025-08-24,whatsapp,account,medium,resolved,2.2,4,Cannot update my registered mobile number
+TCK-000614,C00799,2025-08-16,2025-08-21,chat,returns,high,closed,2.2,2,Return pickup for Denim Jeans not scheduled
+TCK-000615,C00119,2025-08-18,2025-08-21,email,account,medium,resolved,3.0,5,Cannot update my registered mobile number
+TCK-000616,C00431,2025-08-18,2025-08-27,email,product_defect,high,resolved,1.6,5,Cotton Bedsheet stopped working after a week
+TCK-000617,C00586,2025-08-18,2025-08-26,chat,account,low,closed,1.6,2,Cannot update my registered mobile number
+TCK-000618,C00350,2025-08-19,2025-08-26,phone,payment_failed,medium,closed,6.1,,UPI payment failed but amount debited
+TCK-000619,C00409,2025-08-19,2025-08-21,whatsapp,billing,high,resolved,9.0,2,Charged twice for order TXN-0001623
+TCK-000620,C00494,2025-08-19,2025-08-24,email,product_defect,low,resolved,4.8,4,Wi-Fi Router stopped working after a week
+TCK-000621,C00600,2025-08-19,2025-08-22,chat,account,low,resolved,4.1,,Cannot update my registered mobile number
+TCK-000622,C00730,2025-08-19,2025-08-21,whatsapp,payment_failed,low,closed,4.6,5,UPI payment failed but amount debited
+TCK-000623,C00156,2025-08-20,2025-08-25,phone,product_defect,medium,closed,2.6,2,Sunscreen SPF50 stopped working after a week
+TCK-000624,C00461,2025-08-20,2025-08-28,email,billing,high,closed,3.6,1,Charged twice for order TXN-0002241
+TCK-000625,C00336,2025-08-21,2025-08-23,email,billing,medium,resolved,2.8,4,Charged twice for order TXN-0008138
+TCK-000626,C00102,2025-08-22,2025-08-22,email,product_defect,low,resolved,4.3,3,Cotton Kurta stopped working after a week
+TCK-000627,C00618,2025-08-22,2025-08-29,phone,delivery_delay,low,resolved,3.5,2,Order TXN-0004198 has not arrived yet
+TCK-000628,C00700,2025-08-22,2025-08-30,whatsapp,product_defect,medium,closed,3.2,3,Atta Flour stopped working after a week
+TCK-000629,C00143,2025-08-23,2025-08-28,phone,account,low,closed,6.5,3,Cannot update my registered mobile number
+TCK-000630,C00289,2025-08-23,2025-08-29,whatsapp,billing,low,resolved,6.1,,Charged twice for order TXN-0008295
+TCK-000631,C00512,2025-08-23,2025-08-27,whatsapp,returns,medium,resolved,2.8,3,Return pickup for Hair Oil not scheduled
+TCK-000632,C00614,2025-08-23,2025-08-26,whatsapp,payment_failed,low,closed,2.2,5,UPI payment failed but amount debited
+TCK-000633,C00636,2025-08-23,2025-08-29,whatsapp,returns,medium,closed,5.0,1,Return pickup for Cotton Kurta not scheduled
+TCK-000634,C00264,2025-08-24,2025-08-30,whatsapp,product_defect,medium,resolved,5.6,,Steel Tiffin Box stopped working after a week
+TCK-000635,C00435,2025-08-24,2025-09-02,chat,payment_failed,high,closed,4.1,4,UPI payment failed but amount debited
+TCK-000636,C00510,2025-08-24,2025-09-02,whatsapp,billing,medium,resolved,1.0,4,Charged twice for order TXN-0008640
+TCK-000637,C00588,2025-08-24,2025-08-28,whatsapp,product_defect,high,closed,5.9,5,Hair Oil stopped working after a week
+TCK-000638,C00800,2025-08-24,2025-09-01,chat,delivery_delay,medium,resolved,6.1,4,Order TXN-0008176 has not arrived yet
+TCK-000639,C00153,2025-08-25,2025-09-01,phone,account,high,resolved,3.9,4,Cannot update my registered mobile number
+TCK-000640,C00710,2025-08-26,2025-08-27,email,payment_failed,urgent,closed,3.3,3,UPI payment failed but amount debited
+TCK-000641,C00316,2025-08-27,2025-09-02,phone,product_defect,low,closed,1.7,2,Herbal Shampoo stopped working after a week
+TCK-000642,C00455,2025-08-28,2025-09-04,whatsapp,account,low,closed,5.1,4,Cannot update my registered mobile number
+TCK-000643,C00625,2025-08-29,2025-09-03,chat,delivery_delay,high,closed,1.3,,Order TXN-0008499 has not arrived yet
+TCK-000644,C00626,2025-08-29,2025-09-06,whatsapp,account,low,resolved,2.9,4,Cannot update my registered mobile number
+TCK-000645,C00062,2025-08-30,2025-08-31,chat,payment_failed,low,resolved,3.1,3,UPI payment failed but amount debited
+TCK-000646,C00726,2025-08-30,2025-09-05,email,product_defect,medium,closed,2.2,,Basmati Rice stopped working after a week
+TCK-000647,C00226,2025-08-31,2025-09-05,chat,payment_failed,low,resolved,2.4,4,UPI payment failed but amount debited
+TCK-000648,C00532,2025-08-31,2025-09-06,chat,payment_failed,medium,closed,8.1,2,UPI payment failed but amount debited
+TCK-000649,C00625,2025-08-31,2025-09-05,whatsapp,delivery_delay,medium,closed,1.0,,Order TXN-0008499 has not arrived yet
+TCK-000650,C00174,2025-09-01,2025-09-04,whatsapp,product_defect,low,closed,12.3,,Atta Flour stopped working after a week
+TCK-000651,C00654,2025-09-01,2025-09-07,phone,product_defect,medium,resolved,3.5,4,The product stopped working after a week
+TCK-000652,C00662,2025-09-01,2025-09-05,email,billing,high,closed,5.6,3,Charged twice for order TXN-0002077
+TCK-000653,C00305,2025-09-02,2025-09-11,chat,payment_failed,low,resolved,4.2,5,UPI payment failed but amount debited
+TCK-000654,C00416,2025-09-02,2025-09-08,whatsapp,product_defect,low,resolved,2.8,,Smart Watch stopped working after a week
+TCK-000655,C00478,2025-09-02,2025-09-06,whatsapp,account,low,resolved,3.5,4,Cannot update my registered mobile number
+TCK-000656,C00626,2025-09-02,2025-09-11,email,billing,medium,closed,1.8,4,Charged twice for order my order
+TCK-000657,C00295,2025-09-03,2025-09-03,whatsapp,delivery_delay,high,resolved,5.0,1,Order TXN-0002359 has not arrived yet
+TCK-000658,C00407,2025-09-03,2025-09-07,email,account,medium,closed,5.0,3,Cannot update my registered mobile number
+TCK-000659,C00564,2025-09-03,2025-09-12,whatsapp,returns,low,closed,7.3,,Return pickup for Silk Saree not scheduled
+TCK-000660,C00626,2025-09-03,2025-09-07,phone,payment_failed,high,resolved,1.6,5,UPI payment failed but amount debited
+TCK-000661,C00670,2025-09-03,2025-09-11,phone,account,low,resolved,2.3,,Cannot update my registered mobile number
+TCK-000662,C00695,2025-09-03,2025-09-09,chat,delivery_delay,medium,closed,0.9,4,Order TXN-0008522 has not arrived yet
+TCK-000663,C00796,2025-09-04,2025-09-08,email,returns,medium,closed,7.8,2,Return pickup for Steel Tiffin Box not scheduled
+TCK-000664,C00246,2025-09-05,2025-09-09,email,billing,urgent,closed,2.0,5,Charged twice for order TXN-0002473
+TCK-000665,C00276,2025-09-05,2025-09-11,chat,billing,medium,closed,2.5,,Charged twice for order TXN-0008383
+TCK-000666,C00140,2025-09-06,2025-09-12,email,delivery_delay,medium,closed,3.0,4,Order TXN-0005411 has not arrived yet
+TCK-000667,C00153,2025-09-06,2025-09-08,chat,product_defect,urgent,closed,7.6,4,Pressure Cooker 5L stopped working after a week
+TCK-000668,C00238,2025-09-06,2025-09-13,whatsapp,returns,medium,resolved,5.9,,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000669,C00407,2025-09-06,2025-09-14,whatsapp,returns,urgent,closed,6.6,3,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000670,C00626,2025-09-06,2025-09-13,chat,payment_failed,high,resolved,1.7,4,UPI payment failed but amount debited
+TCK-000671,C00264,2025-09-07,2025-09-13,whatsapp,account,medium,resolved,4.6,,Cannot update my registered mobile number
+TCK-000672,C00546,2025-09-07,2025-09-08,email,product_defect,low,resolved,3.7,3,Cashew Nuts stopped working after a week
+TCK-000673,C00633,2025-09-07,2025-09-09,phone,account,high,closed,8.5,2,Cannot update my registered mobile number
+TCK-000674,C00703,2025-09-07,2025-09-14,whatsapp,delivery_delay,medium,closed,7.8,,Order TXN-0003736 has not arrived yet
+TCK-000675,C00719,2025-09-07,2025-09-12,phone,delivery_delay,low,resolved,1.8,4,Order TXN-0008173 has not arrived yet
+TCK-000676,C00298,2025-09-08,2025-09-08,phone,returns,low,resolved,3.7,,Return pickup for The product not scheduled
+TCK-000677,C00383,2025-09-08,2025-09-12,phone,account,medium,closed,2.7,,Cannot update my registered mobile number
+TCK-000678,C00409,2025-09-08,2025-09-08,phone,product_defect,medium,resolved,8.5,,Masala Chai stopped working after a week
+TCK-000679,C00441,2025-09-08,2025-09-09,email,billing,urgent,resolved,0.7,4,Charged twice for order TXN-0007653
+TCK-000680,C00703,2025-09-08,2025-09-16,email,payment_failed,medium,closed,11.8,,UPI payment failed but amount debited
+TCK-000681,C00780,2025-09-08,2025-09-14,whatsapp,product_defect,low,closed,2.4,,LED Bulb 9W stopped working after a week
+TCK-000682,C00216,2025-09-09,2025-09-18,phone,billing,low,closed,1.5,4,Charged twice for order TXN-0008418
+TCK-000683,C00336,2025-09-10,2025-09-11,chat,payment_failed,medium,closed,3.5,4,UPI payment failed but amount debited
+TCK-000684,C00077,2025-09-11,2025-09-19,phone,delivery_delay,medium,resolved,6.6,4,Order TXN-0008162 has not arrived yet
+TCK-000685,C00313,2025-09-11,2025-09-17,email,product_defect,low,resolved,4.3,2,Basmati Rice stopped working after a week
+TCK-000686,C00227,2025-09-12,2025-09-17,phone,delivery_delay,medium,closed,2.9,,Order TXN-0007695 has not arrived yet
+TCK-000687,C00546,2025-09-12,2025-09-12,chat,delivery_delay,medium,resolved,5.0,4,Order TXN-0003640 has not arrived yet
+TCK-000688,C00564,2025-09-13,2025-09-22,chat,returns,medium,resolved,16.2,3,Return pickup for Silk Saree not scheduled
+TCK-000689,C00334,2025-09-14,2025-09-23,email,account,high,closed,2.0,,Cannot update my registered mobile number
+TCK-000690,C00545,2025-09-14,2025-09-15,whatsapp,account,low,closed,5.1,,Cannot update my registered mobile number
+TCK-000691,C00661,2025-09-14,2025-09-20,phone,product_defect,low,resolved,3.1,4,Cotton Kurta stopped working after a week
+TCK-000692,C00798,2025-09-14,2025-09-18,whatsapp,account,high,resolved,3.1,2,Cannot update my registered mobile number
+TCK-000693,C00330,2025-09-15,2025-09-17,phone,payment_failed,medium,closed,3.0,3,UPI payment failed but amount debited
+TCK-000694,C00462,2025-09-15,2025-09-17,email,delivery_delay,low,resolved,3.2,4,Order TXN-0008284 has not arrived yet
+TCK-000695,C00045,2025-09-16,2025-09-24,phone,payment_failed,low,closed,0.8,2,UPI payment failed but amount debited
+TCK-000696,C00185,2025-09-16,2025-09-24,email,billing,low,resolved,3.5,2,Charged twice for order TXN-0007078
+TCK-000697,C00264,2025-09-16,2025-09-25,chat,product_defect,low,resolved,3.7,3,Steel Tiffin Box stopped working after a week
+TCK-000698,C00094,2025-09-17,2025-09-23,phone,payment_failed,medium,closed,1.2,4,UPI payment failed but amount debited
+TCK-000699,C00461,2025-09-17,2025-09-20,chat,product_defect,low,closed,6.1,,Denim Jeans stopped working after a week
+TCK-000700,C00607,2025-09-17,2025-09-17,email,billing,low,resolved,1.2,5,Charged twice for order TXN-0006727
+TCK-000701,C00045,2025-09-18,2025-09-18,chat,delivery_delay,medium,resolved,0.8,3,Order TXN-0007036 has not arrived yet
+TCK-000702,C00235,2025-09-18,2025-09-26,chat,product_defect,medium,closed,8.5,2,USB-C Cable stopped working after a week
+TCK-000703,C00109,2025-09-19,2025-09-21,email,delivery_delay,medium,closed,1.7,,Order TXN-0006746 has not arrived yet
+TCK-000704,C00119,2025-09-19,2025-09-27,chat,account,medium,closed,3.7,4,Cannot update my registered mobile number
+TCK-000705,C00131,2025-09-20,2025-09-24,phone,returns,high,closed,2.7,3,Return pickup for Wi-Fi Router not scheduled
+TCK-000706,C00156,2025-09-20,2025-09-21,chat,account,medium,resolved,6.7,,Cannot update my registered mobile number
+TCK-000707,C00490,2025-09-20,2025-09-23,email,billing,high,closed,6.6,3,Charged twice for order TXN-0008325
+TCK-000708,C00762,2025-09-20,2025-09-25,whatsapp,product_defect,medium,resolved,4.5,,Sports Shoes stopped working after a week
+TCK-000709,C00787,2025-09-20,2025-09-21,whatsapp,product_defect,high,resolved,1.4,,Herbal Shampoo stopped working after a week
+TCK-000710,C00235,2025-09-21,2025-09-26,chat,billing,high,closed,1.9,2,Charged twice for order TXN-0000861
+TCK-000711,C00703,2025-09-21,2025-09-30,phone,delivery_delay,high,resolved,18.6,,Order TXN-0003736 has not arrived yet
+TCK-000712,C00230,2025-09-22,2025-09-23,email,product_defect,medium,closed,2.9,3,Ceiling Fan stopped working after a week
+TCK-000713,C00248,2025-09-22,2025-09-30,email,returns,medium,closed,0.6,5,Return pickup for Basmati Rice not scheduled
+TCK-000714,C00459,2025-09-22,2025-09-29,whatsapp,returns,low,resolved,3.4,3,Return pickup for Atta Flour not scheduled
+TCK-000715,C00090,2025-09-24,2025-09-25,email,account,high,resolved,3.4,3,Cannot update my registered mobile number
+TCK-000716,C00409,2025-09-24,2025-09-26,phone,returns,high,closed,5.9,,Return pickup for Masala Chai not scheduled
+TCK-000717,C00270,2025-09-25,2025-09-28,email,payment_failed,high,closed,7.9,2,UPI payment failed but amount debited
+TCK-000718,C00634,2025-09-25,2025-10-03,chat,product_defect,medium,closed,3.3,1,Sports Shoes stopped working after a week
+TCK-000719,C00079,2025-09-26,2025-10-02,chat,account,medium,closed,1.0,,Cannot update my registered mobile number
+TCK-000720,C00293,2025-09-28,2025-09-29,email,account,medium,closed,8.4,3,Cannot update my registered mobile number
+TCK-000721,C00309,2025-09-28,2025-09-30,email,account,high,closed,3.1,4,Cannot update my registered mobile number
+TCK-000722,C00353,2025-09-28,2025-10-02,whatsapp,billing,low,closed,1.3,4,Charged twice for order TXN-0008385
+TCK-000723,C00031,2025-09-30,2025-10-09,chat,billing,medium,resolved,5.5,4,Charged twice for order TXN-0006373
+TCK-000724,C00097,2025-10-02,2025-10-03,chat,billing,high,closed,2.1,4,Charged twice for order TXN-0005076
+TCK-000725,C00183,2025-10-02,2025-10-02,whatsapp,product_defect,low,resolved,2.7,3,Cashew Nuts stopped working after a week
+TCK-000726,C00483,2025-10-02,2025-10-03,whatsapp,returns,high,closed,7.2,4,Return pickup for Cashew Nuts not scheduled
+TCK-000727,C00242,2025-10-03,2025-10-03,email,delivery_delay,high,resolved,7.7,1,Order TXN-0003664 has not arrived yet
+TCK-000728,C00628,2025-10-03,2025-10-03,whatsapp,delivery_delay,low,closed,2.5,,Order TXN-0004003 has not arrived yet
+TCK-000729,C00041,2025-10-04,2025-10-10,phone,returns,low,closed,3.1,3,Return pickup for Denim Jeans not scheduled
+TCK-000730,C00016,2025-10-05,2025-10-11,whatsapp,payment_failed,low,resolved,3.9,,UPI payment failed but amount debited
+TCK-000731,C00197,2025-10-05,2025-10-05,phone,delivery_delay,medium,closed,2.4,3,Order TXN-0002333 has not arrived yet
+TCK-000732,C00657,2025-10-05,2025-10-11,whatsapp,returns,medium,closed,2.3,2,Return pickup for Silk Saree not scheduled
+TCK-000733,C00259,2025-10-06,2025-10-07,chat,delivery_delay,low,closed,3.4,,Order TXN-0006112 has not arrived yet
+TCK-000734,C00498,2025-10-06,2025-10-11,email,account,medium,closed,3.5,4,Cannot update my registered mobile number
+TCK-000735,C00646,2025-10-06,2025-10-13,chat,returns,high,resolved,2.1,4,Return pickup for Cashew Nuts not scheduled
+TCK-000736,C00031,2025-10-07,2025-10-10,chat,billing,high,closed,6.4,4,Charged twice for order TXN-0006373
+TCK-000737,C00165,2025-10-07,2025-10-07,phone,payment_failed,urgent,closed,3.9,3,UPI payment failed but amount debited
+TCK-000738,C00218,2025-10-07,2025-10-11,chat,returns,medium,resolved,2.2,4,Return pickup for Herbal Shampoo not scheduled
+TCK-000739,C00288,2025-10-07,2025-10-16,chat,payment_failed,low,closed,4.9,4,UPI payment failed but amount debited
+TCK-000740,C00657,2025-10-08,2025-10-17,phone,delivery_delay,urgent,resolved,2.5,3,Order TXN-0003601 has not arrived yet
+TCK-000741,C00023,2025-10-09,2025-10-13,whatsapp,product_defect,medium,resolved,3.4,3,Herbal Shampoo stopped working after a week
+TCK-000742,C00070,2025-10-09,2025-10-10,phone,product_defect,urgent,closed,1.9,,Atta Flour stopped working after a week
+TCK-000743,C00175,2025-10-09,2025-10-15,email,product_defect,low,resolved,1.2,4,Ceiling Fan stopped working after a week
+TCK-000744,C00614,2025-10-09,2025-10-13,chat,product_defect,high,closed,2.5,5,Cotton Kurta stopped working after a week
+TCK-000745,C00016,2025-10-10,2025-10-16,whatsapp,account,medium,closed,11.1,2,Cannot update my registered mobile number
+TCK-000746,C00230,2025-10-10,2025-10-15,email,product_defect,medium,resolved,4.7,3,Ceiling Fan stopped working after a week
+TCK-000747,C00264,2025-10-10,2025-10-18,whatsapp,returns,medium,closed,2.7,3,Return pickup for Steel Tiffin Box not scheduled
+TCK-000748,C00657,2025-10-10,2025-10-13,email,payment_failed,medium,closed,6.1,,UPI payment failed but amount debited
+TCK-000749,C00226,2025-10-11,2025-10-15,phone,billing,low,resolved,5.8,2,Charged twice for order TXN-0008316
+TCK-000750,C00352,2025-10-11,2025-10-16,email,billing,medium,resolved,6.4,5,Charged twice for order TXN-0003767
+TCK-000751,C00680,2025-10-11,2025-10-13,whatsapp,billing,high,resolved,2.4,,Charged twice for order TXN-0007225
+TCK-000752,C00514,2025-10-12,2025-10-20,email,payment_failed,medium,closed,3.3,3,UPI payment failed but amount debited
+TCK-000753,C00069,2025-10-13,2025-10-21,whatsapp,delivery_delay,medium,closed,3.3,3,Order TXN-0007730 has not arrived yet
+TCK-000754,C00122,2025-10-13,2025-10-13,phone,delivery_delay,low,closed,3.1,4,Order TXN-0008152 has not arrived yet
+TCK-000755,C00180,2025-10-13,2025-10-13,email,billing,low,closed,1.2,3,Charged twice for order TXN-0008598
+TCK-000756,C00166,2025-10-15,2025-10-15,chat,billing,medium,resolved,4.3,,Charged twice for order TXN-0006700
+TCK-000757,C00518,2025-10-15,2025-10-23,chat,delivery_delay,low,resolved,1.5,,Order TXN-0008606 has not arrived yet
+TCK-000758,C00564,2025-10-15,2025-10-23,phone,delivery_delay,medium,resolved,6.6,2,Order TXN-0003652 has not arrived yet
+TCK-000759,C00016,2025-10-16,2025-10-25,whatsapp,billing,high,resolved,4.4,,Charged twice for order TXN-0002614
+TCK-000760,C00439,2025-10-16,2025-10-25,email,returns,medium,closed,8.9,5,Return pickup for Wi-Fi Router not scheduled
+TCK-000761,C00345,2025-10-17,2025-10-17,chat,payment_failed,medium,closed,9.3,,UPI payment failed but amount debited
+TCK-000762,C00628,2025-10-17,2025-10-26,phone,product_defect,low,closed,2.3,4,Sports Shoes stopped working after a week
+TCK-000763,C00779,2025-10-17,2025-10-22,chat,billing,urgent,resolved,3.5,5,Charged twice for order TXN-0008647
+TCK-000764,C00018,2025-10-18,2025-10-19,phone,delivery_delay,medium,closed,2.4,1,Order TXN-0003161 has not arrived yet
+TCK-000765,C00268,2025-10-18,2025-10-26,whatsapp,returns,medium,closed,5.9,,Return pickup for Smart Watch not scheduled
+TCK-000766,C00635,2025-10-18,2025-10-23,chat,returns,medium,closed,8.2,3,Return pickup for Ayurvedic Face Cream not scheduled
+TCK-000767,C00447,2025-10-19,2025-10-23,email,account,medium,resolved,3.5,,Cannot update my registered mobile number
+TCK-000768,C00662,2025-10-19,2025-10-25,email,account,low,resolved,2.7,3,Cannot update my registered mobile number
+TCK-000769,C00228,2025-10-20,2025-10-24,whatsapp,account,high,resolved,2.3,4,Cannot update my registered mobile number
+TCK-000770,C00264,2025-10-20,2025-10-27,phone,payment_failed,medium,resolved,4.3,3,UPI payment failed but amount debited
+TCK-000771,C00577,2025-10-20,2025-10-21,whatsapp,billing,medium,resolved,1.1,,Charged twice for order TXN-0008547
+TCK-000772,C00254,2025-10-21,2025-10-27,phone,billing,high,closed,11.7,3,Charged twice for order TXN-0007191
+TCK-000773,C00207,2025-10-24,2025-11-01,chat,returns,medium,closed,1.4,,Return pickup for Atta Flour not scheduled
+TCK-000774,C00583,2025-10-24,2025-10-26,chat,account,low,closed,5.3,,Cannot update my registered mobile number
+TCK-000775,C00737,2025-10-24,2025-10-25,chat,product_defect,high,resolved,4.4,4,Wi-Fi Router stopped working after a week
+TCK-000776,C00783,2025-10-24,2025-10-31,email,account,medium,resolved,7.2,3,Cannot update my registered mobile number
+TCK-000777,C00045,2025-10-25,2025-10-30,phone,payment_failed,medium,closed,15.0,3,UPI payment failed but amount debited
+TCK-000778,C00350,2025-10-25,2025-10-27,whatsapp,billing,low,resolved,3.0,3,Charged twice for order TXN-0007848
+TCK-000779,C00407,2025-10-25,2025-10-30,whatsapp,delivery_delay,medium,closed,1.2,3,Order TXN-0001597 has not arrived yet
+TCK-000780,C00407,2025-10-25,2025-10-27,email,returns,low,closed,4.8,,Return pickup for Sunscreen SPF50 not scheduled
+TCK-000781,C00201,2025-10-26,2025-10-31,chat,delivery_delay,medium,resolved,3.5,5,Order TXN-0008699 has not arrived yet
+TCK-000782,C00516,2025-10-26,2025-10-31,email,delivery_delay,low,resolved,2.1,,Order TXN-0008302 has not arrived yet
+TCK-000783,C00095,2025-10-27,2025-11-05,whatsapp,delivery_delay,high,resolved,5.1,3,Order TXN-0005757 has not arrived yet
+TCK-000784,C00089,2025-10-29,2025-11-07,email,account,medium,closed,8.9,3,Cannot update my registered mobile number
+TCK-000785,C00109,2025-10-30,2025-11-02,whatsapp,account,low,closed,6.3,,Cannot update my registered mobile number
+TCK-000786,C00112,2025-10-30,2025-11-08,phone,product_defect,low,resolved,4.5,4,Sunscreen SPF50 stopped working after a week
+TCK-000787,C00355,2025-10-30,2025-11-02,chat,billing,low,resolved,1.7,5,Charged twice for order TXN-0008708
+TCK-000788,C00514,2025-10-30,2025-11-04,phone,payment_failed,medium,resolved,2.5,2,UPI payment failed but amount debited
+TCK-000789,C00675,2025-10-31,2025-11-04,phone,account,low,closed,3.1,2,Cannot update my registered mobile number
+TCK-000790,C00263,2025-11-01,2025-11-07,email,billing,low,closed,2.9,3,Charged twice for order TXN-0004731
+TCK-000791,C00633,2025-11-01,2025-11-10,email,product_defect,medium,resolved,7.9,2,Herbal Shampoo stopped working after a week
+TCK-000792,C00692,2025-11-01,2025-11-03,whatsapp,account,medium,resolved,1.1,4,Cannot update my registered mobile number
+TCK-000793,C00703,2025-11-01,2025-11-01,whatsapp,account,medium,closed,15.1,,Cannot update my registered mobile number
+TCK-000794,C00760,2025-11-01,2025-11-01,phone,delivery_delay,low,closed,1.7,3,Order TXN-0008526 has not arrived yet
+TCK-000795,C00140,2025-11-02,2025-11-06,phone,billing,medium,resolved,3.6,,Charged twice for order TXN-0005411
+TCK-000796,C00140,2025-11-02,2025-11-08,phone,delivery_delay,medium,closed,3.4,2,Order TXN-0005411 has not arrived yet
+TCK-000797,C00232,2025-11-02,2025-11-10,chat,returns,low,closed,3.9,3,Return pickup for Basmati Rice not scheduled
+TCK-000798,C00519,2025-11-02,2025-11-05,whatsapp,billing,medium,resolved,3.3,4,Charged twice for order TXN-0008688
+TCK-000799,C00136,2025-11-03,2025-11-07,chat,returns,low,resolved,14.9,3,Return pickup for USB-C Cable not scheduled
+TCK-000800,C00149,2025-11-04,2025-11-11,email,product_defect,medium,closed,3.0,4,Basmati Rice stopped working after a week
+TCK-000801,C00292,2025-11-04,2025-11-12,whatsapp,billing,urgent,resolved,6.6,3,Charged twice for order TXN-0008089
+TCK-000802,C00481,2025-11-04,2025-11-04,email,payment_failed,medium,resolved,1.4,5,UPI payment failed but amount debited
+TCK-000803,C00345,2025-11-05,2025-11-11,chat,account,low,resolved,4.2,1,Cannot update my registered mobile number
+TCK-000804,C00407,2025-11-05,2025-11-09,phone,billing,low,resolved,5.4,3,Charged twice for order TXN-0001597
+TCK-000805,C00634,2025-11-05,2025-11-11,email,delivery_delay,medium,resolved,3.0,2,Order TXN-0003185 has not arrived yet
+TCK-000806,C00077,2025-11-07,2025-11-09,chat,delivery_delay,low,resolved,5.4,,Order TXN-0008162 has not arrived yet
+TCK-000807,C00394,2025-11-08,2025-11-10,chat,billing,medium,resolved,5.5,1,Charged twice for order TXN-0008242
+TCK-000808,C00570,2025-11-10,2025-11-12,phone,returns,high,closed,15.7,5,Return pickup for Silk Saree not scheduled
+TCK-000809,C00634,2025-11-10,2025-11-10,email,billing,medium,closed,3.5,3,Charged twice for order TXN-0003185
+TCK-000810,C00689,2025-11-10,2025-11-18,whatsapp,billing,medium,closed,10.9,,Charged twice for order TXN-0007488
+TCK-000811,C00706,2025-11-10,2025-11-16,phone,returns,medium,closed,1.9,5,Return pickup for USB-C Cable not scheduled
+TCK-000812,C00069,2025-11-11,2025-11-14,chat,delivery_delay,low,closed,3.8,2,Order TXN-0007730 has not arrived yet
+TCK-000813,C00240,2025-11-11,2025-11-17,whatsapp,account,medium,closed,4.4,4,Cannot update my registered mobile number
+TCK-000814,C00440,2025-11-11,2025-11-13,chat,payment_failed,low,closed,2.0,3,UPI payment failed but amount debited
+TCK-000815,C00440,2025-11-11,2025-11-19,whatsapp,payment_failed,medium,closed,3.2,,UPI payment failed but amount debited
+TCK-000816,C00202,2025-11-12,2025-11-21,email,account,urgent,resolved,5.3,4,Cannot update my registered mobile number
+TCK-000817,C00242,2025-11-12,2025-11-19,phone,payment_failed,low,closed,8.8,2,UPI payment failed but amount debited
+TCK-000818,C00427,2025-11-12,2025-11-12,whatsapp,billing,medium,closed,7.4,2,Charged twice for order TXN-0007351
+TCK-000819,C00628,2025-11-13,2025-11-21,phone,billing,medium,resolved,3.1,,Charged twice for order TXN-0004003
+TCK-000820,C00183,2025-11-15,2025-11-18,phone,product_defect,medium,closed,3.3,,Cashew Nuts stopped working after a week
+TCK-000821,C00634,2025-11-15,2025-11-18,whatsapp,returns,low,resolved,15.1,4,Return pickup for Sports Shoes not scheduled
+TCK-000822,C00760,2025-11-15,2025-11-24,phone,account,low,resolved,5.9,,Cannot update my registered mobile number
+TCK-000823,C00322,2025-11-16,2025-11-23,email,product_defect,low,resolved,1.3,3,Basmati Rice stopped working after a week
+TCK-000824,C00740,2025-11-16,2025-11-21,chat,product_defect,medium,resolved,3.4,,Silk Saree stopped working after a week
+TCK-000825,C00744,2025-11-16,2025-11-24,phone,delivery_delay,medium,closed,4.1,,Order TXN-0008460 has not arrived yet
+TCK-000826,C00220,2025-11-17,2025-11-26,chat,returns,high,resolved,10.7,2,Return pickup for Steel Tiffin Box not scheduled
+TCK-000827,C00345,2025-11-17,2025-11-24,whatsapp,billing,high,closed,1.6,1,Charged twice for order TXN-0008560
+TCK-000828,C00350,2025-11-18,2025-11-25,chat,billing,medium,closed,6.9,2,Charged twice for order TXN-0007848
+TCK-000829,C00240,2025-11-19,2025-11-23,phone,account,low,resolved,7.0,4,Cannot update my registered mobile number
+TCK-000830,C00274,2025-11-19,2025-11-20,email,account,high,closed,2.1,4,Cannot update my registered mobile number
+TCK-000831,C00337,2025-11-19,2025-11-19,whatsapp,delivery_delay,high,resolved,1.7,,Order TXN-0005903 has not arrived yet
+TCK-000832,C00672,2025-11-19,2025-11-22,chat,returns,high,resolved,1.6,4,Return pickup for The product not scheduled
+TCK-000833,C00046,2025-11-20,2025-11-27,phone,payment_failed,medium,closed,2.6,,UPI payment failed but amount debited
+TCK-000834,C00788,2025-11-20,2025-11-22,whatsapp,account,low,resolved,3.2,,Cannot update my registered mobile number
+TCK-000835,C00031,2025-11-21,2025-11-25,email,account,medium,resolved,2.0,4,Cannot update my registered mobile number
+TCK-000836,C00122,2025-11-21,2025-11-22,phone,billing,medium,closed,2.6,,Charged twice for order TXN-0008152
+TCK-000837,C00155,2025-11-21,2025-11-27,whatsapp,billing,medium,resolved,2.5,,Charged twice for order TXN-0008337
+TCK-000838,C00357,2025-11-21,2025-11-27,whatsapp,billing,high,closed,5.8,,Charged twice for order TXN-0006688
+TCK-000839,C00207,2025-11-24,2025-12-01,phone,product_defect,low,closed,4.4,,Atta Flour stopped working after a week
+TCK-000840,C00488,2025-11-24,2025-12-01,phone,payment_failed,medium,resolved,3.0,4,UPI payment failed but amount debited
+TCK-000841,C00695,2025-11-25,2025-11-29,chat,product_defect,high,resolved,5.2,5,Steel Tiffin Box stopped working after a week
+TCK-000842,C00784,2025-11-25,2025-12-04,email,billing,low,closed,4.3,2,Charged twice for order TXN-0008554
+TCK-000843,C00038,2025-11-26,2025-12-04,whatsapp,billing,medium,closed,2.5,5,Charged twice for order TXN-0007989
+TCK-000844,C00074,2025-11-26,2025-11-28,email,billing,medium,closed,3.0,,Charged twice for order TXN-0005983
+TCK-000845,C00285,2025-11-28,2025-12-04,phone,account,urgent,resolved,4.9,,Cannot update my registered mobile number
+TCK-000846,C00561,2025-11-28,2025-11-30,email,billing,high,resolved,2.6,3,Charged twice for order TXN-0008675
+TCK-000847,C00193,2025-11-29,2025-12-06,email,product_defect,high,resolved,2.2,3,Wi-Fi Router stopped working after a week
+TCK-000848,C00555,2025-11-29,2025-12-03,email,account,high,closed,15.1,1,Cannot update my registered mobile number
+TCK-000849,C00162,2025-11-30,2025-12-02,chat,billing,medium,resolved,2.5,4,Charged twice for order TXN-0008664
+TCK-000850,C00169,2025-11-30,2025-12-08,whatsapp,billing,medium,resolved,2.9,3,Charged twice for order TXN-0006936
+TCK-000851,C00234,2025-11-30,2025-11-30,email,payment_failed,medium,closed,4.3,4,UPI payment failed but amount debited
+TCK-000852,C00709,2025-11-30,2025-12-06,whatsapp,account,low,resolved,5.7,,Cannot update my registered mobile number
+TCK-000853,C00729,2025-11-30,2025-12-09,whatsapp,product_defect,medium,resolved,3.2,,Silk Saree stopped working after a week
+TCK-000854,C00016,2025-12-01,2025-12-03,chat,payment_failed,medium,closed,4.7,3,UPI payment failed but amount debited
+TCK-000855,C00691,2025-12-01,2025-12-09,chat,delivery_delay,low,closed,3.2,,Order TXN-0008477 has not arrived yet
+TCK-000856,C00749,2025-12-01,2025-12-01,phone,payment_failed,high,closed,3.3,3,UPI payment failed but amount debited
+TCK-000857,C00310,2025-12-02,2025-12-05,chat,delivery_delay,medium,closed,5.2,3,Order TXN-0008620 has not arrived yet
+TCK-000858,C00555,2025-12-02,2025-12-07,chat,product_defect,medium,resolved,2.0,,Basmati Rice stopped working after a week
+TCK-000859,C00074,2025-12-03,2025-12-10,email,delivery_delay,low,resolved,1.6,,Order TXN-0005983 has not arrived yet
+TCK-000860,C00322,2025-12-03,2025-12-09,email,billing,medium,closed,2.9,3,Charged twice for order TXN-0003252
+TCK-000861,C00657,2025-12-03,2025-12-05,whatsapp,account,medium,closed,3.9,,Cannot update my registered mobile number
+TCK-000862,C00183,2025-12-04,2025-12-10,chat,account,high,closed,5.9,3,Cannot update my registered mobile number
+TCK-000863,C00207,2025-12-04,2025-12-06,whatsapp,product_defect,low,resolved,2.9,,Atta Flour stopped working after a week
+TCK-000864,C00229,2025-12-04,2025-12-07,phone,payment_failed,high,resolved,3.4,4,UPI payment failed but amount debited
+TCK-000865,C00034,2025-12-06,2025-12-13,phone,payment_failed,medium,resolved,8.4,2,UPI payment failed but amount debited
+TCK-000866,C00071,2025-12-06,2025-12-08,chat,account,medium,closed,1.8,5,Cannot update my registered mobile number
+TCK-000867,C00081,2025-12-06,2025-12-15,whatsapp,returns,medium,resolved,9.4,,Return pickup for Sunflower Oil not scheduled
+TCK-000868,C00514,2025-12-06,2025-12-10,whatsapp,returns,urgent,resolved,6.2,2,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000869,C00656,2025-12-06,2025-12-10,phone,billing,high,resolved,2.8,4,Charged twice for order TXN-0006576
+TCK-000870,C00530,2025-12-07,2025-12-11,phone,product_defect,urgent,closed,1.2,5,Sunscreen SPF50 stopped working after a week
+TCK-000871,C00085,2025-12-08,2025-12-15,chat,delivery_delay,medium,resolved,1.5,4,Order TXN-0008257 has not arrived yet
+TCK-000872,C00292,2025-12-08,2025-12-09,phone,billing,medium,closed,2.6,,Charged twice for order TXN-0008089
+TCK-000873,C00746,2025-12-08,2025-12-17,chat,payment_failed,low,resolved,3.6,,UPI payment failed but amount debited
+TCK-000874,C00041,2025-12-09,2025-12-16,phone,billing,high,resolved,2.5,3,Charged twice for order TXN-0002470
+TCK-000875,C00210,2025-12-09,2025-12-16,phone,account,low,resolved,5.7,4,Cannot update my registered mobile number
+TCK-000876,C00061,2025-12-10,2025-12-14,phone,returns,medium,resolved,3.3,2,Return pickup for Pressure Cooker 5L not scheduled
+TCK-000877,C00129,2025-12-10,2025-12-12,email,product_defect,high,resolved,2.2,,Denim Jeans stopped working after a week
+TCK-000878,C00760,2025-12-10,2025-12-18,whatsapp,delivery_delay,low,resolved,4.6,4,Order TXN-0008526 has not arrived yet
+TCK-000879,C00232,2025-12-11,2025-12-12,chat,returns,medium,closed,8.8,3,Return pickup for Basmati Rice not scheduled
+TCK-000880,C00612,2025-12-11,2025-12-16,chat,product_defect,medium,resolved,2.3,2,Herbal Shampoo stopped working after a week
+TCK-000881,C00692,2025-12-11,2025-12-20,chat,returns,low,closed,3.6,,Return pickup for The product not scheduled
+TCK-000882,C00746,2025-12-11,2025-12-19,chat,delivery_delay,low,closed,1.2,,Order TXN-0004372 has not arrived yet
+TCK-000883,C00339,2025-12-12,2025-12-12,phone,delivery_delay,medium,resolved,4.9,4,Order TXN-0008584 has not arrived yet
+TCK-000884,C00755,2025-12-12,2025-12-21,email,account,low,closed,2.0,,Cannot update my registered mobile number
+TCK-000885,C00048,2025-12-13,2025-12-17,chat,billing,medium,closed,6.4,,Charged twice for order TXN-0004683
+TCK-000886,C00126,2025-12-13,2025-12-22,phone,payment_failed,medium,resolved,2.9,5,UPI payment failed but amount debited
+TCK-000887,C00287,2025-12-13,2025-12-18,chat,billing,high,closed,6.6,,Charged twice for order TXN-0006570
+TCK-000888,C00322,2025-12-14,2025-12-17,email,product_defect,medium,closed,7.6,2,Basmati Rice stopped working after a week
+TCK-000889,C00392,2025-12-15,2025-12-23,chat,returns,medium,closed,7.0,3,Return pickup for Denim Jeans not scheduled
+TCK-000890,C00493,2025-12-17,2025-12-24,phone,delivery_delay,high,resolved,8.1,4,Order TXN-0008245 has not arrived yet
+TCK-000891,C00168,2025-12-18,2025-12-23,chat,billing,high,resolved,9.2,,Charged twice for order TXN-0007174
+TCK-000892,C00305,2025-12-18,2025-12-20,phone,payment_failed,low,closed,2.3,,UPI payment failed but amount debited
+TCK-000893,C00799,2025-12-18,2025-12-27,email,returns,medium,resolved,4.5,3,Return pickup for Denim Jeans not scheduled
+TCK-000894,C00618,2025-12-20,2025-12-24,chat,account,medium,resolved,2.5,3,Cannot update my registered mobile number
+TCK-000895,C00140,2025-12-21,2025-12-27,phone,returns,high,closed,3.1,,Return pickup for Silk Saree not scheduled
+TCK-000896,C00316,2025-12-21,2025-12-22,phone,delivery_delay,low,closed,2.4,3,Order TXN-0008511 has not arrived yet
+TCK-000897,C00520,2025-12-21,2025-12-28,whatsapp,billing,low,closed,24.7,3,Charged twice for order TXN-0008032
+TCK-000898,C00618,2025-12-21,2025-12-23,phone,billing,low,resolved,9.0,3,Charged twice for order TXN-0004198
+TCK-000899,C00289,2025-12-22,2025-12-29,phone,returns,medium,closed,2.9,3,Return pickup for Basmati Rice not scheduled
+TCK-000900,C00169,2025-12-23,2025-12-28,phone,account,urgent,resolved,11.2,3,Cannot update my registered mobile number
+TCK-000901,C00375,2025-12-23,2025-12-26,phone,product_defect,high,closed,2.6,,Pressure Cooker 5L stopped working after a week
+TCK-000902,C00328,2025-12-24,2026-01-02,chat,payment_failed,high,closed,7.3,5,UPI payment failed but amount debited
+TCK-000903,C00449,2025-12-24,2026-01-02,chat,payment_failed,medium,resolved,1.9,4,UPI payment failed but amount debited
+TCK-000904,C00457,2025-12-24,2025-12-28,email,returns,low,resolved,1.9,3,Return pickup for Denim Jeans not scheduled
+TCK-000905,C00098,2025-12-25,2025-12-31,whatsapp,account,medium,closed,5.6,3,Cannot update my registered mobile number
+TCK-000906,C00299,2025-12-25,2025-12-29,chat,product_defect,low,closed,5.6,4,Denim Jeans stopped working after a week
+TCK-000907,C00149,2025-12-27,2026-01-02,chat,account,low,closed,1.6,5,Cannot update my registered mobile number
+TCK-000908,C00202,2025-12-27,2026-01-01,chat,account,high,resolved,12.0,4,Cannot update my registered mobile number
+TCK-000909,C00467,2025-12-28,2026-01-01,email,account,high,closed,4.7,,Cannot update my registered mobile number
+TCK-000910,C00692,2025-12-28,2026-01-01,chat,account,urgent,closed,2.2,4,Cannot update my registered mobile number
+TCK-000911,C00141,2025-12-29,2026-01-05,whatsapp,billing,low,resolved,2.4,4,Charged twice for order TXN-0008596
+TCK-000912,C00153,2025-12-29,2025-12-31,email,account,low,closed,1.1,3,Cannot update my registered mobile number
+TCK-000913,C00555,2025-12-29,2025-12-31,phone,billing,medium,closed,1.6,4,Charged twice for order TXN-0008712
+TCK-000914,C00098,2025-12-31,2026-01-07,email,payment_failed,high,resolved,8.7,,UPI payment failed but amount debited
+TCK-000915,C00205,2025-12-31,2026-01-06,email,payment_failed,medium,resolved,2.7,5,UPI payment failed but amount debited
+TCK-000916,C00460,2025-12-31,2026-01-05,whatsapp,returns,medium,resolved,3.0,3,Return pickup for Cotton Bedsheet not scheduled
+TCK-000917,C00590,2025-12-31,2025-12-31,email,delivery_delay,low,resolved,2.9,,Order TXN-0007899 has not arrived yet
+TCK-000918,C00337,2026-01-01,2026-01-06,chat,product_defect,medium,closed,3.6,3,Cotton Kurta stopped working after a week
+TCK-000919,C00408,2026-01-01,2026-01-06,whatsapp,returns,medium,closed,8.2,4,Return pickup for Power Bank 10000mAh not scheduled
+TCK-000920,C00653,2026-01-02,2026-01-04,phone,delivery_delay,high,closed,3.4,3,Order TXN-0008676 has not arrived yet
+TCK-000921,C00080,2026-01-03,2026-01-11,email,account,low,resolved,3.5,3,Cannot update my registered mobile number
+TCK-000922,C00028,2026-01-04,2026-01-08,chat,account,medium,closed,10.5,,Cannot update my registered mobile number
+TCK-000923,C00551,2026-01-04,2026-01-13,whatsapp,delivery_delay,medium,closed,6.0,,Order TXN-0008269 has not arrived yet
+TCK-000924,C00425,2026-01-05,2026-01-10,email,account,low,resolved,4.4,2,Cannot update my registered mobile number
+TCK-000925,C00612,2026-01-05,2026-01-09,phone,billing,medium,resolved,2.9,,Charged twice for order TXN-0003856
+TCK-000926,C00124,2026-01-06,2026-01-11,phone,delivery_delay,low,closed,10.2,3,Order TXN-0008260 has not arrived yet
+TCK-000927,C00202,2026-01-06,2026-01-09,chat,account,low,closed,5.2,2,Cannot update my registered mobile number
+TCK-000928,C00036,2026-01-07,2026-01-09,whatsapp,product_defect,high,resolved,13.3,,Wi-Fi Router stopped working after a week
+TCK-000929,C00692,2026-01-07,2026-01-16,whatsapp,returns,low,closed,19.5,,Return pickup for The product not scheduled
+TCK-000930,C00746,2026-01-07,2026-01-10,email,account,medium,closed,6.1,4,Cannot update my registered mobile number
+TCK-000931,C00138,2026-01-09,2026-01-10,whatsapp,payment_failed,urgent,resolved,4.7,3,UPI payment failed but amount debited
+TCK-000932,C00140,2026-01-09,2026-01-16,whatsapp,payment_failed,urgent,closed,2.4,3,UPI payment failed but amount debited
+TCK-000933,C00693,2026-01-10,2026-01-17,phone,product_defect,urgent,resolved,4.9,3,Wi-Fi Router stopped working after a week
+TCK-000934,C00736,2026-01-10,2026-01-18,chat,delivery_delay,low,closed,3.2,2,Order TXN-0004410 has not arrived yet
+TCK-000935,C00146,2026-01-12,2026-01-21,email,delivery_delay,high,resolved,2.0,4,Order TXN-0004375 has not arrived yet
+TCK-000936,C00242,2026-01-12,2026-01-18,email,billing,low,resolved,3.4,,Charged twice for order TXN-0003664
+TCK-000937,C00083,2026-01-14,2026-01-23,whatsapp,delivery_delay,low,closed,3.4,5,Order TXN-0008630 has not arrived yet
+TCK-000938,C00048,2026-01-15,2026-01-24,whatsapp,account,medium,closed,18.2,,Cannot update my registered mobile number
+TCK-000939,C00146,2026-01-15,2026-01-24,phone,product_defect,high,resolved,2.8,3,Hair Oil stopped working after a week
+TCK-000940,C00480,2026-01-15,2026-01-19,email,returns,low,closed,10.1,4,Return pickup for USB-C Cable not scheduled
+TCK-000941,C00581,2026-01-15,2026-01-22,email,billing,low,resolved,2.8,,Charged twice for order TXN-0008713
+TCK-000942,C00197,2026-01-16,2026-01-25,chat,delivery_delay,high,closed,2.5,,Order TXN-0002333 has not arrived yet
+TCK-000943,C00227,2026-01-16,2026-01-17,email,delivery_delay,low,closed,2.8,3,Order TXN-0007695 has not arrived yet
+TCK-000944,C00693,2026-01-16,2026-01-16,chat,delivery_delay,medium,closed,1.8,4,Order TXN-0005071 has not arrived yet
+TCK-000945,C00061,2026-01-17,2026-01-21,chat,delivery_delay,medium,closed,4.0,3,Order TXN-0001284 has not arrived yet
+TCK-000946,C00360,2026-01-17,2026-01-26,phone,returns,medium,resolved,6.6,,Return pickup for Cashew Nuts not scheduled
+TCK-000947,C00153,2026-01-18,2026-01-22,chat,payment_failed,urgent,resolved,10.8,2,UPI payment failed but amount debited
+TCK-000948,C00263,2026-01-18,2026-01-21,phone,billing,urgent,resolved,6.0,,Charged twice for order TXN-0004731
+TCK-000949,C00608,2026-01-18,2026-01-21,phone,account,low,resolved,3.5,4,Cannot update my registered mobile number
+TCK-000950,C00182,2026-01-20,2026-01-23,phone,billing,low,closed,8.7,4,Charged twice for order TXN-0008261
+TCK-000951,C00480,2026-01-22,2026-01-22,whatsapp,account,medium,resolved,2.0,2,Cannot update my registered mobile number
+TCK-000952,C00783,2026-01-22,2026-01-26,chat,billing,medium,resolved,7.3,3,Charged twice for order TXN-0008591
+TCK-000953,C00298,2026-01-23,2026-01-25,whatsapp,returns,medium,closed,2.6,3,Return pickup for The product not scheduled
+TCK-000954,C00380,2026-01-24,2026-01-28,phone,billing,high,resolved,9.4,,Charged twice for order TXN-0003537
+TCK-000955,C00736,2026-01-24,2026-02-01,email,delivery_delay,low,resolved,3.3,2,Order TXN-0004410 has not arrived yet
+TCK-000956,C00483,2026-01-25,2026-01-27,whatsapp,payment_failed,high,resolved,0.9,3,UPI payment failed but amount debited
+TCK-000957,C00745,2026-01-26,2026-02-03,email,billing,medium,closed,6.3,,Charged twice for order TXN-0007268
+TCK-000958,C00143,2026-01-28,2026-01-30,chat,account,medium,resolved,2.8,1,Cannot update my registered mobile number
+TCK-000959,C00143,2026-01-28,2026-02-06,whatsapp,returns,medium,closed,1.3,,Return pickup for Toor Dal not scheduled
+TCK-000960,C00177,2026-01-29,2026-01-29,chat,billing,medium,closed,3.8,4,Charged twice for order TXN-0005655
+TCK-000961,C00270,2026-01-29,2026-02-07,chat,delivery_delay,low,resolved,21.3,2,Order TXN-0008703 has not arrived yet
+TCK-000962,C00425,2026-01-29,2026-02-01,phone,product_defect,low,resolved,3.5,4,Sports Shoes stopped working after a week
+TCK-000963,C00690,2026-01-30,2026-02-01,whatsapp,returns,high,resolved,3.1,,Return pickup for Cotton Kurta not scheduled
+TCK-000964,C00155,2026-01-31,2026-02-07,phone,payment_failed,low,resolved,2.2,4,UPI payment failed but amount debited
+TCK-000965,C00330,2026-01-31,2026-02-04,email,product_defect,low,resolved,3.4,3,Sunscreen SPF50 stopped working after a week
+TCK-000966,C00197,2026-02-01,2026-02-03,chat,payment_failed,medium,closed,4.1,4,UPI payment failed but amount debited
+TCK-000967,C00201,2026-02-01,2026-02-03,email,delivery_delay,high,closed,3.4,,Order TXN-0008699 has not arrived yet
+TCK-000968,C00280,2026-02-01,2026-02-02,chat,delivery_delay,medium,resolved,2.5,3,Order TXN-0008559 has not arrived yet
+TCK-000969,C00098,2026-02-02,2026-02-06,whatsapp,product_defect,high,resolved,14.7,3,Denim Jeans stopped working after a week
+TCK-000970,C00098,2026-02-02,2026-02-08,phone,returns,urgent,closed,5.1,1,Return pickup for Denim Jeans not scheduled
+TCK-000971,C00360,2026-02-02,2026-02-04,whatsapp,product_defect,medium,closed,3.2,3,Cashew Nuts stopped working after a week
+TCK-000972,C00242,2026-02-03,2026-02-11,phone,delivery_delay,low,closed,8.7,,Order TXN-0003664 has not arrived yet
+TCK-000973,C00097,2026-02-04,2026-02-11,chat,payment_failed,medium,closed,8.5,,UPI payment failed but amount debited
+TCK-000974,C00180,2026-02-04,2026-02-05,whatsapp,account,medium,closed,5.9,,Cannot update my registered mobile number
+TCK-000975,C00736,2026-02-04,2026-02-11,whatsapp,returns,low,closed,3.3,2,Return pickup for Sports Shoes not scheduled
+TCK-000976,C00763,2026-02-04,2026-02-13,phone,payment_failed,medium,resolved,5.7,,UPI payment failed but amount debited
+TCK-000977,C00193,2026-02-05,2026-02-11,whatsapp,billing,medium,closed,1.3,3,Charged twice for order TXN-0008153
+TCK-000978,C00783,2026-02-05,2026-02-11,email,delivery_delay,medium,closed,2.4,,Order TXN-0008591 has not arrived yet
+TCK-000979,C00701,2026-02-06,2026-02-12,whatsapp,billing,high,closed,3.7,4,Charged twice for order TXN-0008077
+TCK-000980,C00716,2026-02-06,2026-02-12,whatsapp,payment_failed,high,resolved,2.0,5,UPI payment failed but amount debited
+TCK-000981,C00103,2026-02-07,2026-02-10,email,returns,medium,closed,1.8,4,Return pickup for The product not scheduled
+TCK-000982,C00120,2026-02-07,2026-02-09,whatsapp,returns,medium,resolved,1.8,,Return pickup for Smart Watch not scheduled
+TCK-000983,C00468,2026-02-07,2026-02-09,email,billing,low,resolved,3.2,5,Charged twice for order TXN-0008516
+TCK-000984,C00029,2026-02-08,2026-02-14,phone,delivery_delay,medium,resolved,5.6,4,Order TXN-0008040 has not arrived yet
+TCK-000985,C00074,2026-02-09,2026-02-11,email,payment_failed,medium,resolved,2.9,,UPI payment failed but amount debited
+TCK-000986,C00113,2026-02-09,2026-02-16,chat,delivery_delay,low,resolved,2.0,3,Order TXN-0008259 has not arrived yet
+TCK-000987,C00799,2026-02-09,2026-02-17,whatsapp,delivery_delay,high,resolved,5.4,4,Order TXN-0004520 has not arrived yet
+TCK-000988,C00022,2026-02-10,2026-02-18,chat,delivery_delay,medium,closed,3.2,,Order TXN-0008310 has not arrived yet
+TCK-000989,C00251,2026-02-10,2026-02-15,phone,product_defect,medium,closed,2.5,,Power Bank 10000mAh stopped working after a week
+TCK-000990,C00554,2026-02-11,2026-02-17,chat,returns,low,closed,0.9,,Return pickup for Sunflower Oil not scheduled
+TCK-000991,C00221,2026-02-12,2026-02-16,email,delivery_delay,high,resolved,3.9,2,Order TXN-0008195 has not arrived yet
+TCK-000992,C00300,2026-02-12,2026-02-16,chat,delivery_delay,low,resolved,4.7,1,Order TXN-0005495 has not arrived yet
+TCK-000993,C00006,2026-02-13,2026-02-20,email,product_defect,high,closed,4.6,4,Steel Tiffin Box stopped working after a week
+TCK-000994,C00127,2026-02-13,2026-02-15,phone,payment_failed,medium,closed,1.4,5,UPI payment failed but amount debited
+TCK-000995,C00257,2026-02-13,2026-02-21,chat,payment_failed,medium,resolved,4.0,,UPI payment failed but amount debited
+TCK-000996,C00383,2026-02-13,2026-02-13,chat,returns,high,closed,2.9,3,Return pickup for Basmati Rice not scheduled
+TCK-000997,C00425,2026-02-13,2026-02-18,whatsapp,billing,low,resolved,5.5,3,Charged twice for order TXN-0005233
+TCK-000998,C00561,2026-02-13,2026-02-18,whatsapp,delivery_delay,medium,resolved,3.3,2,Order TXN-0008675 has not arrived yet
+TCK-000999,C00724,2026-02-13,2026-02-14,whatsapp,account,urgent,resolved,2.5,4,Cannot update my registered mobile number
+TCK-001000,C00257,2026-02-15,2026-02-20,chat,billing,low,resolved,9.9,,Charged twice for order TXN-0004960
+TCK-001001,C00357,2026-02-15,2026-02-17,email,product_defect,medium,resolved,2.2,3,Ceiling Fan stopped working after a week
+TCK-001002,C00288,2026-02-16,2026-02-16,chat,returns,low,resolved,2.6,4,Return pickup for Atta Flour not scheduled
+TCK-001003,C00712,2026-02-17,2026-02-24,whatsapp,billing,medium,closed,9.6,,Charged twice for order TXN-0007740
+TCK-001004,C00343,2026-02-18,2026-02-26,chat,returns,low,closed,6.2,4,Return pickup for Ceiling Fan not scheduled
+TCK-001005,C00469,2026-02-18,2026-02-20,whatsapp,returns,low,resolved,2.4,3,Return pickup for Sports Shoes not scheduled
+TCK-001006,C00719,2026-02-18,2026-02-21,email,billing,high,resolved,10.1,5,Charged twice for order TXN-0008173
+TCK-001007,C00584,2026-02-19,2026-02-28,email,payment_failed,high,resolved,2.2,4,UPI payment failed but amount debited
+TCK-001008,C00047,2026-02-20,2026-02-20,chat,billing,medium,resolved,7.2,3,Charged twice for order TXN-0008527
+TCK-001009,C00317,2026-02-20,2026-02-23,email,payment_failed,medium,closed,3.8,1,UPI payment failed but amount debited
+TCK-001010,C00197,2026-02-21,2026-03-01,chat,delivery_delay,medium,resolved,8.1,3,Order TXN-0002333 has not arrived yet
+TCK-001011,C00618,2026-02-21,2026-03-01,whatsapp,account,medium,closed,2.7,4,Cannot update my registered mobile number
+TCK-001012,C00751,2026-02-21,2026-02-26,phone,product_defect,low,resolved,2.6,4,USB-C Cable stopped working after a week
+TCK-001013,C00106,2026-02-22,2026-02-27,chat,billing,medium,closed,9.5,,Charged twice for order TXN-0004262
+TCK-001014,C00799,2026-02-23,2026-03-01,email,payment_failed,high,resolved,2.3,3,UPI payment failed but amount debited
+TCK-001015,C00039,2026-02-24,2026-03-04,email,product_defect,medium,closed,14.7,3,Denim Jeans stopped working after a week
+TCK-001016,C00485,2026-02-24,2026-03-04,phone,billing,medium,closed,0.9,3,Charged twice for order TXN-0008567
+TCK-001017,C00799,2026-02-24,2026-03-01,whatsapp,payment_failed,high,resolved,3.9,,UPI payment failed but amount debited
+TCK-001018,C00028,2026-02-25,2026-03-04,email,product_defect,low,closed,5.5,4,Denim Jeans stopped working after a week
+TCK-001019,C00380,2026-02-25,2026-02-25,email,product_defect,medium,closed,11.7,2,Sunflower Oil stopped working after a week
+TCK-001020,C00432,2026-02-25,2026-03-03,phone,payment_failed,low,closed,1.5,5,UPI payment failed but amount debited
+TCK-001021,C00620,2026-02-25,2026-02-27,whatsapp,payment_failed,medium,resolved,1.5,3,UPI payment failed but amount debited
+TCK-001022,C00039,2026-02-26,2026-03-05,phone,returns,medium,resolved,1.1,4,Return pickup for Denim Jeans not scheduled
+TCK-001023,C00209,2026-02-26,2026-03-04,whatsapp,payment_failed,high,resolved,2.0,5,UPI payment failed but amount debited
+TCK-001024,C00296,2026-02-26,2026-02-26,chat,account,medium,closed,2.2,,Cannot update my registered mobile number
+TCK-001025,C00308,2026-02-26,2026-02-27,whatsapp,payment_failed,medium,resolved,2.9,5,UPI payment failed but amount debited
+TCK-001026,C00472,2026-02-26,2026-03-02,whatsapp,delivery_delay,low,resolved,2.9,4,Order TXN-0008566 has not arrived yet
+TCK-001027,C00106,2026-02-27,2026-03-07,email,account,medium,resolved,3.0,5,Cannot update my registered mobile number
+TCK-001028,C00124,2026-02-27,2026-03-07,chat,account,medium,resolved,8.6,3,Cannot update my registered mobile number
+TCK-001029,C00619,2026-02-27,2026-03-08,phone,payment_failed,low,closed,1.7,4,UPI payment failed but amount debited
+TCK-001030,C00799,2026-02-27,2026-03-04,whatsapp,billing,low,closed,1.6,4,Charged twice for order TXN-0004520
+TCK-001031,C00068,2026-02-28,2026-03-06,email,returns,urgent,closed,5.9,4,Return pickup for Smart Watch not scheduled
+TCK-001032,C00166,2026-02-28,2026-03-06,email,delivery_delay,medium,closed,12.4,2,Order TXN-0006700 has not arrived yet
+TCK-001033,C00150,2026-03-01,2026-03-01,whatsapp,returns,medium,closed,7.8,2,Return pickup for Steel Tiffin Box not scheduled
+TCK-001034,C00431,2026-03-01,2026-03-08,phone,product_defect,high,closed,0.6,4,Cotton Bedsheet stopped working after a week
+TCK-001035,C00791,2026-03-01,2026-03-07,email,returns,low,resolved,3.0,5,Return pickup for Sports Shoes not scheduled
+TCK-001036,C00155,2026-03-02,2026-03-05,email,account,low,closed,2.9,5,Cannot update my registered mobile number
+TCK-001037,C00398,2026-03-02,2026-03-02,phone,delivery_delay,high,resolved,1.6,,Order TXN-0007205 has not arrived yet
+TCK-001038,C00481,2026-03-02,2026-03-09,phone,account,low,resolved,1.8,,Cannot update my registered mobile number
+TCK-001039,C00383,2026-03-03,2026-03-08,whatsapp,product_defect,medium,resolved,3.3,4,Basmati Rice stopped working after a week
+TCK-001040,C00633,2026-03-04,2026-03-05,phone,account,medium,resolved,6.4,,Cannot update my registered mobile number
+TCK-001041,C00799,2026-03-04,2026-03-10,whatsapp,payment_failed,medium,closed,1.8,3,UPI payment failed but amount debited
+TCK-001042,C00165,2026-03-05,2026-03-05,phone,account,low,closed,5.7,2,Cannot update my registered mobile number
+TCK-001043,C00404,2026-03-06,2026-03-11,phone,billing,low,resolved,4.0,3,Charged twice for order TXN-0005557
+TCK-001044,C00499,2026-03-06,2026-03-11,chat,returns,high,resolved,4.3,,Return pickup for Atta Flour not scheduled
+TCK-001045,C00111,2026-03-07,2026-03-12,chat,delivery_delay,medium,resolved,1.6,4,Order TXN-0007777 has not arrived yet
+TCK-001046,C00232,2026-03-07,2026-03-10,phone,payment_failed,medium,resolved,3.3,3,UPI payment failed but amount debited
+TCK-001047,C00039,2026-03-08,2026-03-10,whatsapp,product_defect,high,closed,2.0,,Denim Jeans stopped working after a week
+TCK-001048,C00320,2026-03-08,2026-03-13,phone,product_defect,medium,resolved,4.1,4,Sunscreen SPF50 stopped working after a week
+TCK-001049,C00429,2026-03-08,2026-03-17,whatsapp,account,high,closed,8.4,,Cannot update my registered mobile number
+TCK-001050,C00699,2026-03-08,2026-03-08,phone,delivery_delay,high,resolved,1.9,,Order TXN-0008125 has not arrived yet
+TCK-001051,C00202,2026-03-09,2026-03-11,chat,payment_failed,low,closed,7.3,,UPI payment failed but amount debited
+TCK-001052,C00028,2026-03-10,2026-03-15,phone,delivery_delay,urgent,closed,3.0,2,Order TXN-0002848 has not arrived yet
+TCK-001053,C00317,2026-03-10,2026-03-13,whatsapp,delivery_delay,low,resolved,5.8,,Order TXN-0005615 has not arrived yet
+TCK-001054,C00317,2026-03-11,2026-03-14,whatsapp,returns,medium,resolved,2.8,4,Return pickup for Cotton Bedsheet not scheduled
+TCK-001055,C00033,2026-03-12,2026-03-20,email,returns,medium,resolved,3.5,3,Return pickup for Bluetooth Earbuds not scheduled
+TCK-001056,C00193,2026-03-12,2026-03-17,email,payment_failed,high,closed,15.8,,UPI payment failed but amount debited
+TCK-001057,C00708,2026-03-12,2026-03-17,email,billing,medium,resolved,1.3,5,Charged twice for order TXN-0005154
+TCK-001058,C00782,2026-03-12,2026-03-21,whatsapp,delivery_delay,low,resolved,8.2,,Order TXN-0008553 has not arrived yet
+TCK-001059,C00067,2026-03-13,2026-03-15,email,billing,medium,resolved,1.9,4,Charged twice for order TXN-0008377
+TCK-001060,C00317,2026-03-13,2026-03-22,email,account,medium,resolved,3.5,3,Cannot update my registered mobile number
+TCK-001061,C00357,2026-03-13,2026-03-17,email,billing,medium,resolved,3.5,,Charged twice for order TXN-0006688
+TCK-001062,C00590,2026-03-14,2026-03-18,chat,account,medium,resolved,4.0,,Cannot update my registered mobile number
+TCK-001063,C00056,2026-03-15,2026-03-18,chat,account,medium,closed,3.3,5,Cannot update my registered mobile number
+TCK-001064,C00522,2026-03-15,2026-03-22,chat,delivery_delay,medium,resolved,4.9,,Order TXN-0008545 has not arrived yet
+TCK-001065,C00473,2026-03-16,2026-03-16,whatsapp,account,low,closed,4.0,,Cannot update my registered mobile number
+TCK-001066,C00790,2026-03-16,2026-03-20,whatsapp,account,high,closed,6.2,,Cannot update my registered mobile number
+TCK-001067,C00790,2026-03-16,2026-03-17,phone,payment_failed,urgent,closed,1.6,3,UPI payment failed but amount debited
+TCK-001068,C00113,2026-03-18,2026-03-25,chat,delivery_delay,low,resolved,3.5,4,Order TXN-0008259 has not arrived yet
+TCK-001069,C00544,2026-03-18,2026-03-24,email,product_defect,urgent,resolved,3.5,4,Cotton Bedsheet stopped working after a week
+TCK-001070,C00618,2026-03-18,2026-03-18,email,product_defect,medium,resolved,2.7,,Silk Saree stopped working after a week
+TCK-001071,C00095,2026-03-19,2026-03-20,chat,delivery_delay,low,closed,3.7,2,Order TXN-0005757 has not arrived yet
+TCK-001072,C00429,2026-03-19,2026-03-21,chat,product_defect,medium,resolved,4.7,4,Silk Saree stopped working after a week
+TCK-001073,C00664,2026-03-19,2026-03-24,chat,payment_failed,high,resolved,1.8,2,UPI payment failed but amount debited
+TCK-001074,C00723,2026-03-19,2026-03-23,whatsapp,payment_failed,low,resolved,7.6,,UPI payment failed but amount debited
+TCK-001075,C00300,2026-03-20,2026-03-24,whatsapp,returns,medium,closed,3.1,3,Return pickup for Ayurvedic Face Cream not scheduled
+TCK-001076,C00350,2026-03-20,2026-03-29,whatsapp,account,low,closed,5.2,2,Cannot update my registered mobile number
+TCK-001077,C00422,2026-03-20,2026-03-29,chat,delivery_delay,medium,closed,7.0,2,Order TXN-0006175 has not arrived yet
+TCK-001078,C00790,2026-03-20,2026-03-26,whatsapp,billing,medium,resolved,1.2,3,Charged twice for order TXN-0007925
+TCK-001079,C00034,2026-03-21,2026-03-24,phone,returns,high,resolved,6.4,,Return pickup for Denim Jeans not scheduled
+TCK-001080,C00039,2026-03-21,2026-03-22,chat,returns,medium,resolved,2.4,4,Return pickup for Denim Jeans not scheduled
+TCK-001081,C00429,2026-03-21,2026-03-30,phone,billing,medium,resolved,2.6,3,Charged twice for order TXN-0005905
+TCK-001082,C00034,2026-03-22,2026-03-27,whatsapp,account,medium,closed,10.0,,Cannot update my registered mobile number
+TCK-001083,C00751,2026-03-23,2026-03-27,email,product_defect,medium,closed,4.3,2,USB-C Cable stopped working after a week
+TCK-001084,C00271,2026-03-24,2026-03-30,whatsapp,delivery_delay,medium,closed,2.4,4,Order TXN-0008217 has not arrived yet
+TCK-001085,C00403,2026-03-25,2026-03-28,whatsapp,returns,medium,resolved,4.3,5,Return pickup for Sports Shoes not scheduled
+TCK-001086,C00493,2026-03-27,2026-04-01,phone,product_defect,medium,closed,3.7,3,Smart Watch stopped working after a week
+TCK-001087,C00391,2026-03-28,2026-03-29,chat,account,high,resolved,3.4,,Cannot update my registered mobile number
+TCK-001088,C00034,2026-03-29,2026-04-02,phone,payment_failed,medium,resolved,5.6,2,UPI payment failed but amount debited
+TCK-001089,C00145,2026-03-29,2026-04-02,whatsapp,payment_failed,medium,closed,4.2,5,UPI payment failed but amount debited
+TCK-001090,C00176,2026-03-29,2026-04-06,email,returns,urgent,closed,2.2,3,Return pickup for Denim Jeans not scheduled
+TCK-001091,C00198,2026-03-29,2026-03-30,phone,delivery_delay,low,closed,4.4,3,Order TXN-0008135 has not arrived yet
+TCK-001092,C00498,2026-03-29,2026-04-04,chat,returns,medium,closed,4.8,,Return pickup for Pressure Cooker 5L not scheduled
+TCK-001093,C00574,2026-03-29,2026-04-05,whatsapp,returns,medium,closed,3.0,3,Return pickup for Hair Oil not scheduled
+TCK-001094,C00075,2026-03-30,2026-04-06,whatsapp,delivery_delay,medium,resolved,2.1,,Order TXN-0008531 has not arrived yet
+TCK-001095,C00153,2026-03-30,2026-03-30,whatsapp,account,low,closed,12.0,2,Cannot update my registered mobile number
+TCK-001096,C00664,2026-03-31,2026-04-01,email,account,low,closed,2.2,,Cannot update my registered mobile number
+TCK-001097,C00139,2026-04-01,2026-04-08,chat,product_defect,medium,closed,3.1,1,Bluetooth Earbuds stopped working after a week
+TCK-001098,C00428,2026-04-02,2026-04-02,whatsapp,delivery_delay,medium,closed,5.0,4,Order TXN-0007548 has not arrived yet
+TCK-001099,C00270,2026-04-03,2026-04-05,phone,delivery_delay,medium,closed,3.7,3,Order TXN-0008703 has not arrived yet
+TCK-001100,C00633,2026-04-03,2026-04-09,whatsapp,payment_failed,high,resolved,5.6,,UPI payment failed but amount debited
+TCK-001101,C00185,2026-04-04,2026-04-10,phone,returns,low,resolved,8.7,,Return pickup for Atta Flour not scheduled
+TCK-001102,C00646,2026-04-04,2026-04-04,whatsapp,product_defect,low,resolved,5.6,,Cashew Nuts stopped working after a week
+TCK-001103,C00708,2026-04-04,2026-04-04,email,delivery_delay,high,closed,2.9,,Order TXN-0005154 has not arrived yet
+TCK-001104,C00734,2026-04-04,2026-04-07,email,billing,low,closed,2.3,4,Charged twice for order TXN-0008656
+TCK-001105,C00289,2026-04-05,2026-04-06,chat,account,low,closed,2.0,4,Cannot update my registered mobile number
+TCK-001106,C00650,2026-04-05,2026-04-10,email,account,low,closed,3.2,4,Cannot update my registered mobile number
+TCK-001107,C00207,2026-04-06,2026-04-07,email,delivery_delay,low,resolved,2.7,4,Order TXN-0008262 has not arrived yet
+TCK-001108,C00483,2026-04-06,2026-04-15,phone,delivery_delay,medium,resolved,0.9,,Order TXN-0008451 has not arrived yet
+TCK-001109,C00616,2026-04-06,2026-04-07,email,billing,low,resolved,3.3,4,Charged twice for order TXN-0008351
+TCK-001110,C00391,2026-04-07,2026-04-09,phone,product_defect,urgent,closed,6.4,3,Ceiling Fan stopped working after a week
+TCK-001111,C00422,2026-04-07,2026-04-12,phone,account,high,resolved,3.8,,Cannot update my registered mobile number
+TCK-001112,C00519,2026-04-07,2026-04-09,phone,account,low,resolved,3.9,,Cannot update my registered mobile number
+TCK-001113,C00689,2026-04-08,2026-04-12,whatsapp,product_defect,medium,resolved,2.7,5,USB-C Cable stopped working after a week
+TCK-001114,C00039,2026-04-09,2026-04-14,phone,billing,medium,closed,6.8,3,Charged twice for order TXN-0003250
+TCK-001115,C00120,2026-04-09,2026-04-10,whatsapp,returns,high,resolved,10.1,3,Return pickup for Smart Watch not scheduled
+TCK-001116,C00488,2026-04-09,2026-04-16,email,account,low,closed,2.4,3,Cannot update my registered mobile number
+TCK-001117,C00494,2026-04-09,2026-04-14,chat,account,medium,closed,6.2,5,Cannot update my registered mobile number
+TCK-001118,C00093,2026-04-10,2026-04-11,whatsapp,account,high,closed,2.1,4,Cannot update my registered mobile number
+TCK-001119,C00595,2026-04-10,2026-04-12,chat,billing,high,closed,2.8,3,Charged twice for order TXN-0007522
+TCK-001120,C00003,2026-04-11,2026-04-13,phone,returns,medium,closed,2.0,5,Return pickup for Steel Tiffin Box not scheduled
+TCK-001121,C00625,2026-04-12,2026-04-13,phone,account,medium,closed,8.4,3,Cannot update my registered mobile number
+TCK-001122,C00708,2026-04-12,2026-04-16,whatsapp,delivery_delay,high,resolved,3.0,5,Order TXN-0005154 has not arrived yet
+TCK-001123,C00070,2026-04-13,2026-04-15,phone,payment_failed,high,closed,5.8,2,UPI payment failed but amount debited
+TCK-001124,C00265,2026-04-13,2026-04-15,whatsapp,payment_failed,high,resolved,2.5,5,UPI payment failed but amount debited
+TCK-001125,C00352,2026-04-13,2026-04-22,email,returns,low,closed,2.9,,Return pickup for Herbal Shampoo not scheduled
+TCK-001126,C00352,2026-04-14,2026-04-23,chat,billing,high,closed,1.9,,Charged twice for order TXN-0003767
+TCK-001127,C00712,2026-04-14,2026-04-16,phone,account,high,closed,10.3,2,Cannot update my registered mobile number
+TCK-001128,C00554,2026-04-15,2026-04-22,whatsapp,returns,high,closed,4.2,,Return pickup for Sunflower Oil not scheduled
+TCK-001129,C00335,2026-04-17,2026-04-24,phone,payment_failed,high,resolved,3.0,3,UPI payment failed but amount debited
+TCK-001130,C00069,2026-04-18,2026-04-19,email,delivery_delay,medium,resolved,0.9,4,Order TXN-0007730 has not arrived yet
+TCK-001131,C00566,2026-04-18,2026-04-22,chat,billing,medium,resolved,1.7,3,Charged twice for order TXN-0005237
+TCK-001132,C00007,2026-04-19,2026-04-23,email,payment_failed,medium,closed,1.3,4,UPI payment failed but amount debited
+TCK-001133,C00782,2026-04-19,2026-04-23,phone,account,medium,closed,2.2,2,Cannot update my registered mobile number
+TCK-001134,C00283,2026-04-21,2026-04-26,chat,payment_failed,high,closed,5.9,2,UPI payment failed but amount debited
+TCK-001135,C00726,2026-04-22,2026-04-28,phone,account,medium,closed,3.4,3,Cannot update my registered mobile number
+TCK-001136,C00024,2026-04-23,2026-04-29,chat,billing,low,resolved,8.6,,Charged twice for order TXN-0007818
+TCK-001137,C00494,2026-04-23,2026-05-02,email,account,high,resolved,4.1,4,Cannot update my registered mobile number
+TCK-001138,C00133,2026-04-25,2026-04-27,whatsapp,delivery_delay,low,resolved,4.8,4,Order TXN-0008292 has not arrived yet
+TCK-001139,C00490,2026-04-26,2026-05-01,whatsapp,payment_failed,medium,closed,4.3,,UPI payment failed but amount debited
+TCK-001140,C00077,2026-04-27,2026-04-29,phone,account,medium,closed,2.9,3,Cannot update my registered mobile number
+TCK-001141,C00693,2026-04-27,2026-04-29,whatsapp,payment_failed,low,resolved,6.7,,UPI payment failed but amount debited
+TCK-001142,C00714,2026-04-27,2026-05-06,whatsapp,product_defect,medium,resolved,2.0,2,Herbal Shampoo stopped working after a week
+TCK-001143,C00253,2026-04-28,2026-04-29,whatsapp,account,high,resolved,2.3,,Cannot update my registered mobile number
+TCK-001144,C00306,2026-04-29,2026-05-05,email,payment_failed,low,resolved,1.8,5,UPI payment failed but amount debited
+TCK-001145,C00104,2026-04-30,2026-05-08,phone,delivery_delay,high,resolved,1.3,2,Order TXN-0007037 has not arrived yet
+TCK-001146,C00155,2026-04-30,2026-05-01,email,delivery_delay,high,closed,5.0,4,Order TXN-0008337 has not arrived yet
+TCK-001147,C00434,2026-04-30,2026-05-06,email,returns,medium,resolved,1.6,2,Return pickup for LED Bulb 9W not scheduled
+TCK-001148,C00475,2026-04-30,2026-05-03,whatsapp,product_defect,medium,resolved,12.8,2,Atta Flour stopped working after a week
+TCK-001149,C00132,2026-05-01,2026-05-03,chat,returns,low,resolved,3.7,3,Return pickup for Cotton Bedsheet not scheduled
+TCK-001150,C00623,2026-05-01,2026-05-07,whatsapp,returns,low,resolved,2.8,5,Return pickup for Masala Chai not scheduled
+TCK-001151,C00526,2026-05-03,2026-05-11,chat,account,low,closed,1.7,4,Cannot update my registered mobile number
+TCK-001152,C00683,2026-05-03,2026-05-11,email,returns,medium,resolved,4.4,3,Return pickup for Cashew Nuts not scheduled
+TCK-001153,C00740,2026-05-03,2026-05-05,phone,delivery_delay,low,resolved,2.0,5,Order TXN-0008459 has not arrived yet
+TCK-001154,C00796,2026-05-03,2026-05-05,whatsapp,account,urgent,closed,4.2,,Cannot update my registered mobile number
+TCK-001155,C00648,2026-05-04,2026-05-12,whatsapp,delivery_delay,medium,resolved,2.6,,Order TXN-0008655 has not arrived yet
+TCK-001156,C00424,2026-05-06,2026-05-12,chat,payment_failed,high,closed,2.8,4,UPI payment failed but amount debited
+TCK-001157,C00465,2026-05-06,2026-05-11,whatsapp,returns,medium,resolved,5.7,2,Return pickup for Silk Saree not scheduled
+TCK-001158,C00274,2026-05-07,2026-05-15,phone,product_defect,medium,resolved,2.3,3,Denim Jeans stopped working after a week
+TCK-001159,C00317,2026-05-07,2026-05-09,chat,billing,low,closed,7.4,4,Charged twice for order TXN-0005615
+TCK-001160,C00161,2026-05-09,2026-05-15,email,product_defect,high,resolved,2.3,2,Hair Oil stopped working after a week
+TCK-001161,C00708,2026-05-10,2026-05-13,whatsapp,returns,low,resolved,0.6,4,Return pickup for Herbal Shampoo not scheduled
+TCK-001162,C00120,2026-05-11,2026-05-19,whatsapp,payment_failed,low,resolved,19.1,4,UPI payment failed but amount debited
+TCK-001163,C00183,2026-05-11,2026-05-11,chat,account,low,closed,3.8,4,Cannot update my registered mobile number
+TCK-001164,C00413,2026-05-11,2026-05-20,chat,account,low,closed,6.6,4,Cannot update my registered mobile number
+TCK-001165,C00728,2026-05-11,2026-05-11,phone,billing,medium,resolved,2.9,,Charged twice for order TXN-0008721
+TCK-001166,C00352,2026-05-12,2026-05-18,email,returns,medium,resolved,1.0,,Return pickup for Herbal Shampoo not scheduled
+TCK-001167,C00667,2026-05-12,2026-05-19,email,billing,medium,resolved,3.3,3,Charged twice for order TXN-0008458
+TCK-001168,C00726,2026-05-12,2026-05-16,phone,returns,medium,closed,1.3,4,Return pickup for Basmati Rice not scheduled
+TCK-001169,C00750,2026-05-12,2026-05-19,chat,delivery_delay,high,closed,4.0,,Order TXN-0005328 has not arrived yet
+TCK-001170,C00071,2026-05-14,2026-05-16,chat,account,high,closed,4.1,3,Cannot update my registered mobile number
+TCK-001171,C00226,2026-05-14,2026-05-22,phone,product_defect,high,resolved,6.7,,Hair Oil stopped working after a week
+TCK-001172,C00693,2026-05-14,2026-05-17,phone,account,high,closed,4.8,3,Cannot update my registered mobile number
+TCK-001173,C00372,2026-05-15,2026-05-20,whatsapp,returns,medium,resolved,3.8,3,Return pickup for Masala Chai not scheduled
+TCK-001174,C00699,2026-05-16,2026-05-23,whatsapp,account,medium,resolved,2.6,3,Cannot update my registered mobile number
+TCK-001175,C00112,2026-05-17,2026-05-19,email,payment_failed,medium,closed,2.0,5,UPI payment failed but amount debited
+TCK-001176,C00087,2026-05-18,2026-05-27,whatsapp,returns,low,closed,2.8,,Return pickup for Cotton Bedsheet not scheduled
+TCK-001177,C00189,2026-05-18,2026-05-25,phone,account,high,resolved,5.3,,Cannot update my registered mobile number
+TCK-001178,C00416,2026-05-18,2026-05-19,whatsapp,account,medium,resolved,4.1,3,Cannot update my registered mobile number
+TCK-001179,C00095,2026-05-19,2026-05-23,phone,delivery_delay,high,closed,4.5,2,Order TXN-0005757 has not arrived yet
+TCK-001180,C00120,2026-05-19,2026-05-24,whatsapp,payment_failed,low,closed,1.9,3,UPI payment failed but amount debited
+TCK-001181,C00305,2026-05-19,2026-05-25,email,product_defect,medium,closed,3.5,5,Bluetooth Earbuds stopped working after a week
+TCK-001182,C00331,2026-05-19,2026-05-20,whatsapp,billing,high,closed,3.8,2,Charged twice for order TXN-0005868
+TCK-001183,C00485,2026-05-19,2026-05-20,chat,product_defect,medium,resolved,4.0,3,Silk Saree stopped working after a week
+TCK-001184,C00796,2026-05-19,2026-05-19,chat,account,medium,resolved,13.8,,Cannot update my registered mobile number
+TCK-001185,C00127,2026-05-20,2026-05-24,email,returns,medium,resolved,2.0,4,Return pickup for Hair Oil not scheduled
+TCK-001186,C00620,2026-05-20,2026-05-28,email,delivery_delay,high,closed,2.8,4,Order TXN-0007617 has not arrived yet
+TCK-001187,C00660,2026-05-20,2026-05-28,whatsapp,billing,high,closed,4.6,5,Charged twice for order my order
+TCK-001188,C00710,2026-05-20,2026-05-23,whatsapp,returns,medium,resolved,4.8,4,Return pickup for Sunscreen SPF50 not scheduled
+TCK-001189,C00263,2026-05-21,2026-05-29,chat,delivery_delay,medium,closed,6.3,,Order TXN-0004731 has not arrived yet
+TCK-001190,C00306,2026-05-21,2026-05-28,phone,billing,low,resolved,2.2,4,Charged twice for order TXN-0005976
+TCK-001191,C00643,2026-05-21,2026-05-28,whatsapp,billing,low,closed,1.4,4,Charged twice for order TXN-0004209
+TCK-001192,C00693,2026-05-21,2026-05-29,phone,payment_failed,low,resolved,5.5,,UPI payment failed but amount debited
+TCK-001193,C00761,2026-05-21,2026-05-23,chat,payment_failed,low,closed,4.0,3,UPI payment failed but amount debited
+TCK-001194,C00769,2026-05-21,2026-05-24,email,returns,medium,resolved,2.6,4,Return pickup for Herbal Shampoo not scheduled
+TCK-001195,C00286,2026-05-22,2026-05-26,email,product_defect,low,resolved,3.2,4,Power Bank 10000mAh stopped working after a week
+TCK-001196,C00096,2026-05-23,2026-05-24,email,payment_failed,high,resolved,3.0,3,UPI payment failed but amount debited
+TCK-001197,C00375,2026-05-24,2026-05-26,chat,delivery_delay,medium,resolved,2.5,,Order TXN-0007218 has not arrived yet
+TCK-001198,C00061,2026-05-25,2026-05-25,phone,product_defect,low,resolved,4.4,2,Pressure Cooker 5L stopped working after a week
+TCK-001199,C00125,2026-05-25,2026-05-27,phone,product_defect,medium,closed,7.3,5,Toor Dal stopped working after a week
+TCK-001200,C00475,2026-05-25,2026-06-02,phone,account,medium,resolved,5.4,2,Cannot update my registered mobile number
+TCK-001201,C00639,2026-05-25,2026-05-25,chat,payment_failed,medium,resolved,2.0,,UPI payment failed but amount debited
+TCK-001202,C00552,2026-05-26,2026-06-03,chat,account,medium,resolved,3.0,,Cannot update my registered mobile number
+TCK-001203,C00608,2026-05-26,2026-05-29,whatsapp,returns,medium,resolved,10.4,2,Return pickup for Cotton Kurta not scheduled
+TCK-001204,C00351,2026-05-28,2026-06-02,email,payment_failed,medium,closed,8.9,4,UPI payment failed but amount debited
+TCK-001205,C00595,2026-05-28,2026-06-06,chat,product_defect,high,resolved,3.8,2,Pressure Cooker 5L stopped working after a week
+TCK-001206,C00677,2026-05-28,2026-05-30,whatsapp,delivery_delay,low,resolved,5.4,5,Order TXN-0008624 has not arrived yet
+TCK-001207,C00281,2026-05-29,2026-06-07,chat,payment_failed,medium,closed,10.5,3,UPI payment failed but amount debited
+TCK-001208,C00609,2026-05-29,2026-06-01,whatsapp,billing,medium,closed,7.2,4,Charged twice for order TXN-0007087
+TCK-001209,C00280,2026-05-30,2026-05-31,whatsapp,payment_failed,medium,resolved,2.7,2,UPI payment failed but amount debited
+TCK-001210,C00505,2026-05-30,2026-06-05,email,returns,urgent,resolved,6.7,,Return pickup for Hair Oil not scheduled
+TCK-001211,C00542,2026-05-31,2026-06-09,phone,delivery_delay,medium,resolved,1.8,5,Order TXN-0008654 has not arrived yet
+TCK-001212,C00639,2026-05-31,2026-06-07,whatsapp,payment_failed,high,resolved,0.9,4,UPI payment failed but amount debited
+TCK-001213,C00676,2026-05-31,2026-06-02,email,billing,low,resolved,1.0,3,Charged twice for order TXN-0007326
+TCK-001214,C00475,2026-06-01,2026-06-09,whatsapp,account,medium,closed,4.0,,Cannot update my registered mobile number
+TCK-001215,C00475,2026-06-02,2026-06-05,email,account,medium,closed,7.1,2,Cannot update my registered mobile number
+TCK-001216,C00475,2026-06-02,2026-06-03,chat,billing,medium,resolved,5.1,2,Charged twice for order TXN-0004646
+TCK-001217,C00479,2026-06-02,2026-06-02,email,delivery_delay,medium,closed,4.7,,Order TXN-0008605 has not arrived yet
+TCK-001218,C00714,2026-06-02,2026-06-07,email,delivery_delay,medium,resolved,4.4,2,Order TXN-0005894 has not arrived yet
+TCK-001219,C00172,2026-06-03,2026-06-07,chat,payment_failed,medium,resolved,3.8,4,UPI payment failed but amount debited
+TCK-001220,C00457,2026-06-03,2026-06-06,chat,delivery_delay,low,resolved,7.5,4,Order TXN-0006189 has not arrived yet
+TCK-001221,C00796,2026-06-04,2026-06-13,chat,product_defect,low,resolved,4.5,3,Steel Tiffin Box stopped working after a week
+TCK-001222,C00427,2026-06-06,2026-06-11,email,returns,low,resolved,4.9,,Return pickup for Cotton Kurta not scheduled
+TCK-001223,C00457,2026-06-06,2026-06-11,email,product_defect,urgent,resolved,8.0,,Denim Jeans stopped working after a week
+TCK-001224,C00466,2026-06-06,2026-06-13,chat,delivery_delay,low,closed,1.1,4,Order TXN-0008324 has not arrived yet
+TCK-001225,C00690,2026-06-06,2026-06-15,whatsapp,delivery_delay,low,resolved,3.9,3,Order TXN-0006773 has not arrived yet
+TCK-001226,C00520,2026-06-07,2026-06-13,whatsapp,delivery_delay,medium,closed,4.8,4,Order TXN-0008032 has not arrived yet
+TCK-001227,C00702,2026-06-07,2026-06-14,chat,payment_failed,high,closed,1.5,4,UPI payment failed but amount debited
+TCK-001228,C00788,2026-06-07,2026-06-11,whatsapp,delivery_delay,high,resolved,10.9,2,Order TXN-0005400 has not arrived yet
+TCK-001229,C00205,2026-06-08,2026-06-17,email,billing,high,resolved,2.6,3,Charged twice for order TXN-0007975
+TCK-001230,C00598,2026-06-08,2026-06-15,email,delivery_delay,high,closed,3.0,4,Order TXN-0006419 has not arrived yet
+TCK-001231,C00714,2026-06-08,2026-06-13,chat,payment_failed,medium,resolved,1.7,3,UPI payment failed but amount debited
+TCK-001232,C00633,2026-06-09,2026-06-09,chat,payment_failed,low,resolved,2.5,,UPI payment failed but amount debited
+TCK-001233,C00120,2026-06-11,2026-06-20,chat,billing,medium,closed,1.1,4,Charged twice for order TXN-0006171
+TCK-001234,C00402,2026-06-11,2026-06-11,whatsapp,returns,medium,resolved,0.9,5,Return pickup for Basmati Rice not scheduled
+TCK-001235,C00469,2026-06-11,2026-06-20,email,product_defect,medium,resolved,3.2,,Sports Shoes stopped working after a week
+TCK-001236,C00045,2026-06-12,2026-06-15,email,returns,medium,closed,15.6,,Return pickup for Sunflower Oil not scheduled
+TCK-001237,C00204,2026-06-12,2026-06-14,email,product_defect,medium,closed,1.3,4,Pressure Cooker 5L stopped working after a week
+TCK-001238,C00702,2026-06-12,2026-06-13,whatsapp,product_defect,high,resolved,2.7,3,Cotton Kurta stopped working after a week
+TCK-001239,C00774,2026-06-12,2026-06-16,email,payment_failed,low,resolved,4.4,5,UPI payment failed but amount debited
+TCK-001240,C00107,2026-06-13,2026-06-13,chat,delivery_delay,high,resolved,3.6,,Order TXN-0008681 has not arrived yet
+TCK-001241,C00086,2026-06-15,2026-06-19,chat,account,high,resolved,5.2,3,Cannot update my registered mobile number
+TCK-001242,C00332,2026-06-15,2026-06-18,email,billing,medium,resolved,6.9,4,Charged twice for order TXN-0005299
+TCK-001243,C00274,2026-06-16,2026-06-22,whatsapp,billing,medium,resolved,2.6,,Charged twice for order TXN-0008704
+TCK-001244,C00593,2026-06-16,2026-06-17,email,billing,high,resolved,1.4,3,Charged twice for order TXN-0006928
+TCK-001245,C00607,2026-06-16,2026-06-20,phone,returns,low,resolved,4.5,3,Return pickup for Sports Shoes not scheduled
+TCK-001246,C00615,2026-06-16,2026-06-19,email,payment_failed,high,closed,19.4,3,UPI payment failed but amount debited
+TCK-001247,C00348,2026-06-19,2026-06-20,chat,payment_failed,medium,resolved,5.0,3,UPI payment failed but amount debited
+TCK-001248,C00641,2026-06-19,2026-06-27,chat,payment_failed,medium,resolved,5.5,3,UPI payment failed but amount debited
+TCK-001249,C00792,2026-06-19,2026-06-25,whatsapp,delivery_delay,high,closed,3.3,,Order TXN-0004534 has not arrived yet
+TCK-001250,C00281,2026-06-21,2026-06-28,whatsapp,product_defect,medium,resolved,2.1,3,Cotton Bedsheet stopped working after a week
+TCK-001251,C00392,2026-06-22,2026-06-30,email,billing,low,resolved,3.9,,Charged twice for order TXN-0008140
+TCK-001252,C00590,2026-06-22,2026-06-23,phone,returns,high,closed,10.9,,Return pickup for Sunscreen SPF50 not scheduled
+TCK-001253,C00393,2026-06-23,2026-06-24,whatsapp,returns,high,resolved,5.1,4,Return pickup for Sunflower Oil not scheduled
+TCK-001254,C00344,2026-06-24,2026-07-02,chat,delivery_delay,low,closed,2.9,4,Order TXN-0008707 has not arrived yet
+TCK-001255,C00351,2026-06-24,2026-06-30,email,billing,low,resolved,2.3,4,Charged twice for order TXN-0006385
+TCK-001256,C00607,2026-06-24,2026-07-02,chat,product_defect,medium,closed,6.0,,Sports Shoes stopped working after a week
+TCK-001257,C00677,2026-06-26,2026-07-01,chat,delivery_delay,medium,resolved,2.5,,Order TXN-0008624 has not arrived yet
+TCK-001258,C00781,2026-06-26,2026-07-05,phone,returns,low,resolved,4.7,3,Return pickup for Masala Chai not scheduled
+TCK-001259,C00783,2026-06-26,2026-06-28,chat,billing,medium,closed,4.0,,Charged twice for order TXN-0008591
+TCK-001260,C00124,2026-06-28,2026-06-30,email,product_defect,medium,resolved,1.1,3,Silk Saree stopped working after a week
+TCK-001261,C00779,2026-06-28,2026-07-04,phone,returns,low,closed,4.9,5,Return pickup for Bluetooth Earbuds not scheduled
+TCK-001262,C00394,2026-06-29,2026-07-06,phone,delivery_delay,medium,closed,4.3,2,Order TXN-0008242 has not arrived yet
+TCK-001263,C00341,2026-06-30,2026-07-04,chat,returns,medium,resolved,4.3,3,Return pickup for Wi-Fi Router not scheduled
+TCK-001264,C00396,2026-06-30,2026-07-04,chat,payment_failed,medium,closed,2.0,4,UPI payment failed but amount debited
+TCK-001265,C00466,2026-06-30,2026-06-30,whatsapp,account,low,resolved,5.5,4,Cannot update my registered mobile number
+TCK-001266,C00531,2026-07-02,2026-07-02,email,delivery_delay,medium,closed,12.6,4,Order TXN-0008690 has not arrived yet
+TCK-001267,C00252,2026-07-03,2026-07-04,chat,billing,high,closed,1.7,4,Charged twice for order TXN-0008649
+TCK-001268,C00465,2026-07-03,2026-07-08,phone,returns,low,closed,3.9,4,Return pickup for Silk Saree not scheduled
+TCK-001269,C00410,2026-07-04,2026-07-11,phone,payment_failed,medium,resolved,2.0,4,UPI payment failed but amount debited
+TCK-001270,C00688,2026-07-04,2026-07-04,whatsapp,account,low,resolved,15.5,1,Cannot update my registered mobile number
+TCK-001271,C00023,2026-07-06,2026-07-07,whatsapp,delivery_delay,medium,closed,3.2,4,Order TXN-0008436 has not arrived yet
+TCK-001272,C00590,2026-07-06,2026-07-09,phone,billing,medium,closed,6.4,4,Charged twice for order TXN-0007899
+TCK-001273,C00310,2026-07-07,2026-07-07,email,returns,urgent,closed,3.7,3,Return pickup for Cotton Kurta not scheduled
+TCK-001274,C00665,2026-07-07,2026-07-07,chat,billing,low,resolved,1.3,,Charged twice for order TXN-0006678
+TCK-001275,C00096,2026-07-08,2026-07-10,email,billing,high,closed,2.5,3,Charged twice for order TXN-0005928
+TCK-001276,C00308,2026-07-09,2026-07-17,phone,account,urgent,resolved,4.3,3,Cannot update my registered mobile number
+TCK-001277,C00453,2026-07-09,2026-07-12,email,account,medium,resolved,3.8,3,Cannot update my registered mobile number
+TCK-001278,C00153,2026-07-10,2026-07-16,phone,delivery_delay,medium,closed,8.8,2,Order TXN-0008597 has not arrived yet
+TCK-001279,C00271,2026-07-10,2026-07-19,phone,delivery_delay,low,resolved,2.6,3,Order TXN-0008217 has not arrived yet
+TCK-001280,C00544,2026-07-10,2026-07-15,email,billing,low,resolved,2.5,5,Charged twice for order TXN-0008569
+TCK-001281,C00553,2026-07-10,2026-07-16,phone,payment_failed,high,resolved,8.7,2,UPI payment failed but amount debited
+TCK-001282,C00330,2026-07-11,2026-07-11,whatsapp,delivery_delay,medium,closed,4.6,3,Order TXN-0007368 has not arrived yet
+TCK-001283,C00361,2026-07-11,2026-07-13,email,account,medium,resolved,3.1,4,Cannot update my registered mobile number
+TCK-001284,C00004,2026-07-12,2026-07-16,phone,product_defect,medium,closed,1.9,4,Cotton Kurta stopped working after a week
+TCK-001285,C00563,2026-07-13,2026-07-13,phone,product_defect,medium,closed,7.2,5,Sunflower Oil stopped working after a week
+TCK-001286,C00359,2026-07-14,2026-07-17,whatsapp,payment_failed,high,closed,1.7,5,UPI payment failed but amount debited
+TCK-001287,C00689,2026-07-14,2026-07-17,chat,account,medium,closed,4.2,4,Cannot update my registered mobile number
+TCK-001288,C00307,2026-07-15,2026-07-16,email,product_defect,high,resolved,2.3,4,Atta Flour stopped working after a week
+TCK-001289,C00463,2026-07-16,2026-07-18,whatsapp,product_defect,low,closed,1.9,1,Hair Oil stopped working after a week
+TCK-001290,C00209,2026-07-17,2026-07-17,phone,returns,low,closed,0.6,,Return pickup for Cotton Kurta not scheduled
+TCK-001291,C00375,2026-07-17,2026-07-22,chat,account,medium,closed,3.0,,Cannot update my registered mobile number
+TCK-001292,C00434,2026-07-17,2026-07-21,whatsapp,billing,high,resolved,4.3,,Charged twice for order TXN-0008564
+TCK-001293,C00568,2026-07-17,2026-07-19,chat,payment_failed,urgent,closed,2.8,,UPI payment failed but amount debited
+TCK-001294,C00709,2026-07-17,2026-07-20,email,account,high,closed,2.6,2,Cannot update my registered mobile number
+TCK-001295,C00224,2026-07-18,2026-07-27,chat,payment_failed,medium,closed,2.0,,UPI payment failed but amount debited
+TCK-001296,C00586,2026-07-18,2026-07-22,phone,billing,medium,resolved,2.4,,Charged twice for order TXN-0008426
+TCK-001297,C00356,2026-07-19,2026-07-26,phone,billing,medium,resolved,7.3,,Charged twice for order TXN-0007997
+TCK-001298,C00361,2026-07-19,2026-07-27,whatsapp,returns,medium,closed,1.7,4,Return pickup for The product not scheduled
+TCK-001299,C00650,2026-07-19,2026-07-26,email,returns,medium,closed,5.3,4,Return pickup for LED Bulb 9W not scheduled
+TCK-001300,C00783,2026-07-19,2026-07-21,phone,returns,medium,closed,4.8,2,Return pickup for LED Bulb 9W not scheduled
+TCK-001301,C00169,2026-07-20,2026-07-24,chat,payment_failed,medium,closed,4.4,3,UPI payment failed but amount debited
+TCK-001302,C00707,2026-07-20,2026-07-26,phone,product_defect,medium,resolved,1.6,,Power Bank 10000mAh stopped working after a week
+TCK-001303,C00714,2026-07-20,2026-07-25,chat,billing,medium,closed,15.6,3,Charged twice for order TXN-0005894
+TCK-001304,C00603,2026-07-21,2026-07-27,chat,delivery_delay,medium,resolved,0.8,4,Order TXN-0004867 has not arrived yet
+TCK-001305,C00633,2026-07-21,2026-07-29,chat,account,low,closed,5.0,2,Cannot update my registered mobile number
+TCK-001306,C00714,2026-07-21,2026-07-21,phone,returns,medium,closed,6.4,1,Return pickup for Herbal Shampoo not scheduled
+TCK-001307,C00676,2026-07-23,2026-08-01,whatsapp,delivery_delay,medium,closed,1.1,4,Order TXN-0007326 has not arrived yet
+TCK-001308,C00332,2026-07-25,2026-07-26,email,account,medium,resolved,7.2,,Cannot update my registered mobile number
+TCK-001309,C00610,2026-07-25,2026-07-25,whatsapp,delivery_delay,medium,resolved,3.3,2,Order my order has not arrived yet
+TCK-001310,C00168,2026-07-26,2026-07-31,phone,returns,medium,closed,7.4,3,Return pickup for Herbal Shampoo not scheduled
+TCK-001311,C00304,2026-07-27,2026-08-01,chat,delivery_delay,medium,closed,2.3,5,Order TXN-0007204 has not arrived yet
+TCK-001312,C00423,2026-07-27,2026-08-01,chat,billing,low,resolved,3.7,,Charged twice for order my order
+TCK-001313,C00423,2026-07-27,2026-08-01,whatsapp,returns,low,resolved,1.9,5,Return pickup for The product not scheduled
+TCK-001314,C00672,2026-07-27,2026-08-04,whatsapp,billing,medium,closed,0.5,5,Charged twice for order my order
+TCK-001315,C00057,2026-07-29,2026-07-31,whatsapp,account,medium,closed,3.1,4,Cannot update my registered mobile number
+TCK-001316,C00128,2026-07-30,2026-08-03,phone,billing,low,closed,3.9,,Charged twice for order TXN-0008534
+TCK-001317,C00350,2026-07-31,2026-08-07,phone,account,medium,closed,24.2,3,Cannot update my registered mobile number
+TCK-001318,C00010,2026-08-01,2026-08-04,email,product_defect,high,closed,4.5,4,Cotton Bedsheet stopped working after a week
+TCK-001319,C00633,2026-08-01,2026-08-10,phone,billing,high,closed,9.6,,Charged twice for order TXN-0005785
+TCK-001320,C00289,2026-08-02,2026-08-08,whatsapp,billing,medium,closed,5.3,3,Charged twice for order TXN-0008295
+TCK-001321,C00800,2026-08-02,2026-08-02,phone,returns,low,resolved,2.2,,Return pickup for Sports Shoes not scheduled
+TCK-001322,C00113,2026-08-03,2026-08-03,chat,account,medium,resolved,4.9,3,Cannot update my registered mobile number
+TCK-001323,C00568,2026-08-03,2026-08-07,chat,delivery_delay,high,resolved,3.4,3,Order TXN-0007830 has not arrived yet
+TCK-001324,C00677,2026-08-03,2026-08-05,email,billing,medium,resolved,1.1,,Charged twice for order TXN-0008624
+TCK-001325,C00741,2026-08-03,2026-08-12,phone,returns,low,resolved,3.4,3,Return pickup for Toor Dal not scheduled
+TCK-001326,C00332,2026-08-04,2026-08-12,whatsapp,billing,medium,resolved,7.5,3,Charged twice for order TXN-0005299
+TCK-001327,C00772,2026-08-04,2026-08-08,phone,account,urgent,resolved,2.1,,Cannot update my registered mobile number
+TCK-001328,C00620,2026-08-05,2026-08-11,email,delivery_delay,medium,resolved,3.4,,Order TXN-0007617 has not arrived yet
+TCK-001329,C00040,2026-08-06,2026-08-13,phone,delivery_delay,low,closed,4.3,2,Order TXN-0008281 has not arrived yet
+TCK-001330,C00332,2026-08-06,2026-08-07,chat,returns,medium,closed,8.9,1,Return pickup for Herbal Shampoo not scheduled
+TCK-001331,C00002,2026-08-08,2026-08-14,email,billing,high,closed,6.8,4,Charged twice for order TXN-0008374
+TCK-001332,C00143,2026-08-08,2026-08-11,chat,account,medium,resolved,7.4,3,Cannot update my registered mobile number
+TCK-001333,C00540,2026-08-08,2026-08-15,chat,delivery_delay,medium,resolved,1.7,3,Order TXN-0008518 has not arrived yet
+TCK-001334,C00651,2026-08-08,2026-08-09,phone,account,medium,closed,3.7,3,Cannot update my registered mobile number
+TCK-001335,C00682,2026-08-08,2026-08-12,email,delivery_delay,medium,closed,3.8,3,Order TXN-0006361 has not arrived yet
+TCK-001336,C00734,2026-08-08,2026-08-15,whatsapp,billing,medium,resolved,8.5,,Charged twice for order TXN-0008656
+TCK-001337,C00332,2026-08-09,2026-08-10,phone,billing,high,resolved,3.5,2,Charged twice for order TXN-0005299
+TCK-001338,C00783,2026-08-09,2026-08-12,phone,delivery_delay,low,resolved,7.5,2,Order TXN-0008591 has not arrived yet
+TCK-001339,C00013,2026-08-10,2026-08-18,whatsapp,billing,medium,resolved,4.0,4,Charged twice for order TXN-0007476
+TCK-001340,C00335,2026-08-11,2026-08-14,chat,returns,low,resolved,6.7,3,Return pickup for Sports Shoes not scheduled
+TCK-001341,C00561,2026-08-12,2026-08-17,chat,product_defect,medium,resolved,4.6,3,Cotton Bedsheet stopped working after a week
+TCK-001342,C00166,2026-08-13,2026-08-15,chat,delivery_delay,low,closed,2.8,3,Order TXN-0006700 has not arrived yet
+TCK-001343,C00519,2026-08-13,2026-08-22,chat,returns,high,closed,1.9,4,Return pickup for Cashew Nuts not scheduled
+TCK-001344,C00606,2026-08-13,2026-08-14,whatsapp,payment_failed,medium,resolved,3.4,,UPI payment failed but amount debited
+TCK-001345,C00362,2026-08-15,2026-08-20,phone,product_defect,low,resolved,3.3,3,The product stopped working after a week
+TCK-001346,C00696,2026-08-15,2026-08-15,phone,delivery_delay,high,closed,3.3,4,Order TXN-0008572 has not arrived yet
+TCK-001347,C00718,2026-08-15,2026-08-18,phone,billing,medium,closed,0.9,5,Charged twice for order TXN-0008478
+TCK-001348,C00021,2026-08-16,2026-08-24,whatsapp,billing,low,resolved,5.2,1,Charged twice for order my order
+TCK-001349,C00227,2026-08-16,2026-08-21,phone,delivery_delay,low,resolved,3.9,3,Order TXN-0007695 has not arrived yet
+TCK-001350,C00689,2026-08-17,2026-08-23,email,payment_failed,medium,closed,2.8,4,UPI payment failed but amount debited
+TCK-001351,C00442,2026-08-18,2026-08-23,phone,product_defect,high,closed,1.5,3,Denim Jeans stopped working after a week
+TCK-001352,C00089,2026-08-19,2026-08-23,chat,account,low,resolved,4.8,3,Cannot update my registered mobile number
+TCK-001353,C00192,2026-08-19,2026-08-19,chat,product_defect,medium,resolved,2.1,,LED Bulb 9W stopped working after a week
+TCK-001354,C00307,2026-08-19,2026-08-20,email,delivery_delay,medium,resolved,7.7,5,Order TXN-0006581 has not arrived yet
+TCK-001355,C00594,2026-08-19,2026-08-28,phone,billing,high,resolved,2.2,4,Charged twice for order TXN-0008407
+TCK-001356,C00698,2026-08-21,2026-08-30,email,account,high,closed,1.3,,Cannot update my registered mobile number
+TCK-001357,C00263,2026-08-23,2026-08-26,chat,account,medium,resolved,1.2,3,Cannot update my registered mobile number
+TCK-001358,C00307,2026-08-23,2026-08-31,email,payment_failed,low,resolved,1.9,,UPI payment failed but amount debited
+TCK-001359,C00684,2026-08-24,2026-08-31,phone,payment_failed,urgent,closed,1.4,,UPI payment failed but amount debited
+TCK-001360,C00394,2026-08-25,2026-09-03,whatsapp,returns,low,closed,2.6,4,Return pickup for Denim Jeans not scheduled
+TCK-001361,C00722,2026-08-25,2026-09-01,chat,product_defect,medium,closed,3.1,4,Basmati Rice stopped working after a week
+TCK-001362,C00410,2026-08-26,2026-09-03,chat,account,medium,closed,0.8,,Cannot update my registered mobile number
+TCK-001363,C00620,2026-08-26,2026-09-02,phone,delivery_delay,low,resolved,2.2,3,Order TXN-0007617 has not arrived yet
+TCK-001364,C00622,2026-08-26,2026-08-28,whatsapp,delivery_delay,medium,resolved,5.3,4,Order TXN-0005864 has not arrived yet
+TCK-001365,C00676,2026-08-26,2026-09-01,email,payment_failed,medium,closed,5.4,4,UPI payment failed but amount debited
+TCK-001366,C00646,2026-08-27,2026-09-05,phone,returns,low,resolved,4.6,5,Return pickup for Cashew Nuts not scheduled
+TCK-001367,C00724,2026-08-27,2026-09-03,email,delivery_delay,low,closed,1.7,5,Order TXN-0008614 has not arrived yet
+TCK-001368,C00731,2026-08-27,2026-08-31,phone,payment_failed,medium,resolved,1.2,2,UPI payment failed but amount debited
+TCK-001369,C00379,2026-08-28,2026-09-03,whatsapp,product_defect,medium,closed,3.7,3,Ceiling Fan stopped working after a week
+TCK-001370,C00304,2026-08-29,2026-08-30,chat,billing,low,resolved,9.9,,Charged twice for order TXN-0007204
+TCK-001371,C00536,2026-08-29,2026-09-07,chat,delivery_delay,high,resolved,3.0,,Order TXN-0006800 has not arrived yet
+TCK-001372,C00515,2026-08-30,2026-09-03,phone,billing,medium,resolved,7.5,3,Charged twice for order TXN-0008328
+TCK-001373,C00754,2026-08-30,2026-09-07,whatsapp,account,high,resolved,4.8,4,Cannot update my registered mobile number
+TCK-001374,C00784,2026-08-30,2026-09-08,email,payment_failed,medium,closed,10.1,2,UPI payment failed but amount debited
+TCK-001375,C00581,2026-08-31,2026-09-01,whatsapp,payment_failed,urgent,resolved,8.5,3,UPI payment failed but amount debited
+TCK-001376,C00750,2026-08-31,2026-09-05,email,payment_failed,low,resolved,7.1,,UPI payment failed but amount debited
+TCK-001377,C00043,2026-09-01,2026-09-04,email,account,medium,closed,6.3,3,Cannot update my registered mobile number
+TCK-001378,C00239,2026-09-01,2026-09-09,chat,payment_failed,low,resolved,11.0,,UPI payment failed but amount debited
+TCK-001379,C00390,2026-09-01,2026-09-08,phone,payment_failed,medium,resolved,1.3,4,UPI payment failed but amount debited
+TCK-001380,C00463,2026-09-01,2026-09-07,phone,account,low,closed,7.2,2,Cannot update my registered mobile number
+TCK-001381,C00496,2026-09-01,2026-09-07,email,billing,high,resolved,3.0,4,Charged twice for order my order
+TCK-001382,C00551,2026-09-01,2026-09-05,email,payment_failed,medium,resolved,1.3,4,UPI payment failed but amount debited
+TCK-001383,C00622,2026-09-01,2026-09-07,phone,product_defect,high,closed,6.6,,Ceiling Fan stopped working after a week
+TCK-001384,C00089,2026-09-02,2026-09-11,whatsapp,product_defect,high,resolved,4.5,3,Masala Chai stopped working after a week
+TCK-001385,C00192,2026-09-02,2026-09-05,email,account,medium,resolved,6.8,4,Cannot update my registered mobile number
+TCK-001386,C00307,2026-09-02,2026-09-10,whatsapp,account,medium,closed,4.5,4,Cannot update my registered mobile number
+TCK-001387,C00427,2026-09-02,2026-09-03,chat,delivery_delay,high,closed,8.2,,Order TXN-0007351 has not arrived yet
+TCK-001388,C00698,2026-09-02,2026-09-10,email,account,medium,closed,4.5,4,Cannot update my registered mobile number
+TCK-001389,C00731,2026-09-02,2026-09-05,phone,account,high,closed,5.5,1,Cannot update my registered mobile number
+TCK-001390,C00304,2026-09-03,2026-09-08,chat,billing,medium,resolved,3.3,4,Charged twice for order TXN-0007204
+TCK-001391,C00304,2026-09-03,2026-09-07,email,delivery_delay,low,closed,3.9,3,Order TXN-0007204 has not arrived yet
+TCK-001392,C00216,2026-09-04,2026-09-07,whatsapp,billing,medium,resolved,2.1,4,Charged twice for order TXN-0008418
+TCK-001393,C00524,2026-09-04,2026-09-11,chat,product_defect,high,closed,4.5,,The product stopped working after a week
+TCK-001394,C00733,2026-09-04,2026-09-13,phone,payment_failed,medium,resolved,2.9,5,UPI payment failed but amount debited
+TCK-001395,C00339,2026-09-05,2026-09-14,email,payment_failed,low,closed,1.8,4,UPI payment failed but amount debited
+TCK-001396,C00574,2026-09-05,2026-09-12,phone,product_defect,high,closed,4.2,5,Hair Oil stopped working after a week
+TCK-001397,C00024,2026-09-06,2026-09-12,whatsapp,delivery_delay,medium,resolved,4.2,,Order TXN-0007818 has not arrived yet
+TCK-001398,C00598,2026-09-06,2026-09-09,chat,billing,high,closed,2.4,5,Charged twice for order TXN-0006419
+TCK-001399,C00013,2026-09-08,2026-09-08,chat,account,medium,closed,4.2,,Cannot update my registered mobile number
+TCK-001400,C00023,2026-09-09,2026-09-16,whatsapp,account,high,closed,1.2,4,Cannot update my registered mobile number
+TCK-001401,C00105,2026-09-09,2026-09-12,chat,account,low,closed,4.5,3,Cannot update my registered mobile number
+TCK-001402,C00336,2026-09-10,2026-09-12,chat,product_defect,medium,resolved,2.7,4,Pressure Cooker 5L stopped working after a week
+TCK-001403,C00116,2026-09-12,2026-09-12,chat,payment_failed,medium,resolved,4.7,5,UPI payment failed but amount debited
+TCK-001404,C00169,2026-09-12,2026-09-15,chat,product_defect,low,closed,1.6,,Smart Watch stopped working after a week
+TCK-001405,C00505,2026-09-12,2026-09-16,chat,account,medium,resolved,3.9,,Cannot update my registered mobile number
+TCK-001406,C00611,2026-09-12,2026-09-18,phone,billing,medium,resolved,4.9,,Charged twice for order TXN-0008521
+TCK-001407,C00191,2026-09-15,2026-09-19,email,account,medium,resolved,4.0,,Cannot update my registered mobile number
+TCK-001408,C00699,2026-09-15,2026-09-19,chat,payment_failed,medium,closed,10.7,,UPI payment failed but amount debited
+TCK-001409,C00800,2026-09-15,2026-09-22,email,returns,low,closed,6.8,3,Return pickup for Sports Shoes not scheduled
+TCK-001410,C00395,2026-09-16,2026-09-17,phone,billing,medium,resolved,3.6,4,Charged twice for order TXN-0006938
+TCK-001411,C00492,2026-09-17,2026-09-25,email,returns,medium,closed,4.9,2,Return pickup for Herbal Shampoo not scheduled
+TCK-001412,C00641,2026-09-17,2026-09-23,chat,account,low,closed,8.6,3,Cannot update my registered mobile number
+TCK-001413,C00789,2026-09-17,2026-09-24,whatsapp,billing,high,closed,4.8,5,Charged twice for order TXN-0004483
+TCK-001414,C00192,2026-09-18,2026-09-25,chat,returns,high,closed,2.0,4,Return pickup for LED Bulb 9W not scheduled
+TCK-001415,C00562,2026-09-18,2026-09-26,phone,returns,medium,closed,4.2,5,Return pickup for USB-C Cable not scheduled
+TCK-001416,C00704,2026-09-18,2026-09-22,phone,account,medium,closed,5.2,3,Cannot update my registered mobile number
+TCK-001417,C00469,2026-09-19,2026-09-21,whatsapp,payment_failed,medium,resolved,5.3,3,UPI payment failed but amount debited
+TCK-001418,C00536,2026-09-19,2026-09-24,phone,billing,medium,resolved,2.3,,Charged twice for order TXN-0006800
+TCK-001419,C00036,2026-09-20,2026-09-20,whatsapp,delivery_delay,medium,resolved,2.1,3,Order TXN-0008618 has not arrived yet
+TCK-001420,C00125,2026-09-20,2026-09-22,whatsapp,account,low,closed,1.9,5,Cannot update my registered mobile number
+TCK-001421,C00167,2026-09-21,2026-09-21,phone,returns,low,resolved,2.1,3,Return pickup for Ceiling Fan not scheduled
+TCK-001422,C00547,2026-09-21,2026-09-30,chat,billing,high,closed,2.4,,Charged twice for order TXN-0006145
+TCK-001423,C00087,2026-09-22,2026-09-26,chat,product_defect,high,resolved,17.1,,Cotton Bedsheet stopped working after a week
+TCK-001424,C00335,2026-09-22,2026-09-27,email,account,urgent,closed,7.2,2,Cannot update my registered mobile number
+TCK-001425,C00046,2026-09-23,2026-09-27,whatsapp,billing,high,closed,1.6,,Charged twice for order TXN-0008177
+TCK-001426,C00148,2026-09-23,2026-09-29,chat,product_defect,low,closed,1.4,,Atta Flour stopped working after a week
+TCK-001427,C00568,2026-09-23,2026-10-01,chat,delivery_delay,low,resolved,3.3,,Order TXN-0007830 has not arrived yet
+TCK-001428,C00296,2026-09-24,2026-09-29,phone,billing,medium,closed,4.7,,Charged twice for order TXN-0007597
+TCK-001429,C00042,2026-09-25,2026-10-01,chat,payment_failed,medium,closed,4.1,3,UPI payment failed but amount debited
+TCK-001430,C00310,2026-09-25,2026-10-02,whatsapp,billing,medium,closed,5.1,,Charged twice for order TXN-0008620
+TCK-001431,C00465,2026-09-25,2026-10-03,whatsapp,payment_failed,low,closed,3.6,2,UPI payment failed but amount debited
+TCK-001432,C00538,2026-09-25,2026-09-29,email,delivery_delay,medium,closed,2.2,4,Order TXN-0007221 has not arrived yet
+TCK-001433,C00730,2026-09-25,2026-10-01,chat,delivery_delay,high,closed,3.2,,Order TXN-0007620 has not arrived yet
+TCK-001434,C00147,2026-09-26,2026-10-04,whatsapp,billing,medium,resolved,5.5,5,Charged twice for order TXN-0006602
+TCK-001435,C00174,2026-09-26,2026-09-26,phone,returns,low,closed,2.3,4,Return pickup for Atta Flour not scheduled
+TCK-001436,C00272,2026-09-26,2026-10-05,phone,account,medium,closed,4.8,3,Cannot update my registered mobile number
+TCK-001437,C00786,2026-09-26,2026-10-05,whatsapp,billing,medium,resolved,3.0,4,Charged twice for order my order
+TCK-001438,C00124,2026-09-27,2026-09-27,chat,delivery_delay,medium,closed,3.1,,Order TXN-0008260 has not arrived yet
+TCK-001439,C00177,2026-09-27,2026-09-27,phone,product_defect,medium,closed,2.8,4,Steel Tiffin Box stopped working after a week
+TCK-001440,C00551,2026-09-27,2026-09-29,phone,account,medium,closed,4.3,4,Cannot update my registered mobile number
+TCK-001441,C00202,2026-09-28,2026-10-02,chat,billing,high,resolved,1.6,,Charged twice for order TXN-0008665
+TCK-001442,C00528,2026-09-28,2026-09-28,phone,returns,medium,closed,3.7,,Return pickup for Silk Saree not scheduled
+TCK-001443,C00321,2026-09-29,2026-10-06,whatsapp,delivery_delay,medium,closed,2.4,4,Order TXN-0008384 has not arrived yet
+TCK-001444,C00536,2026-09-29,2026-10-05,whatsapp,billing,low,resolved,3.1,,Charged twice for order TXN-0006800
+TCK-001445,C00138,2026-09-30,2026-10-09,phone,product_defect,low,closed,3.4,3,Cotton Kurta stopped working after a week
+TCK-001446,C00320,2026-09-30,2026-10-05,chat,billing,urgent,closed,1.6,3,Charged twice for order TXN-0008621
+TCK-001447,C00518,2026-09-30,2026-09-30,chat,payment_failed,high,closed,4.9,5,UPI payment failed but amount debited
+TCK-001448,C00659,2026-09-30,2026-10-05,chat,account,medium,closed,14.3,3,Cannot update my registered mobile number
+TCK-001449,C00495,2026-10-02,2026-10-04,whatsapp,billing,medium,resolved,0.9,,Charged twice for order TXN-0008709
+TCK-001450,C00270,2026-10-03,2026-10-06,email,returns,high,closed,5.6,,Return pickup for Wi-Fi Router not scheduled
+TCK-001451,C00309,2026-10-03,2026-10-11,whatsapp,delivery_delay,medium,resolved,1.4,,Order TXN-0002730 has not arrived yet
+TCK-001452,C00444,2026-10-03,2026-10-03,whatsapp,delivery_delay,high,closed,2.5,,Order TXN-0008586 has not arrived yet
+TCK-001453,C00610,2026-10-03,2026-10-12,phone,account,urgent,resolved,2.2,3,Cannot update my registered mobile number
+TCK-001454,C00133,2026-10-04,2026-10-05,email,returns,high,closed,2.1,4,Return pickup for Sports Shoes not scheduled
+TCK-001455,C00428,2026-10-04,2026-10-11,email,product_defect,medium,resolved,3.6,2,Ceiling Fan stopped working after a week
+TCK-001456,C00603,2026-10-04,2026-10-12,whatsapp,payment_failed,high,closed,2.9,4,UPI payment failed but amount debited
+TCK-001457,C00228,2026-10-05,2026-10-14,phone,delivery_delay,medium,resolved,6.3,2,Order TXN-0008701 has not arrived yet
+TCK-001458,C00646,2026-10-06,2026-10-12,whatsapp,billing,medium,closed,3.2,3,Charged twice for order TXN-0008369
+TCK-001459,C00734,2026-10-06,2026-10-10,whatsapp,account,high,resolved,3.5,4,Cannot update my registered mobile number
+TCK-001460,C00214,2026-10-09,2026-10-12,phone,payment_failed,low,resolved,2.8,3,UPI payment failed but amount debited
+TCK-001461,C00348,2026-10-09,2026-10-15,phone,payment_failed,high,closed,3.2,2,UPI payment failed but amount debited
+TCK-001462,C00025,2026-10-11,2026-10-11,phone,payment_failed,medium,resolved,4.8,3,UPI payment failed but amount debited
+TCK-001463,C00040,2026-10-11,2026-10-19,chat,product_defect,high,closed,3.7,3,Sports Shoes stopped working after a week
+TCK-001464,C00661,2026-10-11,2026-10-11,email,delivery_delay,medium,resolved,1.1,5,Order TXN-0008693 has not arrived yet
+TCK-001465,C00538,2026-10-12,2026-10-14,phone,billing,medium,resolved,4.1,4,Charged twice for order TXN-0007221
+TCK-001466,C00722,2026-10-13,2026-10-13,whatsapp,account,medium,closed,7.6,5,Cannot update my registered mobile number
+TCK-001467,C00774,2026-10-13,2026-10-18,chat,payment_failed,high,closed,1.7,5,UPI payment failed but amount debited
+TCK-001468,C00224,2026-10-14,2026-10-15,email,account,low,closed,0.9,5,Cannot update my registered mobile number
+TCK-001469,C00412,2026-10-14,2026-10-23,email,product_defect,low,closed,3.4,4,Basmati Rice stopped working after a week
+TCK-001470,C00420,2026-10-14,2026-10-21,phone,returns,low,closed,5.8,3,Return pickup for Sunflower Oil not scheduled
+TCK-001471,C00448,2026-10-14,2026-10-22,chat,account,medium,closed,2.3,,Cannot update my registered mobile number
+TCK-001472,C00641,2026-10-14,2026-10-23,email,billing,low,closed,4.8,1,Charged twice for order TXN-0008715
+TCK-001473,C00015,2026-10-16,2026-10-19,whatsapp,delivery_delay,high,resolved,3.7,,Order TXN-0007637 has not arrived yet
+TCK-001474,C00495,2026-10-17,2026-10-26,phone,returns,urgent,resolved,1.2,,Return pickup for Denim Jeans not scheduled
+TCK-001475,C00623,2026-10-17,2026-10-23,whatsapp,product_defect,medium,closed,5.5,5,Masala Chai stopped working after a week
+TCK-001476,C00517,2026-10-19,2026-10-20,whatsapp,product_defect,low,closed,4.5,3,Pressure Cooker 5L stopped working after a week
+TCK-001477,C00108,2026-10-20,2026-10-24,email,product_defect,high,closed,1.6,2,Cotton Kurta stopped working after a week
+TCK-001478,C00291,2026-10-20,2026-10-24,whatsapp,product_defect,low,closed,2.5,5,Steel Tiffin Box stopped working after a week
+TCK-001479,C00343,2026-10-20,2026-10-21,email,delivery_delay,medium,resolved,4.0,5,Order TXN-0007512 has not arrived yet
+TCK-001480,C00536,2026-10-20,2026-10-22,whatsapp,billing,medium,closed,1.4,,Charged twice for order TXN-0006800
+TCK-001481,C00512,2026-10-21,2026-10-27,whatsapp,payment_failed,low,resolved,2.8,4,UPI payment failed but amount debited
+TCK-001482,C00221,2026-10-23,2026-10-31,phone,product_defect,low,closed,1.6,,Ceiling Fan stopped working after a week
+TCK-001483,C00261,2026-10-23,2026-10-24,email,payment_failed,medium,closed,1.3,5,UPI payment failed but amount debited
+TCK-001484,C00292,2026-10-23,2026-10-30,chat,payment_failed,high,resolved,1.8,4,UPI payment failed but amount debited
+TCK-001485,C00443,2026-10-24,2026-10-31,chat,product_defect,low,resolved,6.5,4,Power Bank 10000mAh stopped working after a week
+TCK-001486,C00187,2026-10-25,2026-10-27,chat,billing,low,resolved,5.6,3,Charged twice for order TXN-0007594
+TCK-001487,C00547,2026-10-25,2026-10-27,chat,delivery_delay,medium,resolved,4.0,2,Order TXN-0006145 has not arrived yet
+TCK-001488,C00735,2026-10-25,2026-11-02,chat,payment_failed,high,resolved,3.6,4,UPI payment failed but amount debited
+TCK-001489,C00153,2026-10-26,2026-10-31,email,billing,medium,resolved,5.8,,Charged twice for order TXN-0008597
+TCK-001490,C00604,2026-10-26,2026-10-29,whatsapp,billing,medium,closed,2.0,3,Charged twice for order TXN-0005346
+TCK-001491,C00606,2026-10-26,2026-11-02,chat,payment_failed,low,closed,2.5,3,UPI payment failed but amount debited
+TCK-001492,C00176,2026-10-28,2026-10-29,chat,delivery_delay,high,resolved,1.3,4,Order TXN-0008580 has not arrived yet
+TCK-001493,C00428,2026-10-28,2026-10-30,whatsapp,returns,low,closed,4.4,4,Return pickup for Ceiling Fan not scheduled
+TCK-001494,C00788,2026-10-28,2026-10-28,phone,returns,low,resolved,6.9,2,Return pickup for Sports Shoes not scheduled
+TCK-001495,C00505,2026-10-30,2026-10-31,email,product_defect,medium,resolved,4.0,2,Hair Oil stopped working after a week
+TCK-001496,C00014,2026-10-31,2026-11-08,email,account,high,closed,1.8,5,Cannot update my registered mobile number
+TCK-001497,C00206,2026-10-31,2026-11-07,email,returns,low,resolved,4.6,,Return pickup for Bluetooth Earbuds not scheduled
+TCK-001498,C00792,2026-11-02,2026-11-03,chat,returns,medium,closed,8.1,2,Return pickup for Silk Saree not scheduled
+TCK-001499,C00081,2026-11-03,2026-11-09,whatsapp,payment_failed,low,closed,3.7,3,UPI payment failed but amount debited
+TCK-001500,C00142,2026-11-03,2026-11-05,email,returns,medium,resolved,2.8,4,Return pickup for Ceiling Fan not scheduled
+TCK-001501,C00321,2026-11-03,2026-11-10,email,payment_failed,low,closed,1.3,4,UPI payment failed but amount debited
+TCK-001502,C00393,2026-11-03,2026-11-06,whatsapp,account,medium,resolved,4.8,,Cannot update my registered mobile number
+TCK-001503,C00689,2026-11-03,2026-11-08,email,product_defect,low,resolved,3.7,,USB-C Cable stopped working after a week
+TCK-001504,C00196,2026-11-05,2026-11-11,phone,billing,medium,resolved,4.4,3,Charged twice for order TXN-0008506
+TCK-001505,C00236,2026-11-05,2026-11-13,email,delivery_delay,medium,closed,2.3,4,Order TXN-0008537 has not arrived yet
+TCK-001506,C00485,2026-11-05,2026-11-11,email,returns,medium,resolved,4.7,3,Return pickup for Silk Saree not scheduled
+TCK-001507,C00630,2026-11-05,2026-11-14,email,returns,low,resolved,4.3,,Return pickup for Silk Saree not scheduled
+TCK-001508,C00782,2026-11-05,2026-11-14,whatsapp,billing,medium,resolved,3.7,,Charged twice for order TXN-0008553
+TCK-001509,C00042,2026-11-06,2026-11-06,whatsapp,delivery_delay,high,resolved,2.5,,Order TXN-0006041 has not arrived yet
+TCK-001510,C00413,2026-11-06,2026-11-09,phone,returns,medium,closed,3.2,,Return pickup for Masala Chai not scheduled
+TCK-001511,C00492,2026-11-06,2026-11-14,whatsapp,payment_failed,medium,closed,1.7,,UPI payment failed but amount debited
+TCK-001512,C00345,2026-11-07,2026-11-10,whatsapp,product_defect,medium,resolved,3.8,3,Sunscreen SPF50 stopped working after a week
+TCK-001513,C00424,2026-11-08,2026-11-09,chat,billing,high,closed,1.8,,Charged twice for order TXN-0008450
+TCK-001514,C00653,2026-11-08,2026-11-16,chat,returns,low,resolved,9.4,,Return pickup for Sunscreen SPF50 not scheduled
+TCK-001515,C00031,2026-11-09,2026-11-12,phone,payment_failed,low,resolved,7.1,3,UPI payment failed but amount debited
+TCK-001516,C00058,2026-11-09,2026-11-10,chat,product_defect,low,closed,4.7,5,Ceiling Fan stopped working after a week
+TCK-001517,C00218,2026-11-09,2026-11-17,phone,delivery_delay,medium,closed,1.6,5,Order TXN-0008463 has not arrived yet
+TCK-001518,C00725,2026-11-09,2026-11-17,email,payment_failed,medium,closed,3.1,4,UPI payment failed but amount debited
+TCK-001519,C00776,2026-11-09,2026-11-13,email,billing,medium,resolved,1.5,4,Charged twice for order TXN-0008658
+TCK-001520,C00003,2026-11-11,,email,payment_failed,medium,open,2.7,,UPI payment failed but amount debited
+TCK-001521,C00741,2026-11-11,2026-11-14,phone,returns,medium,closed,14.0,,Return pickup for Toor Dal not scheduled
+TCK-001522,C00223,2026-11-12,,phone,payment_failed,medium,open,7.6,,UPI payment failed but amount debited
+TCK-001523,C00272,2026-11-12,,chat,delivery_delay,medium,open,12.8,,Order TXN-0008582 has not arrived yet
+TCK-001524,C00382,2026-11-12,2026-11-17,whatsapp,product_defect,medium,closed,2.3,,Sports Shoes stopped working after a week
+TCK-001525,C00594,2026-11-12,,phone,account,medium,open,3.1,,Cannot update my registered mobile number
+TCK-001526,C00036,2026-11-14,2026-11-17,phone,delivery_delay,medium,resolved,1.5,2,Order TXN-0008618 has not arrived yet
+TCK-001527,C00726,2026-11-14,,whatsapp,product_defect,medium,open,0.7,,Basmati Rice stopped working after a week
+TCK-001528,C00748,2026-11-14,,phone,returns,low,open,9.6,,Return pickup for Toor Dal not scheduled
+TCK-001529,C00040,2026-11-15,,email,payment_failed,low,open,2.2,,UPI payment failed but amount debited
+TCK-001530,C00755,2026-11-16,2026-11-16,phone,account,high,closed,7.2,3,Cannot update my registered mobile number
+TCK-001531,C00203,2026-11-17,,phone,account,high,open,1.2,,Cannot update my registered mobile number
+TCK-001532,C00275,2026-11-17,,phone,payment_failed,low,open,1.4,,UPI payment failed but amount debited
+TCK-001533,C00501,2026-11-17,,email,product_defect,medium,open,1.9,,Herbal Shampoo stopped working after a week
+TCK-001534,C00670,2026-11-17,2026-11-17,phone,payment_failed,medium,closed,1.9,,UPI payment failed but amount debited

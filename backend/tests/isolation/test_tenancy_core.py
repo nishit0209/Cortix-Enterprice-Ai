@@ -130,6 +130,10 @@ def test_guc_is_cleared_after_context_exit_inside_outer_transaction(two_orgs):
 
 
 # ----------------------------------------------------------------------------------- GUC lifetime on real connections
+# `django_db_setup` creates the test database and points settings NAME at it. Without it, a run of this test alone
+# would connect the raw psycopg connection to the configured (non-test) database, and a missing database would show
+# up as a test failure instead of a setup error like every other DB-backed test.
+@pytest.mark.usefixtures("django_db_setup")
 def test_guc_is_transaction_local_on_a_reused_connection():
     """Pool/CONN_MAX_AGE scenario: the setting must expire with the transaction that set it."""
     org_id = str(uuid.uuid4())

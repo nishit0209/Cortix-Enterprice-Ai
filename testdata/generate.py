@@ -15,6 +15,9 @@ Outputs (see testdata/README.md for the schema of each file):
     customers_crm.csv / customers_web.csv / customers_ground_truth.csv
     products_supplier_a.csv / products_supplier_b.csv / products_ground_truth.csv
     churn.csv + churn_meta.json   labelled churn data generated from a known logistic model (oracle AUC)
+    customers.csv / products.csv / orders.csv / support_tickets.csv + commerce_meta.json
+                                  a connected commerce world over the sales customers (C00001..C00800): churn
+                                  hazard + CLV-like value, product variants and duplicate SKUs, support tickets
     adversarial/                  malformed.csv, formula_injection.csv, huge_column.csv, wide_columns.csv,
                                   zip_bomb.xlsx, png_as.csv, text_as.xlsx, mz_as.csv
     MANIFEST.json                 seed, anchor, row counts and sha256 of every file
@@ -563,6 +566,407 @@ def gen_churn(out: Path, n: int = 3000) -> dict:
     return meta
 
 
+# ------------------------------------------------------------------------------------------- commerce
+# A connected commerce world for the demo and for W4 ML / W5 Customer 360 / Product 360:
+#   customers.csv        the 800 customers of sales.csv (same ids C00001..C00800 and the same names), enriched
+#   products.csv         product master with brand/pack VARIANTS (distinct products) and DUPLICATE listings of the
+#                        same product under another SKU format / name / unit (entity-resolution targets)
+#   orders.csv           one row per order line, driven by a latent per-customer value (CLV-like) and a monthly
+#                        churn hazard (customers stop ordering after churning; frequency drops just before)
+#   support_tickets.csv  ticket volume rises and CSAT falls with dissatisfaction and right before a churn
+#   commerce_meta.json   the hidden truth: churn dates, expected monthly value, duplicate pairs, variant families
+SEGMENTS = ["Consumer", "SMB", "Enterprise"]
+SEGMENT_WEIGHTS = [0.70, 0.22, 0.08]
+SEGMENT_VALUE = {"Consumer": 1.0, "SMB": 2.4, "Enterprise": 5.5}
+LOYALTY_TIERS = ["Bronze", "Silver", "Gold", "Platinum"]
+PAYMENT_METHODS = ["UPI", "Card", "NetBanking", "Wallet", "COD"]
+PAYMENT_WEIGHTS = [0.46, 0.24, 0.10, 0.08, 0.12]
+PRODUCT_BRANDS = ["Sunrise", "Kesar", "Nilgiri", "Ganga", "Sahyadri", "Vindhya", "Konark", "Thar"]
+TICKET_CATEGORIES = {
+    "account": "Cannot update my registered mobile number",
+    "billing": "Charged twice for order {order}",
+    "delivery_delay": "Order {order} has not arrived yet",
+    "payment_failed": "UPI payment failed but amount debited",
+    "product_defect": "{product} stopped working after a week",
+    "returns": "Return pickup for {product} not scheduled",
+}
+TICKET_CHANNELS = ["email", "phone", "chat", "whatsapp"]
+CHURN_HAZARD = {"intercept": -4.3, "satisfaction": -1.0, "consumer": 0.35, "tenure_years": -0.15}
+
+
+def _sigmoid(x: float) -> float:
+    return 1 / (1 + math.exp(-x))
+
+
+def _poisson(rng: random.Random, lam: float) -> int:
+    """Knuth method (lam is small here); stdlib-only and deterministic."""
+    if lam <= 0:
+        return 0
+    limit, k, p = math.exp(-lam), 0, 1.0
+    while True:
+        p *= rng.random()
+        if p <= limit:
+            return k
+        k += 1
+
+
+def _sales_customers() -> list[dict]:
+    """The 800 customers of sales.csv, reproduced exactly: they are the first draws of the sales stream."""
+    rng = _rng("sales")
+    return [_person(rng, i) for i in range(1, 801)]
+
+
+def _sku_abbr(name: str) -> str:
+    words = [w for w in name.replace("-", " ").split() if w[0].isalpha()]
+    return "".join(w[:3] for w in words[:2]).upper()
+
+
+def _pack_label(pack: float, unit: str) -> str:
+    return f"{pack:g}{unit.upper()}"
+
+
+def _convert_unit(pack: float, unit: str) -> tuple[float, str] | None:
+    table = {"kg": ("g", 1000), "l": ("ml", 1000), "g": ("kg", 0.001), "ml": ("l", 0.001)}
+    if unit not in table:
+        return None
+    new_unit, factor = table[unit]
+    return round(pack * factor, 3), new_unit
+
+
+def _display(brand: str, name: str, pack: float, unit: str) -> str:
+    return f"{brand} {name}" + (f" {pack:g} {unit}" if unit not in ("pc", "pair") else "")
+
+
+def _commerce_products(rng: random.Random) -> tuple[list[dict], list[list[str]], list[list[str]]]:
+    canon: list[dict] = []
+    for cat, prod, price, unit, pack in CATALOG:
+        for brand in rng.sample(PRODUCT_BRANDS, 2):
+            packs = [pack]
+            if unit in ("kg", "l", "g", "ml") and rng.random() < 0.6:
+                packs.append(pack * 2 if unit in ("kg", "l") else pack // 2)  # a larger/smaller pack variant
+            for pk in packs:
+                list_price = round(price * (pk / pack) * rng.uniform(0.85, 1.25), 2)
+                canon.append(
+                    {
+                        "brand": brand,
+                        "name": prod,
+                        "category": cat,
+                        "unit": unit,
+                        "pack": float(pk),
+                        "price": list_price,
+                        "cost": round(list_price * rng.uniform(0.55, 0.75), 2),
+                        "launched": dt.date(2021, 1, 1) + dt.timedelta(days=rng.randint(0, 1200)),
+                        "status": "active",
+                    }
+                )
+    seen: set[str] = set()
+    for i, p in enumerate(canon, 1):
+        p["product_id"] = f"PRD-{i:04d}"
+        sku = f"{p['brand'][:3].upper()}-{_sku_abbr(p['name'])}-{_pack_label(p['pack'], p['unit'])}"
+        if sku in seen:
+            sku = f"{sku}-{i}"
+        seen.add(sku)
+        p["sku"] = sku
+        p["display"] = _display(p["brand"], p["name"], p["pack"], p["unit"])
+    families: dict[tuple[str, str], list[str]] = {}
+    for p in canon:
+        families.setdefault((p["brand"], p["name"]), []).append(p["product_id"])
+    variant_families = [ids for ids in families.values() if len(ids) > 1]
+
+    dups: list[dict] = []
+    pairs: list[list[str]] = []
+    for n, p in enumerate(rng.sample(canon, 20), 1):
+        d = dict(p)
+        d["product_id"] = f"PRD-{len(canon) + n:04d}"
+        style = rng.choice(["spaced", "compact", "unit", "legacy"])
+        converted = _convert_unit(p["pack"], p["unit"])
+        if style == "unit" and converted is None:
+            style = "compact"
+        if style == "spaced":
+            d["sku"] = p["sku"].replace("-", " ").lower()
+        elif style == "compact":
+            d["sku"] = p["sku"].replace("-", "")
+        elif style == "legacy":
+            d["sku"] = f"OLD-{p['sku']}"
+        else:
+            d["pack"], d["unit"] = converted
+            d["sku"] = f"{p['brand'][:3].upper()}-{_sku_abbr(p['name'])}-{_pack_label(d['pack'], d['unit'])}"
+        name_style = rng.choice(["upper", "bracket", "typo", "same"])
+        if name_style == "upper":
+            d["display"] = _display(d["brand"], d["name"], d["pack"], d["unit"]).upper()
+        elif name_style == "bracket":
+            d["display"] = _display("", d["name"], d["pack"], d["unit"]).strip() + f" ({d['brand']})"
+        elif name_style == "typo":
+            d["display"] = _display(d["brand"], _typo(rng, d["name"]), d["pack"], d["unit"])
+        else:
+            d["display"] = _display(d["brand"], d["name"], d["pack"], d["unit"])
+        d["price"] = round(p["price"] * rng.uniform(0.97, 1.03), 2)
+        d["cost"] = round(p["cost"] * rng.uniform(0.97, 1.03), 2)
+        d["status"] = rng.choice(["active", "active", "discontinued"])
+        dups.append(d)
+        pairs.append([p["product_id"], d["product_id"], style])
+    return canon + dups, pairs, variant_families
+
+
+def _months_between(a: dt.date, b: dt.date) -> int:
+    return (b.year - a.year) * 12 + b.month - a.month
+
+
+def gen_commerce(out: Path, anchor: dt.date) -> dict:
+    rng = _rng("commerce")
+    start = _month_add(anchor.replace(day=1), -23)
+    months = [_month_add(start, i) for i in range(24)]
+
+    products, dup_pairs, variant_families = _commerce_products(rng)
+    by_id = {p["product_id"]: p for p in products}
+    dup_ids = {d for _c, d, _s in dup_pairs}
+    dup_of = {c: d for c, d, _s in dup_pairs}
+    by_category: dict[str, list[dict]] = {}
+    for p in products:
+        if p["product_id"] not in dup_ids:
+            by_category.setdefault(p["category"], []).append(p)
+    categories = sorted(by_category)
+
+    customers, orders, tickets, truth = [], [], [], {}
+    for idx, person in enumerate(_sales_customers(), 1):
+        cid = f"C{idx:05d}"
+        segment = rng.choices(SEGMENTS, SEGMENT_WEIGHTS)[0]
+        satisfaction = rng.gauss(0, 1)
+        value = SEGMENT_VALUE[segment] * rng.lognormvariate(0, 0.55)  # latent spend multiplier (CLV driver)
+        rate = rng.gammavariate(2.2, 0.3) * (1.3 if segment != "Consumer" else 1.0)  # orders per month
+        signup = start - dt.timedelta(days=900) + dt.timedelta(days=rng.randint(0, 1560))
+        signup = min(signup, anchor - dt.timedelta(days=45))
+        favourites = rng.sample(categories, 2)
+        active_months = [m for m in months if m >= max(signup.replace(day=1), start)]
+        # monthly churn hazard: dissatisfied consumers churn first; long-tenured customers churn less
+        churn_date = None
+        for m in active_months[:-1]:
+            tenure_years = max((m - signup).days / 365.25, 0.0)
+            h = _sigmoid(
+                CHURN_HAZARD["intercept"]
+                + CHURN_HAZARD["satisfaction"] * satisfaction
+                + CHURN_HAZARD["consumer"] * (segment == "Consumer")
+                + CHURN_HAZARD["tenure_years"] * tenure_years
+            )
+            if rng.random() < h:
+                last_day = calendar.monthrange(m.year, m.month)[1]
+                churn_date = max(m + dt.timedelta(days=rng.randint(0, last_day - 1)), signup)
+                break
+        for m in active_months:
+            if churn_date and m > churn_date:
+                break
+            month_len = calendar.monthrange(m.year, m.month)[1]
+            last_day = min(month_len, anchor.day) if m == months[-1] else month_len
+            days = [m + dt.timedelta(days=d) for d in range(last_day)]
+            days = [d for d in days if d >= signup and (churn_date is None or d < churn_date)]
+            if not days:
+                continue
+            fading = churn_date is not None and _months_between(m, churn_date) <= 2
+            lam = rate * SEASONALITY[m.month] * (0.45 if fading else 1.0) * len(days) / month_len
+            for _ in range(_poisson(rng, lam)):
+                cat = rng.choice(favourites) if rng.random() < 0.7 else rng.choice(categories)
+                prod = rng.choice(by_category[cat])
+                if prod["product_id"] in dup_of and rng.random() < 0.25:
+                    prod = by_id[dup_of[prod["product_id"]]]  # the duplicate listing is sold too
+                qty = rng.choices([1, 2, 3, 4, 6, 10], [52, 22, 11, 7, 5, 3])[0]
+                if value > 3 and rng.random() < 0.5:
+                    qty *= 2
+                unit_price = round(prod["price"] * rng.uniform(0.95, 1.05), 2)
+                discount = rng.choices([0.0, 0.05, 0.1, 0.15, 0.2], [55, 15, 15, 10, 5])[0]
+                amount = round(qty * unit_price * (1 - discount), 2)
+                orders.append(
+                    [
+                        rng.choice(days).isoformat(),
+                        cid,
+                        prod["product_id"],
+                        prod["sku"],
+                        qty,
+                        f"{unit_price:.2f}",
+                        f"{discount:.2f}",
+                        f"{amount:.2f}",
+                        rng.choices(CHANNELS, CHANNEL_WEIGHTS)[0],
+                        rng.choices(PAYMENT_METHODS, PAYMENT_WEIGHTS)[0],
+                        rng.choices(["completed", "returned", "cancelled"], [92, 5, 3])[0],
+                    ]
+                )
+            # support tickets: the base rate grows with dissatisfaction, plus a burst right before a churn
+            t_lam = (0.03 + 0.14 * _sigmoid(-1.5 * satisfaction)) * len(days) / month_len
+            if fading:
+                t_lam += 0.6
+            for _ in range(_poisson(rng, t_lam)):
+                tickets.append([rng.choice(days), cid, rng.choice(sorted(TICKET_CATEGORIES)), satisfaction])
+        tier = LOYALTY_TIERS[min(int(value * rate / 0.9), 3)]
+        customers.append(
+            [
+                cid,
+                f"{person['first']} {person['last']}",
+                person["email"],
+                person["phone"] if rng.random() > 0.006 else "",
+                person["city"],
+                person["region"],
+                segment,
+                signup.isoformat(),
+                person["dob"].isoformat(),
+                tier,
+                "yes" if rng.random() < 0.62 else "no",
+                1 if churn_date is not None else 0,
+            ]
+        )
+        truth[cid] = {
+            "churn_date": churn_date.isoformat() if churn_date else None,
+            "satisfaction": round(satisfaction, 4),
+            "orders_per_month": round(rate, 4),
+            "value_multiplier": round(value, 4),
+        }
+
+    orders.sort(key=lambda r: (r[0], r[1], r[2], r[4]))
+    order_rows = [[f"TXN-{i:07d}", *r] for i, r in enumerate(orders, 1)]
+    last_order: dict[str, str] = {}
+    last_product: dict[str, str] = {}
+    for r in order_rows:
+        last_order[r[2]] = r[0]
+        last_product[r[2]] = by_id[r[3]]["name"]
+    tickets.sort(key=lambda t: (t[0], t[1], t[2]))
+    ticket_rows = []
+    for i, (opened, cid, category, satisfaction) in enumerate(tickets, 1):
+        response_h = rng.lognormvariate(1.2 - 0.25 * satisfaction, 0.6)
+        if (anchor - opened).days <= 7 and rng.random() < 0.6:
+            status, closed, csat = "open", "", ""
+        else:
+            status = rng.choice(["resolved", "closed"])
+            closed = min(opened + dt.timedelta(days=rng.randint(0, 9)), anchor).isoformat()
+            score = round(3.6 + 0.85 * satisfaction + rng.gauss(0, 0.7))
+            csat = str(min(max(score, 1), 5)) if rng.random() < 0.7 else ""
+        subject = TICKET_CATEGORIES[category].format(
+            order=last_order.get(cid, "my order"), product=last_product.get(cid, "The product")
+        )
+        ticket_rows.append(
+            [
+                f"TCK-{i:06d}",
+                cid,
+                opened.isoformat(),
+                closed,
+                rng.choice(TICKET_CHANNELS),
+                category,
+                rng.choices(["low", "medium", "high", "urgent"], [30, 45, 20, 5])[0],
+                status,
+                f"{response_h:.1f}",
+                csat,
+                subject,
+            ]
+        )
+
+    _write_csv(
+        out / "customers.csv",
+        [
+            "customer_id",
+            "customer_name",
+            "email",
+            "phone",
+            "city",
+            "region",
+            "segment",
+            "signup_date",
+            "date_of_birth",
+            "loyalty_tier",
+            "marketing_opt_in",
+            "churned",
+        ],
+        customers,
+    )
+    _write_csv(
+        out / "products.csv",
+        [
+            "product_id",
+            "sku",
+            "product_name",
+            "brand",
+            "category",
+            "unit",
+            "pack_size",
+            "list_price_inr",
+            "cost_inr",
+            "status",
+            "launched_on",
+        ],
+        [
+            [
+                p["product_id"],
+                p["sku"],
+                p["display"],
+                p["brand"],
+                p["category"],
+                p["unit"],
+                f"{p['pack']:g}",
+                f"{p['price']:.2f}",
+                f"{p['cost']:.2f}",
+                p["status"],
+                p["launched"].isoformat(),
+            ]
+            for p in products
+        ],
+    )
+    _write_csv(
+        out / "orders.csv",
+        [
+            "order_id",
+            "order_date",
+            "customer_id",
+            "product_id",
+            "sku",
+            "quantity",
+            "unit_price",
+            "discount",
+            "amount",
+            "channel",
+            "payment_method",
+            "status",
+        ],
+        order_rows,
+    )
+    _write_csv(
+        out / "support_tickets.csv",
+        [
+            "ticket_id",
+            "customer_id",
+            "opened_on",
+            "closed_on",
+            "channel",
+            "category",
+            "priority",
+            "status",
+            "first_response_hours",
+            "csat",
+            "subject",
+        ],
+        ticket_rows,
+    )
+    meta = {
+        "anchor": anchor.isoformat(),
+        "churn_hazard": CHURN_HAZARD,
+        "duplicate_pairs": dup_pairs,
+        "variant_families": variant_families,
+        "customers": truth,
+        "note": (
+            "Hidden truth for evaluation only (never a model input): churn_date, latent satisfaction, order rate "
+            "and value multiplier per customer. duplicate_pairs [canonical, duplicate, sku_style] are the SAME "
+            "product listed twice; variant_families are DIFFERENT products (pack sizes) of one brand and name."
+        ),
+    }
+    (out / "commerce_meta.json").write_text(
+        json.dumps(meta, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return {
+        "customers": len(customers),
+        "churned": sum(c[-1] for c in customers),
+        "products": len(products),
+        "duplicate_pairs": len(dup_pairs),
+        "variant_families": len(variant_families),
+        "orders": len(order_rows),
+        "tickets": len(ticket_rows),
+    }
+
+
 # ------------------------------------------------------------------------------------------- adversarial
 FORMULA_PAYLOADS = [
     "=1+1",
@@ -689,6 +1093,7 @@ GENERATORS = {
     "customers": lambda out, anchor: gen_customers(out),
     "products": lambda out, anchor: gen_products(out),
     "churn": lambda out, anchor: gen_churn(out),
+    "commerce": lambda out, anchor: gen_commerce(out, anchor),
     "adversarial": lambda out, anchor: gen_adversarial(out),
 }
 

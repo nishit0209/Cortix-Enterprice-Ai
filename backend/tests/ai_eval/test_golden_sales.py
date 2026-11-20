@@ -3,7 +3,8 @@
 * builder questions: the deterministic builder (0 Gemini calls) must produce SQL whose RESULT matches the answer
   computed independently from the CSV. `known_gap` questions are strict xfails (a builder gap reported to AI/ML).
 * LLM questions: evaluated by replaying a recorded Gemini cassette through apps.nl2sql.propose when one exists in
-  tests/ai_eval/cassettes/nl2sql/<id>.json; skipped (with the reason) otherwise. Gemini is never called live.
+  $NEXORA_CASSETTES_DIR or tests/ai_eval/cassettes (`<id>.json` or `nl2sql/<id>.json`; format in testing.golden);
+  skipped (with the reason) otherwise. Gemini is never called live.
 * The builder's measured accuracy is reported (`-s` prints the table) and guarded by a floor.
 """
 
@@ -135,6 +136,79 @@ def test_cassette_replay_pipeline_runs_through_nl2sql_propose():
     assert compare(expected_result(case["check"]), *run_sql(sql)) == []
 
 
+# ------------------------------------------------------------------------------------------------ cassette files
+_CRAFTED_G45 = {
+    "format": "nexora.cassette.v1",
+    "id": "g45",
+    "prompt_key": "nl2sql.generate",
+    "response": {
+        "sql": "SELECT category, SUM(revenue) AS revenue FROM sales WHERE region = 'North' GROUP BY category",
+        "explanation": "Revenue in the North region by category.",
+        "assumptions": [],
+        "chart_hint": {"type": "bar", "x": "category", "y": ["revenue"]},
+        "clarification": None,
+    },
+}
+
+
+@pytest.mark.parametrize("layout", ["{id}.json", "nl2sql/{id}.json"])
+def test_cassettes_dir_env_is_searched_first_in_both_layouts(tmp_path, monkeypatch, layout):
+    import json
+
+    from testing.golden import CASSETTES_ENV, cassette_dirs, cassette_path
+
+    path = tmp_path / layout.format(id="g45")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_CRAFTED_G45), encoding="utf-8")
+    monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
+    assert cassette_dirs()[0] == tmp_path
+    assert cassette_path("g45") == path
+    case = next(q for q in QUESTIONS if q["id"] == "g45")
+    loaded = cassette_for("g45", case["question"])
+    assert loaded["response"]["sql"].startswith("SELECT category")
+    outcome = evaluate(case, use_cassettes=True)
+    assert outcome.source == "cassette" and outcome.correct, outcome.problems
+    monkeypatch.delenv(CASSETTES_ENV)
+    assert tmp_path not in cassette_dirs()
+
+
+@pytest.mark.parametrize(
+    ("payload", "fragment"),
+    [
+        ("not json", "JSON"),
+        ("[]", "JSON object"),
+        ('{"format": "other.v2", "response": {}}', "format"),
+        ('{"id": "g46", "response": {"sql": "SELECT 1"}}', "recorded for"),
+        ('{"question": "a different question", "response": {"sql": "SELECT 1"}}', "stale"),
+        ('{"prompt_key": "nl2sql.generate"}', "response"),
+        ('{"prompt_key": 7, "response": {"sql": "SELECT 1"}}', "prompt_key"),
+    ],
+)
+def test_a_bad_cassette_is_a_recording_defect_not_a_skip(tmp_path, monkeypatch, payload, fragment):
+    from testing.golden import CASSETTES_ENV, CassetteError
+
+    (tmp_path / "g45.json").write_text(payload, encoding="utf-8")
+    monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
+    case = next(q for q in QUESTIONS if q["id"] == "g45")
+    with pytest.raises(CassetteError, match=fragment):
+        cassette_for("g45", case["question"])
+
+
+def test_report_counts_cassette_answers_separately(tmp_path, monkeypatch):
+    import json
+
+    from testing.golden import CASSETTES_ENV
+
+    (tmp_path / "g45.json").write_text(json.dumps(_CRAFTED_G45), encoding="utf-8")
+    monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
+    with_cassettes = report(use_cassettes=True)
+    builder_only = report(use_cassettes=False)
+    if builder_sql(next(q for q in QUESTIONS if q["id"] == "g45")["question"]) is None:
+        assert with_cassettes["cassette_answered"] == 1 and with_cassettes["cassette_correct"] == 1
+        assert with_cassettes["correct"] == builder_only["correct"] + 1
+    assert with_cassettes["builder_correct"] == builder_only["builder_correct"]
+
+
 # ------------------------------------------------------------------------------------------------ evaluation
 def _params():
     for q in QUESTIONS:
@@ -156,7 +230,7 @@ def test_golden_question(case):
         outcome = evaluate(case)  # the builder now answers an LLM question: it must be right, never a guess
         assert outcome.correct, f"builder answered {case['question']!r} wrongly: {outcome.problems}"
         return
-    if cassette_for(case["id"]) is None:
+    if cassette_for(case["id"], case["question"]) is None:
         pytest.skip(
             f"{case['id']}: needs the LLM path; no recorded cassette (AI/ML records them, never live)"
         )

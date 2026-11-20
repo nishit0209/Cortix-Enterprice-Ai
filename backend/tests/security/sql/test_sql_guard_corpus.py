@@ -205,6 +205,140 @@ def test_oracle_accepts_correct_deny_all_and_mask_rewrites():
     assert oracle_violations(_accepted(masked, salt="s"), "masked_multi") == []
 
 
+# W3: the approved mask_null rendering (SECURITY_ARCHITECTURE §5 table, CONTRACT "W2 as-built additions").
+_MASKED_SOURCE = (
+    "SELECT * FROM (SELECT c.customer_id, c.city FROM (SELECT customer_id, {city} AS city "
+    "FROM org_qatest01.ds_102_v1 AS _src) AS c) AS _q LIMIT 1001"
+)
+
+
+@pytest.mark.parametrize(
+    "city",
+    [
+        'CASE WHEN FALSE THEN "_src"."city" END',
+        "CASE WHEN false THEN city END",
+        "CAST(NULL AS TEXT)",
+        "NULL",
+    ],
+)
+def test_oracle_accepts_the_approved_mask_null_renderings(city):
+    assert oracle_violations(_accepted(_MASKED_SOURCE.format(city=city)), "masked_multi") == []
+
+
+@pytest.mark.parametrize(
+    "city",
+    [
+        "CASE WHEN TRUE THEN city END",
+        "CASE WHEN 1 = 0 THEN city END",
+        "CASE WHEN NOT TRUE THEN city END",
+        "CASE WHEN FALSE THEN city ELSE city END",
+        "CASE WHEN FALSE THEN NULL ELSE city END",
+        "CASE WHEN FALSE THEN city WHEN TRUE THEN city END",
+        "CASE WHEN customer_id > 0 THEN city END",
+        "CASE city WHEN FALSE THEN city END",
+        "COALESCE(CASE WHEN FALSE THEN city END, city)",
+        "CASE WHEN FALSE THEN city END || city",
+        "city",
+        "upper(city)",
+    ],
+)
+def test_oracle_flags_every_other_mask_null_shape(city):
+    problems = oracle_violations(_accepted(_MASKED_SOURCE.format(city=city)), "masked_multi")
+    assert any("city" in p and "raw" in p for p in problems), (city, problems)
+
+
+def test_oracle_mask_null_exemption_is_per_reference_in_every_clause():
+    """The approved wrapper is safe wherever it sits; a raw sibling reference is still caught."""
+    ok = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 ORDER BY CASE WHEN FALSE THEN city END) AS c"
+    )
+    assert oracle_violations(_accepted(ok), "masked_multi") == []
+    leaky = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 ORDER BY city) AS c"
+    )
+    assert any("used raw in ORDER" in p for p in oracle_violations(_accepted(leaky), "masked_multi"))
+    filtered = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 WHERE city = 'Pune') AS c"
+    )
+    assert any("filtered raw in WHERE" in p for p in oracle_violations(_accepted(filtered), "masked_multi"))
+
+
+def test_oracle_mask_null_wrapper_does_not_excuse_other_mask_kinds():
+    """`CASE WHEN FALSE THEN phone END` is not a mask_partial rendering: phone must carry repeat()/right()."""
+    sql = "SELECT c.phone FROM (SELECT CASE WHEN FALSE THEN phone END AS phone FROM org_qatest01.ds_102_v1) AS c"
+    assert any("phone" in p and "read raw" in p for p in oracle_violations(_accepted(sql), "masked_multi"))
+
+
+# W3 review: a star (or whole-row reference) in the SELECT that reads a physical table reads its denied and
+# masked columns raw; column-003/004 and mask-002/008 must not pass a guard that forwards the star to the table.
+@pytest.mark.parametrize(
+    ("sql", "policy", "fragment"),
+    [
+        (
+            'SELECT * FROM (SELECT * FROM "org_qatest01"."ds_102_v1" AS "_src") AS "customers" LIMIT 1001',
+            "default",
+            "star projection",
+        ),
+        ("SELECT * FROM org_qatest01.ds_102_v1", "masked_multi", "star projection"),
+        ("SELECT * FROM org_qatest01.ds_101_v1", "default", "star projection"),
+        ("SELECT c.* FROM org_qatest01.ds_102_v1 AS c", "default", "star projection"),
+        ('SELECT "_src".* FROM "org_qatest01"."ds_102_v1" AS "_src"', "masked", "star projection"),
+        ("SELECT org_qatest01.ds_102_v1.* FROM org_qatest01.ds_102_v1", "default", "star projection"),
+        ("SELECT to_jsonb(_src.*) AS j FROM org_qatest01.ds_102_v1 AS _src", "default", "star projection"),
+        (
+            "SELECT * FROM org_qatest01.ds_101_v1 AS s JOIN org_qatest01.ds_102_v1 AS c "
+            "ON s.customer_id = c.customer_id",
+            "default",
+            "star projection",
+        ),
+        (
+            "WITH x AS (SELECT * FROM org_qatest01.ds_102_v1) SELECT x.customer_id FROM x",
+            "default",
+            "star projection",
+        ),
+        ("SELECT row_to_json(c) AS j FROM org_qatest01.ds_102_v1 AS c", "default", "whole-row reference"),
+        ('SELECT to_jsonb("_src") FROM "org_qatest01"."ds_102_v1" AS "_src"', "masked_multi", "whole-row"),
+    ],
+)
+def test_oracle_flags_star_and_whole_row_reads_at_the_source(sql, policy, fragment):
+    problems = oracle_violations(_accepted(sql), policy)
+    assert any(fragment in p for p in problems), problems
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # a star over a derived table / CTE that projects explicit, allowed columns at the source
+        'SELECT * FROM (SELECT "_src"."customer_id" AS "customer_id" FROM "org_qatest01"."ds_102_v1" AS "_src") AS c',
+        "WITH x AS (SELECT customer_id, city FROM org_qatest01.ds_102_v1) SELECT * FROM x",
+        "SELECT c.*, s.region FROM (SELECT customer_id FROM org_qatest01.ds_102_v1) AS c JOIN "
+        "(SELECT region, customer_id FROM org_qatest01.ds_101_v1) AS s ON s.customer_id = c.customer_id",
+        # COUNT(*) / COUNT(t.*) read no column values
+        "SELECT COUNT(*) AS n FROM org_qatest01.ds_101_v1",
+        "SELECT COUNT(s.*) AS n FROM org_qatest01.ds_101_v1 AS s",
+    ],
+)
+def test_oracle_accepts_explicit_projections_and_counts(sql):
+    assert oracle_violations(_accepted(sql), "default") == []
+
+
+def test_oracle_star_rule_only_guards_tables_with_hidden_columns():
+    """A table whose policy hides nothing may be read with `*` (nothing denied or masked can leak)."""
+    import sqlglot
+
+    from testing.sqlguard import _wildcard_violations
+
+    spec = policy_spec("default")
+    spec = {**spec, "denied_columns": {"customers": spec["denied_columns"]["customers"]}}
+    tree = sqlglot.parse_one("SELECT * FROM org_qatest01.ds_101_v1", read="postgres")
+    assert _wildcard_violations(tree, spec) == []
+    tree = sqlglot.parse_one("SELECT * FROM org_qatest01.ds_102_v1", read="postgres")
+    assert _wildcard_violations(tree, spec) != []
+
+
 # ------------------------------------------------------------------------------------------- guard verdicts
 def _params():
     for c in CASES:

@@ -1,7 +1,8 @@
 """Golden NL->SQL evaluation over testdata/generated/sales.csv (QA/Security-owned).
 
     python -m testing.golden                      # builder-only report (run from backend/)
-    python -m testing.golden --with-cassettes     # + recorded Gemini cassettes (backend/tests/ai_eval/cassettes)
+    python -m testing.golden --with-cassettes     # + recorded Gemini cassettes
+    python -m testing.golden --with-cassettes --cassettes-dir D:/cassettes   # (or env NEXORA_CASSETTES_DIR)
 
 Every question in `tests/ai_eval/golden_sales.yaml` carries an expected RESULT check (never an exact SQL string).
 The expected answer is computed independently in Python from the CSV; the candidate SQL (builder, or a recorded
@@ -11,6 +12,25 @@ small Postgres->SQLite translation (date_trunc, percentile_cont, DATE literals) 
 Result comparison is positional, like the BI chat result: the first column is the group key (dimension, time
 bucket or comparison period) and the last column is the value. NULL group keys are part of the expected result
 (GROUP BY keeps them), exactly as Postgres returns them.
+
+Cassettes (the exchange format with AI/ML's `manage.py record_cassettes --out <dir>`; W3):
+  * Location: the directory in env `NEXORA_CASSETTES_DIR` (when set) is searched first, then the committed
+    `backend/tests/ai_eval/cassettes/`. In each directory a cassette is `<golden id>.json` or
+    `nl2sql/<golden id>.json` (both layouts are read; `record_cassettes` may write either).
+  * Content: one UTF-8 JSON object per golden question:
+        {
+          "format": "nexora.cassette.v1",        # optional; when present it must be exactly this
+          "id": "g45",                          # optional; when present it must equal the file name
+          "question": "<golden question>",      # optional; when present it must equal the golden question
+          "prompt_key": "nl2sql.generate",      # optional (default nl2sql.generate)
+          "model": "...", "recorded_at": "...",  # optional metadata, ignored
+          "response": {"sql": "...", "explanation": "...", "assumptions": [], "chart_hint": {...},
+                       "clarification": null}    # REQUIRED: the dict Gemini's generate_structured returned
+        }
+  * Replay: the response is served by FakeGeminiService through the REAL apps.nl2sql.propose (cache and builder
+    disabled), so the graded SQL is what production would have executed. Gemini is never called.
+  * A malformed or stale cassette (wrong id/question/format, no response dict) raises CassetteError: it is a
+    recording defect, never a silent skip.
 """
 
 from __future__ import annotations
@@ -33,7 +53,9 @@ import yaml
 BACKEND = Path(__file__).resolve().parent.parent
 REPO = BACKEND.parent
 GOLDEN_PATH = BACKEND / "tests" / "ai_eval" / "golden_sales.yaml"
-CASSETTE_DIR = BACKEND / "tests" / "ai_eval" / "cassettes" / "nl2sql"
+CASSETTE_DIR = BACKEND / "tests" / "ai_eval" / "cassettes"
+CASSETTES_ENV = "NEXORA_CASSETTES_DIR"
+CASSETTE_FORMAT = "nexora.cassette.v1"
 ABS_TOL = 0.01
 REL_TOL = 1e-6
 
@@ -389,11 +411,55 @@ def builder_sql(question: str) -> str | None:
     return built.sql if built else None
 
 
-def cassette_for(qid: str) -> dict | None:
-    path = CASSETTE_DIR / f"{qid}.json"
-    if not path.exists():
+class CassetteError(ValueError):
+    """A cassette file exists but cannot be trusted (malformed, stale or for another question)."""
+
+
+def cassette_dirs() -> list[Path]:
+    """Search order: env NEXORA_CASSETTES_DIR (if set), then the committed tests/ai_eval/cassettes."""
+    import os
+
+    dirs = []
+    env = os.environ.get(CASSETTES_ENV, "").strip()
+    if env:
+        dirs.append(Path(env).expanduser())
+    dirs.append(CASSETTE_DIR)
+    return dirs
+
+
+def cassette_path(qid: str) -> Path | None:
+    for base in cassette_dirs():
+        for path in (base / f"{qid}.json", base / "nl2sql" / f"{qid}.json"):
+            if path.is_file():
+                return path
+    return None
+
+
+def load_cassette(path: Path, *, qid: str, question: str | None = None) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise CassetteError(f"{path}: not readable UTF-8 JSON ({exc})") from exc
+    if not isinstance(data, dict):
+        raise CassetteError(f"{path}: a cassette must be a JSON object")
+    if "format" in data and data["format"] != CASSETTE_FORMAT:
+        raise CassetteError(f"{path}: format {data['format']!r} != {CASSETTE_FORMAT!r}")
+    if "id" in data and str(data["id"]) != qid:
+        raise CassetteError(f"{path}: recorded for {data['id']!r}, not {qid!r}")
+    if question is not None and "question" in data and str(data["question"]).strip() != question.strip():
+        raise CassetteError(f"{path}: recorded for a different question (stale): {data['question']!r}")
+    if not isinstance(data.get("response"), dict):
+        raise CassetteError(f"{path}: 'response' (the generate_structured dict) is required")
+    if not isinstance(data.get("prompt_key", "nl2sql.generate"), str):
+        raise CassetteError(f"{path}: 'prompt_key' must be a string")
+    return data
+
+
+def cassette_for(qid: str, question: str | None = None) -> dict | None:
+    path = cassette_path(qid)
+    if path is None:
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_cassette(path, qid=qid, question=question)
 
 
 def cassette_sql(question: str, cassette: dict) -> str | None:
@@ -420,7 +486,7 @@ def evaluate(case: dict, *, use_cassettes: bool = False) -> Outcome:
     question = case["question"]
     sql, source = builder_sql(question), "builder"
     if sql is None and use_cassettes:
-        cassette = cassette_for(case["id"])
+        cassette = cassette_for(case["id"], question)
         if cassette is not None:
             sql, source = cassette_sql(question, cassette), "cassette"
     if sql is None:
@@ -441,12 +507,15 @@ def report(use_cassettes: bool = False) -> dict:
     answered = [o for o in outcomes if o.source != "none"]
     correct = [o for o in outcomes if o.correct]
     builder_correct = [o for o in outcomes if o.correct and o.source == "builder"]
+    cassette_answered = [o for o in outcomes if o.source == "cassette"]
     return {
         "total": total,
         "answered": len(answered),
         "correct": len(correct),
         "builder_correct": len(builder_correct),
         "builder_accuracy": len(builder_correct) / total if total else 0.0,
+        "cassette_answered": len(cassette_answered),
+        "cassette_correct": sum(1 for o in cassette_answered if o.correct),
         "accuracy": len(correct) / total if total else 0.0,
         "precision_when_answered": len(correct) / len(answered) if answered else 0.0,
         "outcomes": outcomes,
@@ -461,7 +530,10 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI conven
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--with-cassettes", action="store_true")
+    parser.add_argument("--cassettes-dir", help=f"cassette directory (default: env {CASSETTES_ENV})")
     args = parser.parse_args(argv)
+    if args.cassettes_dir:
+        os.environ[CASSETTES_ENV] = args.cassettes_dir
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nexora.settings.test")
     django.setup()
     rep = report(use_cassettes=args.with_cassettes)
@@ -473,7 +545,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI conven
     print(
         f"\nbuilder accuracy: {rep['builder_correct']}/{rep['total']} = {rep['builder_accuracy']:.1%}; "
         f"answered {rep['answered']}, correct {rep['correct']} "
-        f"(precision when answered {rep['precision_when_answered']:.1%})"
+        f"(precision when answered {rep['precision_when_answered']:.1%}); "
+        f"cassettes answered {rep['cassette_answered']}, correct {rep['cassette_correct']}"
     )
     return 0
 

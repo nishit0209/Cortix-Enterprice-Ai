@@ -41,6 +41,14 @@
       "bytes": 420,
       "sha256": "094eafc670ae0a4f7b2a5fe923821071272b697c01aa7907e5dd343cf497f1ac"
     },
+    "commerce_meta.json": {
+      "bytes": 112809,
+      "sha256": "3d3d02d871681b0fe1a3a0de9aa7c755bd80236fafdc700524a4178075b9b3d3"
+    },
+    "customers.csv": {
+      "bytes": 92833,
+      "sha256": "6f6d5c1f36152b2670ed1a9d9b51d8b8e984aa77d4630e466aa2940d64faa606"
+    },
     "customers_crm.csv": {
       "bytes": 45501,
       "sha256": "60e531972ab220b1fa44fd196164c5e2f7981ba12344c2a42fd5dc471c5ca49b"
@@ -52,6 +60,14 @@
     "customers_web.csv": {
       "bytes": 41532,
       "sha256": "19f7a5c5e0ccadac6c0ef2a926a72b4be90c1576852e43a9fdab792823a4c912"
+    },
+    "orders.csv": {
+      "bytes": 873932,
+      "sha256": "bf576b1063f4985346ef43e16583532d907997ae839671c2668d0196be641e83"
+    },
+    "products.csv": {
+      "bytes": 8139,
+      "sha256": "954ea0e70a9e83550e9913441fba8fb65602445542d46a71ffc17cd8cbfa3416"
     },
     "products_ground_truth.csv": {
       "bytes": 11945,
@@ -68,6 +84,10 @@
     "sales.csv": {
       "bytes": 527922,
       "sha256": "6b56c35f1eff41a984cc8e0546de47288aaf15d2758aee47dac07fdf408fc02c"
+    },
+    "support_tickets.csv": {
+      "bytes": 180278,
+      "sha256": "ecf7114a82ff2bdaf00098b63a6d2521159497a8a00af974770578d3351345e7"
     }
   },
   "seed": 20261117,
@@ -95,6 +115,15 @@
       "oracle_auc": 0.8132,
       "positive_rate": 0.2623,
       "rows": 3000
+    },
+    "commerce": {
+      "churned": 222,
+      "customers": 800,
+      "duplicate_pairs": 20,
+      "orders": 8723,
+      "products": 78,
+      "tickets": 1534,
+      "variant_families": 10
     },
     "customers": {
       "crm_rows": 500,

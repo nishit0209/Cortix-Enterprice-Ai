@@ -5,10 +5,17 @@ accepted query, independently of how the guard is implemented:
   * exactly one statement, rooted in a SELECT or a set operation of SELECTs, with no DML/DDL/command node;
   * every physical table is one of the policy's tables (CTE references excluded; no 3-part names);
   * no denied column is referenced anywhere;
+  * a physical table with denied or masked columns is read with explicit projections at the source: no `*`,
+    `t.*` or whole-row `t` reference in the SELECT that reads it (each would read the denied/masked columns raw);
   * every reference to a table with a row predicate sits in a SELECT whose WHERE carries the predicate
     (an empty `in` list must be rendered as FALSE; an empty `not_in` list needs no filter);
   * a masked column is only read from its physical table through its mask expression (masking at the source),
-    never raw in the projection, GROUP BY, ORDER BY or a non-policy WHERE condition of that source SELECT.
+    never raw in the projection, GROUP BY, ORDER BY or a non-policy WHERE condition of that source SELECT;
+  * `mask_null` is accepted in exactly two renderings: a NULL that does not mention the column at all
+    (`CAST(NULL AS <type>)`), or the Integrator-approved `CASE WHEN FALSE THEN col END`
+    (SECURITY_ARCHITECTURE §5 table, CONTRACT "W2 as-built additions"): a single WHEN whose condition is the
+    literal FALSE, the column as its THEN, and no ELSE. The planner folds that to a typed NULL constant, so the
+    column is never read. Any other CASE shape (TRUE, `1 = 0`, an ELSE, a second WHEN) is a raw read.
 
 Reject codes are the W2 contract set `nexora.contracts.GUARD_REJECT_CODES`.
 """
@@ -215,6 +222,23 @@ def _column_type():
     return exp.Column
 
 
+def is_mask_null_rendering(col) -> bool:
+    """True when `col` is the THEN of exactly `CASE WHEN FALSE THEN col END` (the approved mask_null form)."""
+    from sqlglot import exp
+
+    branch = col.parent
+    if not isinstance(branch, exp.If) or col.arg_key != "true" or not _is_false(branch.this):
+        return False
+    case = branch.parent
+    if (
+        not isinstance(case, exp.Case)
+        or case.args.get("this") is not None
+        or case.args.get("default") is not None
+    ):
+        return False
+    return len(case.args.get("ifs") or []) == 1
+
+
 def _masked_refs(node, select, table_node, masked: dict[str, str]):
     """Columns in `node` that read a masked column of `table_node` directly in `select` (its source SELECT)."""
     from sqlglot import exp
@@ -230,6 +254,9 @@ def _masked_refs(node, select, table_node, masked: dict[str, str]):
             continue
         # only references that resolve to THIS select (not to a nested subquery's own source)
         if col.find_ancestor(exp.Select) is not select:
+            continue
+        # the approved mask_null rendering never reads the column (constant-false branch, folded by the planner)
+        if masked[col.name.lower()] == "mask_null" and is_mask_null_rendering(col):
             continue
         yield col
 
@@ -276,6 +303,59 @@ def _mask_violations(tree, spec: dict) -> list[str]:
     return problems
 
 
+def _protected_columns(spec: dict) -> dict[str, set[str]]:
+    """Logical table -> its denied + masked columns (the columns a star or whole-row read would expose raw)."""
+    out: dict[str, set[str]] = {}
+    for logical in spec["tables"]:
+        hidden = {c.lower() for c in spec["denied_columns"].get(logical, [])}
+        hidden |= {k.split(".", 1)[1].lower() for k in spec["column_masks"] if k.split(".", 1)[0] == logical}
+        if hidden:
+            out[logical] = hidden
+    return out
+
+
+def _wildcard_violations(tree, spec: dict) -> list[str]:
+    """A physical policy table with denied or masked columns must be read with EXPLICIT projections at the source.
+
+    Flags, in the SELECT that reads such a table directly: a bare `*`, a `t.*` qualified with that table's alias or
+    name (also inside a function such as `to_jsonb(t.*)`), and a whole-row reference `row_to_json(t)`. Each reads
+    every physical column, denied and masked ones raw. `COUNT(*)` / `COUNT(t.*)` read no values and are fine, and
+    so is a star over a derived table or CTE (its own source SELECT is checked where it reads the table).
+    """
+    from sqlglot import exp
+
+    problems = []
+    for logical, hidden in _protected_columns(spec).items():
+        phys = spec["tables"][logical].lower()
+        known = {c.lower() for c in spec["allowed_columns"].get(logical, [])} | hidden
+        for table_node, select in _source_selects(tree, phys):
+            if select is None:
+                continue
+            names = {(table_node.alias_or_name or "").lower(), table_node.name.lower()}
+            for node in select.walk():
+                if node is select or node.find_ancestor(exp.Select) is not select:
+                    continue
+                if isinstance(node.parent, exp.Count) and node.arg_key == "this":
+                    continue
+                if isinstance(node, exp.Star) and not isinstance(node.parent, exp.Column):
+                    problems.append(f"star projection over {phys} reads its denied/masked columns raw: *")
+                elif isinstance(node, exp.Column) and isinstance(node.this, exp.Star):
+                    if (node.table or "").lower() in names:
+                        problems.append(
+                            f"star projection over {phys} reads its denied/masked columns raw: {node.sql()}"
+                        )
+                elif (
+                    isinstance(node, exp.Column)
+                    and not node.table
+                    and node.name.lower() in names
+                    and node.name.lower() not in known
+                ):
+                    problems.append(
+                        f"whole-row reference to {phys} reads every column raw: {node.parent.sql()}"
+                    )
+    return problems
+
+
 def oracle_violations(result: Any, policy_name: str, checks: dict | None = None) -> list[str]:
     """Invariant violations of an ACCEPTED GuardResult (empty list = safe)."""
     from sqlglot import exp
@@ -315,6 +395,7 @@ def oracle_violations(result: Any, policy_name: str, checks: dict | None = None)
     for col in tree.find_all(exp.Column):
         if col.name.lower() in denied:
             problems.append(f"denied column referenced: {col.sql()}")
+    problems += _wildcard_violations(tree, spec)
 
     problems += _row_predicate_violations(tree, spec)
     problems += _mask_violations(tree, spec)
