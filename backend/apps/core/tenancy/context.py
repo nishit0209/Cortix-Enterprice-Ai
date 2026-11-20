@@ -107,6 +107,32 @@ def tenant_context(org_id: UUID | str, *, info: TenantInfo | None = None, using:
         current_org.reset(token)
 
 
+@contextmanager
+def tenant_scope(org_id: UUID | str) -> Iterator[None]:
+    """ContextVar-ONLY tenant scope: no transaction, no database setting.
+
+    For non-DB tenant work in long-running tasks, mainly object-storage I/O (`apps.core.storage` keys must be
+    below `orgs/<active org>/`), so a download/upload never holds a DB transaction open:
+
+        with tenant_scope(org_id):
+            storage.download_to(key, local_path)
+
+    Database access inside it stays fail-closed: the ORM sees the org, but without `tenant_context` the RLS
+    setting is unset, so queries return no tenant rows and writes are rejected. Switching to a different org
+    while another one is active is refused (like `tenant_context`)."""
+    org_uuid = org_id if isinstance(org_id, UUID) else UUID(str(org_id))
+    outer = current_org.get()
+    if outer is not None and outer != org_uuid:
+        raise TenantMismatch(f"Already in tenant {outer}; refusing to enter {org_uuid}")
+    token = current_org.set(org_uuid)
+    token_info = current_tenant.set(current_tenant.get() or TenantInfo(org_id=org_uuid))
+    try:
+        yield
+    finally:
+        current_tenant.reset(token_info)
+        current_org.reset(token)
+
+
 __all__ = [
     "current_actor",
     "TenantContextMissing",
@@ -118,4 +144,5 @@ __all__ = [
     "require_org_id",
     "set_db_tenant",
     "tenant_context",
+    "tenant_scope",
 ]

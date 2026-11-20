@@ -7,6 +7,7 @@ from .context import (
     get_current_org_id,
     require_org_id,
     tenant_context,
+    tenant_scope,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "get_current_org_id",
     "require_org_id",
     "tenant_context",
+    "tenant_scope",
 ]

@@ -1,11 +1,16 @@
-"""Celery base task that runs inside a tenant context.
+"""Celery base tasks.
 
     @shared_task(base=TenantTask)
     def ingest_upload(*, org_id: str, upload_id: str, actor_id: str | None = None): ...
 
+    @shared_task(base=NexoraTask)          # non-tenant ops task (purges, schedulers)
+    def purge_job_events(): ...
+
 `org_id` MUST be passed as a keyword argument. The task body runs inside `tenant_context(org_id)`
 (one transaction). Long tasks should open their own short transactions with `tenant_step(org_id)`
 inside a body that is decorated with `TenantTask.long_running = True`.
+
+`.delay()` / `.apply_async()` honour `settings.TASK_RUNNER` (celery | eager | thread): see apps.core.runner.
 """
 
 from __future__ import annotations
@@ -16,7 +21,9 @@ from uuid import UUID
 from celery import Task
 from django.db import connection
 
-from .context import current_actor, current_org, tenant_context
+from apps.core.runner import RunnerMixin
+
+from .context import current_actor, current_org, current_tenant, tenant_context
 
 
 class OrgInactive(RuntimeError):
@@ -38,7 +45,7 @@ def tenant_step(org_id: str | UUID):
         yield
 
 
-class TenantTask(Task):
+class TenantTask(RunnerMixin, Task):
     abstract = True
     long_running = False  # True: body manages its own transactions via tenant_step()
 
@@ -48,12 +55,20 @@ class TenantTask(Task):
             raise ValueError(f"{self.name}: org_id kwarg is required for tenant tasks")
         org_uuid = UUID(str(org_id))
         active = current_org.get()
+        keep_actor = False
         if active is not None:  # eager execution inside an existing tenant context (keeps the caller's actor)
             if active != org_uuid:
                 raise RuntimeError("TenantTask invoked for a different tenant than the active context")
-            return self.run(*args, **kwargs)
+            if connection.in_atomic_block:
+                return self.run(*args, **kwargs)
+            # The ContextVar is set but no transaction is open (an eager task started from a
+            # `transaction.on_commit` callback): the GUC is gone, so open a fresh tenant transaction.
+            keep_actor = not kwargs.get("actor_id")
         actor_id = kwargs.get("actor_id")
-        actor = ("user", UUID(str(actor_id))) if actor_id else ("system", None)
+        if keep_actor:
+            actor = current_actor.get()
+        else:
+            actor = ("user", UUID(str(actor_id))) if actor_id else ("system", None)
         # Every ContextVar set here is reset in `finally`: worker threads run many tasks and must never let
         # one task's actor leak into the next one's audit attribution.
         actor_token = current_actor.set(actor)
@@ -61,9 +76,35 @@ class TenantTask(Task):
             if self.long_running:
                 with tenant_context(org_uuid):
                     _assert_org_active()
+                if active is not None:
+                    return self._run_detached(*args, **kwargs)
                 return self.run(*args, **kwargs)
             with tenant_context(org_uuid):
                 _assert_org_active()
                 return self.run(*args, **kwargs)
+        finally:
+            current_actor.reset(actor_token)
+
+    def _run_detached(self, *args, **kwargs):
+        """A long-running body starts OUTSIDE any tenant context (it opens tenant_step()s itself)."""
+        org_token = current_org.set(None)
+        tenant_token = current_tenant.set(None)
+        try:
+            return self.run(*args, **kwargs)
+        finally:
+            current_tenant.reset(tenant_token)
+            current_org.reset(org_token)
+
+
+class NexoraTask(RunnerMixin, Task):
+    """Base for NON-tenant ops tasks (purges, the periodic-job runner). Runs as the system actor, outside any
+    tenant context; bodies that touch tenant rows open `tenant_context(org_id)` themselves."""
+
+    abstract = True
+
+    def __call__(self, *args, **kwargs):
+        actor_token = current_actor.set(("system", None))
+        try:
+            return self.run(*args, **kwargs)
         finally:
             current_actor.reset(actor_token)
