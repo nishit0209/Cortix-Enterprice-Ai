@@ -150,7 +150,7 @@ def test_run_end_to_end(env, django_capture_on_commit_callbacks):
         assert AuditEvent.objects.filter(action="pipeline.run.succeeded", target_id=pid).exists()
         assert Job.objects.get(id=accepted["job_id"]).status == "succeeded"
     stats = client.get(url(a, "data-stats")).json()
-    assert stats["pipelines_active"] == 1 and stats["runs_7d"] == {"succeeded": 1, "failed": 0}
+    assert stats["pipelines_active"] == 1 and stats["runs_7d"] == {"succeeded": 1, "failed": 0, "total": 1}
     detail = client.get(url(a, f"pipelines/{pid}")).json()
     assert detail["last_run"]["status"] == "succeeded" and detail["output_dataset_id"] == run["output_dataset_id"]
 

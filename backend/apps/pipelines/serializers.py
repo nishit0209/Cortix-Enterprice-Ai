@@ -25,11 +25,19 @@ class PipelineUpdateSerializer(serializers.Serializer):
 class ScheduleSerializer(serializers.Serializer):
     cron = serializers.CharField(max_length=100)
     timezone = serializers.CharField(max_length=64, required=False, default="UTC")
-    enabled = serializers.BooleanField(required=False, default=True)
+    enabled = serializers.BooleanField(required=False)
+    is_active = serializers.BooleanField(required=False)  # UI name of `enabled`
+
+    def validate(self, attrs):
+        enabled = attrs.pop("enabled", None)
+        is_active = attrs.pop("is_active", None)
+        attrs["enabled"] = enabled if enabled is not None else (is_active if is_active is not None else True)
+        return attrs
 
 
 class PreviewSerializer(serializers.Serializer):
     dag = serializers.JSONField(required=False)
+    node_id = serializers.CharField(max_length=64, required=False, allow_null=True, allow_blank=True)
     limit = serializers.IntegerField(min_value=1, max_value=200, required=False, default=200)
 
 

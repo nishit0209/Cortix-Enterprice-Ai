@@ -93,11 +93,13 @@ def initial_metrics(validation: DagValidation) -> list[StepMetric]:
 
 
 def execute(validation: DagValidation, io: RunIO, *, row_limit: int | None = None,
-            side_row_limit: int | None = None, max_rows: int | None = None) -> ExecutionResult:
+            side_row_limit: int | None = None, max_rows: int | None = None,
+            stop_after: str | None = None) -> ExecutionResult:
     """Run source + steps (NOT the destination write) and return the output frame with metrics.
 
     `row_limit` caps the source for previews, `side_row_limit` caps join inputs. `max_rows` fails the run when the
-    source is larger.
+    source is larger. `stop_after` (a node id, previews only) stops after that node: later steps are `skipped` and
+    the returned frame is that node's output.
     """
     metrics = initial_metrics(validation)
     by_id = {m.id: m for m in metrics}
@@ -148,6 +150,10 @@ def execute(validation: DagValidation, io: RunIO, *, row_limit: int | None = Non
         m.status, m.finished_at = "succeeded", _now()
         m.duration_ms = int((time.monotonic() - started) * 1000)
         notify(m)
+        if stop_after is not None and node.id == stop_after:
+            for later in metrics[metrics.index(m) + 1:]:
+                later.status = "skipped"
+            break
     assert frame is not None
     return ExecutionResult(frame=frame, steps=metrics, rows_in=rows_in, rows_out=frame.height,
                            rows_rejected=rejected_total, inputs=list(ctx.inputs))

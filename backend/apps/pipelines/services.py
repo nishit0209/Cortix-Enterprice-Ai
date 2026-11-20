@@ -4,7 +4,8 @@ Pipelines:  create_pipeline / update_pipeline / archive_pipeline / get_pipeline 
 DAG:        validate(dag, user_id) -> DagValidation (structure + config + columns/types + dataset access)
 Runs:       trigger_run / create_run / retry_run / cancel_run / get_run / run_payload
 Schedules:  set_schedule / delete_schedule / schedule_payload
-Preview:    preview(dag, user_id, limit=200) -> {columns, rows, steps, ...}   (synchronous, no writes)
+Preview:    preview(dag, user_id, limit=200, node_id=None) -> {columns, rows, steps, ...}   (synchronous, no writes)
+            dry_run(dag, user_id, limit, node_id) -> validation (per-node errors) + preview on a 1,000-row sample
 Hooks:      stats() (registered with datasets.register_stats_provider), uses_data_source(source_id)
 """
 
@@ -27,10 +28,11 @@ from apps.core.exceptions import Conflict
 
 from . import engine, scheduling
 from . import types as T
-from .dag import DagValidation, Node, Resolvers, to_validation_error, validate_dag
+from .dag import DagIssue, DagValidation, Node, Resolvers, to_validation_error, validate_dag
 from .models import Pipeline, PipelineRun, PipelineRunLog, PipelineSchedule, PipelineVersion
 
 PREVIEW_MAX = 200
+PREVIEW_SAMPLE_ROWS = 1000        # source rows read by previews / dry runs (API_SPECIFICATION: 1,000-row sample)
 PREVIEW_JOIN_ROWS = 100_000
 DEFAULT_MAX_RETRIES = 2
 
@@ -367,7 +369,7 @@ def run_payload(run: PipelineRun, *, include_logs: bool = True, log_limit: int =
         "output_dataset_id": str(run.output_dataset_id) if run.output_dataset_id else None,
         "output_dataset_version_id": str(run.output_dataset_version_id) if run.output_dataset_version_id else None,
         "ingest_job_id": str(run.ingest_job_id) if run.ingest_job_id else None,
-        "steps": run.steps or [],
+        "steps": [step_payload(st) for st in (run.steps or [])],
         "attempts": run.attempts or [],
     }
     if include_logs:
@@ -375,10 +377,15 @@ def run_payload(run: PipelineRun, *, include_logs: bool = True, log_limit: int =
     return body
 
 
+def step_payload(step: dict[str, Any]) -> dict[str, Any]:
+    """A recorded step metric plus the `step_key` / `step_type` names the UI uses (additive aliases of id/type)."""
+    return {**step, "step_key": step.get("id"), "step_type": step.get("type")}
+
+
 def run_logs(run: PipelineRun, *, limit: int = 500) -> list[dict[str, Any]]:
     rows = PipelineRunLog.objects.filter(run_id=run.id).order_by("ts", "id")[:limit]
-    return [{"ts": r.ts.isoformat(), "level": r.level, "step": r.step_key or None, "attempt": r.attempt,
-             "message": r.message, "context": r.context} for r in rows]
+    return [{"ts": r.ts.isoformat(), "level": r.level, "step": r.step_key or None, "step_key": r.step_key or None,
+             "attempt": r.attempt, "message": r.message, "context": r.context} for r in rows]
 
 
 def audit_schedule_skip(pipeline: Pipeline, *, reason: str) -> None:
@@ -390,7 +397,7 @@ def audit_schedule_skip(pipeline: Pipeline, *, reason: str) -> None:
 # ---------------------------------------------------------------------------------------------------
 def schedule_payload(schedule: PipelineSchedule) -> dict[str, Any]:
     return {
-        "cron": schedule.cron, "timezone": schedule.timezone, "enabled": schedule.enabled,
+        "cron": schedule.cron, "timezone": schedule.timezone, "enabled": schedule.enabled, "is_active": schedule.enabled,
         "next_run_at": schedule.next_run_at.isoformat() if schedule.next_run_at else None,
         "last_enqueued_at": schedule.last_enqueued_at.isoformat() if schedule.last_enqueued_at else None,
         "last_run_id": str(schedule.last_run_id) if schedule.last_run_id else None,
@@ -467,6 +474,22 @@ def _preview_load_dataset(user_id):
     return load
 
 
+def _read_connector_preview(kwargs: dict[str, Any]) -> pl.DataFrame:
+    """Bounded external read for a preview. With Celery it runs on a worker (egress isolation, result backend);
+    with the in-process runners (thread/eager) it runs here, because there is no separate worker to wait for."""
+    from django.conf import settings
+
+    if getattr(settings, "TASK_RUNNER", "celery") == "celery" and not getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        from .tasks import preview_connector_source
+
+        out = preview_connector_source.apply_async(kwargs=kwargs).get(timeout=60, disable_sync_subtasks=False)
+        return pl.DataFrame({c: out["data"][c] for c in out["columns"]}, schema={c: pl.String for c in out["columns"]})
+    from apps.connectors import services as connectors
+
+    return connectors.read_frame(kwargs["data_source_id"], kwargs["table"], schema=kwargs["schema"],
+                                 columns=kwargs["columns"], limit=kwargs["limit"], org_id=kwargs["org_id"])
+
+
 def _preview_load_source(user_id):
     load_dataset = _preview_load_dataset(user_id)
 
@@ -477,58 +500,109 @@ def _preview_load_source(user_id):
             return frame.select(cfg.columns) if cfg.columns else frame
         from apps.core.tenancy import require_org_id
 
-        from .tasks import preview_connector_source
-
         kwargs = {"org_id": str(require_org_id()), "data_source_id": str(cfg.data_source_id), "table": cfg.table,
                   "schema": cfg.schema_name, "columns": cfg.columns, "limit": limit}
-        out = preview_connector_source.apply_async(kwargs=kwargs).get(timeout=60, disable_sync_subtasks=False)
-        return pl.DataFrame({c: out["data"][c] for c in out["columns"]},
-                            schema={c: pl.String for c in out["columns"]})
+        return _read_connector_preview(kwargs)
 
     return load
 
 
-def preview(dag: Any, *, user_id=None, limit: int = PREVIEW_MAX) -> dict[str, Any]:
-    limit = max(1, min(int(limit), PREVIEW_MAX))
-    validation = _require_valid(dag, user_id)
+def _check_node_id(validation: DagValidation, node_id: str | None) -> str | None:
+    if node_id in (None, ""):
+        return None
+    if node_id in validation.folded:
+        join = validation.folded[node_id]
+        raise ValidationError({"node_id": [f"Node {node_id!r} is the right input of join {join!r}; "
+                                           f"preview the join instead."]})
+    if node_id not in {n.id for n in validation.order}:
+        raise ValidationError({"node_id": [f"Unknown node {node_id!r}."]})
+    return node_id
+
+
+def _execute_preview(validation: DagValidation, user_id, limit: int, node_id: str | None) -> dict[str, Any]:
     io = engine.RunIO(load_source=_preview_load_source(user_id), load_dataset=_preview_load_dataset(user_id))
     try:
-        result = engine.execute(validation, io, row_limit=limit, side_row_limit=PREVIEW_JOIN_ROWS)
+        result = engine.execute(validation, io, row_limit=max(limit, PREVIEW_SAMPLE_ROWS),
+                                side_row_limit=PREVIEW_JOIN_ROWS, stop_after=node_id)
     except engine.RunFailure as failure:
-        return {"ok": False, "error": {"code": failure.code, "message": failure.message, "node": failure.node},
+        return {"ok": False, "error": {"code": failure.code, "message": failure.message, "node": failure.node,
+                                       "node_id": failure.node},
                 "steps": [], "columns": [], "rows": [], "row_count": 0}
     return {
         "ok": True,
         **frame_payload(result.frame, limit),
+        "node_id": node_id,
         "source_rows": result.rows_in,
         "rows_rejected": result.rows_rejected,
-        "steps": [m.as_dict() for m in result.steps if not m.type.startswith("destination.")],
-        "schemas": validation.payload()["schemas"],
+        "steps": [step_payload(m.as_dict()) for m in result.steps if not m.type.startswith("destination.")],
     }
+
+
+def preview(dag: Any, *, user_id=None, limit: int = PREVIEW_MAX, node_id: str | None = None) -> dict[str, Any]:
+    """Synchronous dry run of a VALID DAG on a sample (400 with per-node errors otherwise). `node_id` returns the
+    output of that node instead of the last step. Nothing is written."""
+    limit = max(1, min(int(limit), PREVIEW_MAX))
+    validation = _require_valid(dag, user_id)
+    node_id = _check_node_id(validation, node_id)
+    body = _execute_preview(validation, user_id, limit, node_id)
+    body["schemas"] = validation.payload()["schemas"]
+    return body
+
+
+def dry_run(dag: Any, *, user_id=None, limit: int = PREVIEW_MAX, node_id: str | None = None) -> dict[str, Any]:
+    """POST /pipelines/{id}/validate: full validation + (when valid) a preview on a 1,000-row sample.
+
+    Always 200. `valid` is the static validation verdict; `ok` is false when validation or the sample run failed.
+    `errors` lists per-node problems `{node_id, field: "nodes.<id>.<field>", code, message}`, including a step that
+    failed on the sample data.
+    """
+    limit = max(1, min(int(limit), PREVIEW_MAX))
+    validation = validate(dag, user_id)
+    body: dict[str, Any] = {**validation.payload(), "ok": validation.ok, "columns": [], "rows": [], "row_count": 0,
+                            "steps": [], "node_id": None}
+    if not validation.ok:
+        return body
+    node_id = _check_node_id(validation, node_id)
+    result = _execute_preview(validation, user_id, limit, node_id)
+    if not result["ok"]:
+        err = result["error"]
+        issue = DagIssue(err.get("node"), "data" if err.get("node") else "dag", err["code"], err["message"])
+        body.update(ok=False, errors=[issue.as_dict()], runtime_error=err)
+        return body
+    body.update({k: v for k, v in result.items() if k != "ok"})
+    return body
 
 
 # ---------------------------------------------------------------------------------------------------
 # hooks
 # ---------------------------------------------------------------------------------------------------
 def stats() -> dict[str, Any]:
-    """data-stats contribution: pipelines_active + finished runs in the last 7 days."""
+    """data-stats contribution (all from the DB): active pipelines and the runs of the last 7 days.
+
+    `runs_7d.total` counts runs created in the window (any status); succeeded/failed count runs that finished in it.
+    """
     since = timezone.now() - dt.timedelta(days=7)
     agg = PipelineRun.objects.filter(finished_at__gte=since).aggregate(
         succeeded=Count("id", filter=Q(status="succeeded")), failed=Count("id", filter=Q(status="failed")))
     return {
         "pipelines_active": Pipeline.objects.filter(status="active").count(),
-        "runs_7d": {"succeeded": int(agg["succeeded"] or 0), "failed": int(agg["failed"] or 0)},
+        "pipelines_total": Pipeline.objects.exclude(status="archived").count(),
+        "runs_7d": {"succeeded": int(agg["succeeded"] or 0), "failed": int(agg["failed"] or 0),
+                    "total": PipelineRun.objects.filter(created_at__gte=since).count()},
+        "runs_active": PipelineRun.objects.filter(status__in=PipelineRun.ACTIVE).count(),
     }
 
 
 def uses_data_source(source_id: UUID) -> list[str]:
     """Names of non-archived pipelines whose current DAG reads from the data source (blocks its deletion)."""
+    from .builder import canonical_type
+
     names = []
     for p in Pipeline.objects.exclude(status="archived").select_related("current_version"):
         dag = p.current_version.dag if p.current_version else None
         for node in (dag or {}).get("nodes", []):
-            if node.get("type") == "source.connector" and str(node.get("config", {}).get("data_source_id")) == str(
-                    source_id):
+            if canonical_type(str(node.get("type"))) == "source.connector" and str(
+                    (node.get("config") or {}).get("data_source_id")) == str(source_id):
                 names.append(p.name)
                 break
     return names
