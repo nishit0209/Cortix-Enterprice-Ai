@@ -268,3 +268,48 @@ Producers call `apps.core.notifications.notify(user_ids, kind, title, body, link
 ### Isolation fixtures
 
 Every app with tenant routes that take resource kwargs MUST ship `apps/<app>/tests/isolation.py` factories. `testing.isolation.MissingIsolationFixture` is a failing test.
+
+## W3 as-built additions (binding from W4; full details in `coordination/handoffs/w3/*.md`)
+
+### Dashboards: `is_shared`
+
+- Dashboards and SavedQueries are **private to their owner** unless `is_shared=true`.
+- `is_shared` is in the POST/PATCH body and the list/detail payloads, and defaults to `false`.
+- A viewer sees their own items plus shared ones. Others get 404.
+- Widget data always re-executes under the **viewer's** policy.
+
+### Signed file URLs (`GET /api/v1/files/<token>`)
+
+| Case | Response |
+|---|---|
+| Valid | 200, streaming download |
+| Bad or tampered token, or the object no longer exists | 404 `not_found` (nothing revealed) |
+| Expired link | 410 `download_expired` |
+
+Clients treat 410 as "request a fresh link". **This replaces the earlier mission text that said 403.**
+
+### Job-event SSE
+
+- Works under ASGI (uvicorn) and WSGI (`runserver`). Under WSGI the stream is a sync generator, so events are not buffered.
+- Following another user's job requires `jobs.view_all`. Otherwise the response is 404.
+
+### More W3 as-built details (binding from W4)
+
+- **List responses.** List endpoints, including `GET /dashboards`, return the standard cursor envelope `{items, next_cursor, previous_cursor}`. Notification lists also return `unread_count`.
+- **Notification links** are app-relative UI routes. Examples: `/data/pipelines/<id>/runs/<run_id>`, `/datasets/<id>`, `/settings/ai`.
+- **Kinds:** `pipeline.run_failed|run_succeeded`, `import.finished|failed`, `dataset.ingest_finished|ingest_failed`, `document.processed|failed`, `ai.quota_exhausted`, `invitation.accepted`.
+- **Data Engineering additive shapes** (`coordination/handoffs/w3/data_engineering.md`):
+  - pipeline validate dry run; preview `node_id`;
+  - the builder DAG dialect is accepted, but prefer the canonical node shapes;
+  - lineage `restricted` and `restricted_count`;
+  - data-stats fields `sources`, `runs_7d.total`, `datasets_by_status`;
+  - data-source `checks` and `row_estimate`; import takes `{schema, table}`;
+  - `/semantic-models` routes;
+  - `mask_hash` = salted SHA-256 (SECURITY_ARCHITECTURE §5).
+- **AI/ML additive shapes** (`coordination/handoffs/w3/ai_ml.md`):
+  - `/ai/status` quota extras: `remaining_today`, `scope`, `rate_limited`, `user`, `limiter_backend`, `embeddings`;
+  - documents `search_mode` / `search_mode_message`, `retrieval.mode|reason|pending_embeddings`, `embedding_status` / `embedding_pending`;
+  - blocked proposals carry `resets_at`, `retry_after_s` and `quota_scope`.
+- **Golden cassettes:** format `nexora.cassette.v1`, stored as `<dir>/<id>.json` or `<dir>/nl2sql/<id>.json`, with `id`, `question` and a required `response` object.
+  - Written by `manage.py record_cassettes --out <dir>`, which needs `GEMINI_API_KEY`.
+  - Read by QA through `NEXORA_CASSETTES_DIR`.

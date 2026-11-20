@@ -251,6 +251,10 @@ EMBEDDING_DIM = env.int("EMBEDDING_DIM", default=768)
 # VECTOR_BACKEND: "pgvector" (vector column + HNSW, SQL cosine) or "array" (double precision[] + cosine ranked in
 # numpy; for PostgreSQL builds without pgvector, e.g. stock Windows installs). "auto" = detect the extension.
 VECTOR_BACKEND = env("VECTOR_BACKEND", default="auto")
+# Local embedding model cache (empty = Hugging Face default, or HF_HOME). AUTO_DOWNLOAD=False -> run `manage.py download_models`.
+EMBEDDING_CACHE_DIR = env("EMBEDDING_CACHE_DIR", default="")
+EMBEDDING_AUTO_DOWNLOAD = env.bool("EMBEDDING_AUTO_DOWNLOAD", default=True)
+DOCUMENT_VECTOR_MAX_SCAN = env.int("DOCUMENT_VECTOR_MAX_SCAN", default=20000)  # array backend: max candidates ranked
 # ML artifacts (trained models) live in object storage under orgs/<id>/ml/; CPU-only training limits:
 ML_MAX_TRAIN_ROWS = env.int("ML_MAX_TRAIN_ROWS", default=500_000)
 ML_MAX_TRAIN_SECONDS = env.int("ML_MAX_TRAIN_SECONDS", default=900)
