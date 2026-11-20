@@ -153,7 +153,7 @@ def choose_chart(hint: ChartHint | dict | None, columns: list[dict], rows: list[
     if not rows:
         return {"type": "table", "x": None, "y": [], "series": None}
     sample = rows[:200]
-    kinds = {c["name"]: _kind(c, [r[i] for r in sample]) for i, c in enumerate(columns)}
+    kinds = {c["name"]: _kind(c, [r[i] if i < len(r) else None for r in sample]) for i, c in enumerate(columns)}
     numeric = [n for n in names if kinds[n] == "numeric" and n not in masked]
     temporal = [n for n in names if kinds[n] == "temporal"]
     categorical = [n for n in names if kinds[n] == "categorical"]

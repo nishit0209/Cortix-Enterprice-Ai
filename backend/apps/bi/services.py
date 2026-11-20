@@ -592,7 +592,7 @@ class _Chat:
 
     def _remember(self, sql: str, source: str, explanation: str, assumptions: list, chart_hint) -> None:
         try:
-            with _step(self.turn), transaction.atomic():
+            with _step(self.turn):  # its own (savepoint) transaction: a cache failure rolls back alone
                 ports.remember(self.turn.question, sql, self.ctx, source=source, explanation=explanation or None,
                                assumptions=tuple(assumptions), chart_hint=chart_hint,
                                dataset_version_id=self.scope.semantics.dataset_version_id)
