@@ -351,10 +351,17 @@ def store_verified(question: str, sql: str, ctx: QuestionContext, *, explanation
                        user_id=ctx.user_id, dataset_version_id=dataset_version_id)
 
 
-def compute_insights(columns, rows):
+def compute_insights(columns, rows, *, complete: bool | None = None, sql: str | None = None,
+                     truncated: bool | None = None):
+    """Local insights. Pass the executed `sql` and the result's `truncated` flag (or `complete` directly) so a
+    LIMITed / truncated result is never narrated as "the total" (see sqlutil.result_is_complete)."""
     from .insights import compute_insights as _ci
+    from .sqlutil import result_is_complete
 
-    return _ci(columns, rows)
+    rows = list(rows)
+    if complete is None and (sql is not None or truncated is not None):
+        complete = result_is_complete(sql, len(rows), truncated=truncated)
+    return _ci(columns, rows, complete=complete)
 
 
 def narrate(question: str, insights: list[dict]) -> str:

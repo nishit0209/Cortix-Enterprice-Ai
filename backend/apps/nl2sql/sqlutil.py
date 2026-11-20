@@ -140,6 +140,47 @@ def enforce_limit(ast: exp.Expression, max_rows: int = MAX_LIMIT) -> exp.Express
     return ast
 
 
+def _int_literal(node) -> int | None:
+    if isinstance(node, exp.Fetch):
+        node = node.args.get("count")
+    elif isinstance(node, (exp.Limit, exp.Offset)):
+        node = node.expression
+    if isinstance(node, exp.Literal) and not node.is_string:
+        try:
+            return int(float(node.this))
+        except ValueError:
+            return None
+    return None
+
+
+def result_is_complete(sql: str | None, row_count: int, *, truncated: bool | None = None) -> bool | None:
+    """Are the returned rows ALL the rows the query's grouping produces (so their sum is "the total")?
+
+    False when the runner truncated the result, an OFFSET skipped rows, an inner query is LIMITed, or the
+    outermost LIMIT n was reached (row_count >= n, e.g. "top 3 regions"). True when nothing cut the result.
+    None when it cannot be told (no SQL, unparsable SQL) - callers then avoid claiming a total."""
+    if truncated:
+        return False
+    if not sql:
+        return None
+    ast, issue = parse_select(sql)
+    if ast is None or issue is not None:
+        return None
+    for node in ast.walk():
+        if isinstance(node, exp.Offset) and (_int_literal(node) or 0) != 0:
+            return False
+        if isinstance(node, (exp.Limit, exp.Fetch)) and node.parent is not ast:
+            return False  # LIMIT inside a subquery / CTE: the outer rows come from a cut set
+    limit = ast.args.get("limit")
+    if limit is None:
+        return True
+    opts = limit.args.get("limit_options") if isinstance(limit, exp.Fetch) else None
+    n = _int_literal(limit)
+    if n is None or (opts is not None and opts.args.get("percent")):
+        return None
+    return int(row_count) < n
+
+
 def rename_identifiers(ast: exp.Expression, mapping: Mapping[str, str]) -> exp.Expression:
     """Rename column identifiers (case-insensitive) — used to (un)alias PII column names."""
     if not mapping:

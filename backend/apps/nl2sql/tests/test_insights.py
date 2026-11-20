@@ -16,7 +16,7 @@ def kinds(ins):
 def test_top_n_and_share():
     cols = ["region", "total_amount"]
     rows = [["North", 500.0], ["South", 300.0], ["East", 150.0], ["West", 50.0]]
-    ins = compute_insights(cols, rows)
+    ins = compute_insights(cols, rows, complete=True)  # every region is in the rows
     assert kinds(ins)[:2] == ["top_n", "share"]
     top = ins[0]["data"]["items"]
     assert [i["label"] for i in top] == ["North", "South", "East"]

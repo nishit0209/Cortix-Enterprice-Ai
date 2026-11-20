@@ -24,20 +24,46 @@ def texts(ins):
 
 def test_top_contributors_with_shares():
     rows = [["North", 500.0], ["South", 300.0], ["East", 150.0], ["West", 50.0]]
-    assert texts(compute_insights(["region", "total_revenue"], rows, today=TODAY)) == [
+    assert texts(compute_insights(["region", "total_revenue"], rows, today=TODAY, complete=True)) == [
         ("top_n", "Top region by total revenue: North (500, 50.0%), South (300, 30.0%), East (150, 15.0%)."),
         ("share", "North accounts for 50.0% of the total revenue (1,000). The top 3 together make up 95.0%."),
     ]
 
 
-def test_share_of_total_builder_shape_uses_the_value_column_not_the_pct():
-    rows = [["North", 500.0, 50.0], ["South", 300.0, 30.0], ["East", 200.0, 20.0]]
-    ins = compute_insights(["region", "total_revenue", "share_pct"], rows, today=TODAY)
+def test_limited_top_n_is_never_called_the_total():
+    """Review fix: "top 3 regions by revenue" (LIMIT 3 over 10 regions) - the 3 rows are NOT the total."""
+    rows = [["North", 500.0], ["South", 300.0], ["East", 200.0]]
+    for complete in (False, None):
+        ins = compute_insights([{"name": "region"}, {"name": "total_revenue"}], rows, today=TODAY,
+                               complete=complete)
+        assert texts(ins) == [
+            ("top_n", "Top region by total revenue: North (500), South (300), East (200)."),
+            ("share", "North accounts for 50.0% of the combined revenue of the 3 regions shown (1,000)."),
+        ]
+        assert "of the total" not in " ".join(i["text"] for i in ins)
+        data = ins[1]["data"]
+        assert data["basis"] == "shown" and data["total"] is None and data["shown_total"] == 1000.0
+        assert ins[0]["data"]["share_basis"] == "shown"
+
+
+def test_share_of_total_builder_shape_uses_the_sql_share_column():
+    """share_pct is SUM(x) OVER () in SQL, i.e. over EVERY group even when the rows are cut by LIMIT."""
+    rows = [["North", 500.0, 25.0], ["South", 300.0, 15.0], ["East", 200.0, 10.0]]
+    ins = compute_insights(["region", "total_revenue", "share_pct"], rows, today=TODAY, complete=False)
     assert texts(ins) == [
-        ("top_n", "Top region by total revenue: North (500, 50.0%), South (300, 30.0%), East (200, 20.0%)."),
-        ("share", "North accounts for 50.0% of the total revenue (1,000)."),
+        ("top_n", "Top region by total revenue: North (500, 25.0%), South (300, 15.0%), East (200, 10.0%)."),
+        ("share", "North accounts for 25.0% of the total revenue."),
     ]
-    assert ins[1]["data"]["share"] == pytest.approx(0.5)
+    assert ins[1]["data"]["share"] == pytest.approx(0.25) and ins[1]["data"]["total"] is None
+    full = [["North", 500.0, 50.0], ["South", 300.0, 30.0], ["East", 200.0, 20.0]]
+    ins = compute_insights(["region", "total_revenue", "share_pct"], full, today=TODAY, complete=True)
+    assert texts(ins)[1] == ("share", "North accounts for 50.0% of the total revenue (1,000).")
+
+
+def test_unusable_share_column_falls_back_to_the_rows_shown():
+    rows = [["North", 500.0, None], ["South", 300.0, 30.0]]
+    ins = compute_insights(["region", "total_revenue", "share_pct"], rows, today=TODAY)
+    assert ins[1]["data"]["basis"] == "shown"
 
 
 def test_averages_are_ranked_but_never_shared():
@@ -128,7 +154,7 @@ def test_decimal_values_from_the_database():
     from decimal import Decimal
 
     ins = compute_insights(["channel", "total_revenue"], [["Online", Decimal("600.50")], ["Retail", Decimal("400.50")]],
-                           today=TODAY)
+                           today=TODAY, complete=True)
     assert ins[0]["text"] == "Top channel by total revenue: Online (600.50, 60.0%), Retail (400.50, 40.0%)."
 
 
@@ -152,3 +178,35 @@ def test_additivity_and_grains():
     assert detect_grain([pd.Timestamp(2025, 1, 1), pd.Timestamp(2026, 1, 1)]) == "year"
     assert bucket_label(pd.Timestamp(2026, 7, 1), "quarter") == "Q3 2026"
     assert bucket_label(pd.Timestamp(2026, 7, 1), "year") == "2026"
+
+
+@pytest.mark.parametrize(("sql", "rows", "truncated", "expected"), [
+    ("SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region", 10, False, True),
+    ("SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region ORDER BY 2 DESC LIMIT 3", 3, False,
+     False),
+    ("SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region LIMIT 1000", 10, False, True),
+    ("SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region LIMIT 1000", 10, True, False),
+    ("SELECT region FROM sales GROUP BY region LIMIT 5 OFFSET 5", 3, False, False),
+    ("SELECT * FROM (SELECT region FROM sales GROUP BY region LIMIT 3) s", 3, False, False),
+    ("SELECT region FROM sales GROUP BY region FETCH FIRST 3 ROWS ONLY", 3, False, False),
+    ("not sql at all (", 3, False, None),
+    (None, 3, None, None),
+])
+def test_result_is_complete(sql, rows, truncated, expected):
+    from apps.nl2sql.sqlutil import result_is_complete
+
+    assert result_is_complete(sql, rows, truncated=truncated) is expected
+
+
+def test_services_compute_insights_derives_completeness_from_the_sql():
+    from apps.nl2sql import services
+
+    rows = [["North", 500.0], ["South", 300.0], ["East", 200.0]]
+    cols = [{"name": "region"}, {"name": "total_revenue"}]
+    ranked = "SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region ORDER BY 2 DESC LIMIT 3"
+    share = services.compute_insights(cols, rows, sql=ranked, truncated=False)[1]
+    assert share["data"]["basis"] == "shown" and "of the total" not in share["text"]
+    grouped = "SELECT region, SUM(revenue) AS total_revenue FROM sales GROUP BY region LIMIT 1000"
+    share = services.compute_insights(cols, rows, sql=grouped, truncated=False)[1]
+    assert share["text"] == "North accounts for 50.0% of the total revenue (1,000)."
+    assert services.compute_insights(cols, rows)[1]["data"]["basis"] == "shown"  # unknown -> never "the total"

@@ -1,6 +1,7 @@
 """Local insights + templated narration (0 Gemini calls by default) — AI_ARCHITECTURE.md §4 / §6.7.
 
-compute_insights(columns, rows) -> [{kind: summary|period_change|trend|growth|top_n|share|anomaly, text, data}]
+compute_insights(columns, rows, *, complete=None) -> [{kind: summary|period_change|trend|growth|top_n|share|anomaly,
+                                                      text, data}]
 narrate_template(question, insights) -> plain-English narrative with the real numbers
 narrate_with_gemini(...) -> streamed narration, ONLY when the policy allows VALUES for the asset
 """
@@ -220,13 +221,16 @@ def bucket_label(value, grain: str | None) -> str:
 
 # ------------------------------------------------------------------------------------------- insights
 def compute_insights(columns: Sequence, rows: Sequence[Sequence], *, max_insights: int = 6,
-                     today: date | None = None) -> list[dict]:
+                     today: date | None = None, complete: bool | None = None) -> list[dict]:
     """Deterministic insights from a (<= 1,000 row) result set.
 
     kinds: summary (one value), period_change (two periods / latest vs previous bucket), trend (slope + overall %
     change), growth (largest period-over-period moves), top_n (top contributors with their shares), share (the
-    leader's share of the total; additive measures only), anomaly (robust z-score >= 3).
+    leader's share; additive measures only), anomaly (robust z-score >= 3).
     `today` marks an in-progress last time bucket (default: today's date).
+    `complete` says whether `rows` are ALL the groups (no LIMIT cut, not truncated): only then is the sum of the
+    rows called "the total". Unknown (None) or False -> shares are stated against the rows shown, unless a share
+    column computed in SQL over every group (e.g. the builder's `share_pct`) is present.
     """
     if not rows or not columns:
         return []
@@ -261,7 +265,8 @@ def compute_insights(columns: Sequence, rows: Sequence[Sequence], *, max_insight
         growth_col = next((c for c in numeric if re.search(r"growth|change", str(c), re.I) and c != measure), None)
         out.extend(_time_insights(df, temporal[0], measure, today=today or date.today(), growth_col=growth_col))
     elif categorical:
-        out.extend(_category_insights(df, categorical[0], measure))
+        out.extend(_category_insights(df, categorical[0], measure, complete=complete,
+                                      share_col=_share_column(numeric, measure)))
         out.extend(_anomalies(df, measure, label_col=categorical[0]))
     return out[:max_insights]
 
@@ -309,40 +314,95 @@ def _change_insight(measure: str, cur_label: str, cur: float, prev_label: str, p
                      "previous_label": prev_label, "change": delta, "change_pct": pct, "direction": direction}}
 
 
-def _category_insights(df: pd.DataFrame, dim: str, measure: str) -> list[dict]:
+SHARE_COL_RE = re.compile(r"(?:^|_)(?:share|(?:pct|percent|percentage)_of_total)(?:_|$)", re.I)
+_PERCENT_NAME_RE = re.compile(r"pct|percent", re.I)
+
+
+def _share_column(numeric: list[str], measure: str) -> str | None:
+    """A column holding each row's share of the WHOLE result (computed in SQL, e.g. `SUM(x) OVER ()`)."""
+    return next((c for c in numeric if c != measure and SHARE_COL_RE.search(str(c))), None)
+
+
+def _plural(word: str, n: int) -> str:
+    if n == 1:
+        return word
+    if word.endswith("y") and len(word) > 1 and word[-2] not in "aeiou":
+        return word[:-1] + "ies"
+    return word if word.endswith("s") else word + "s"
+
+
+def _category_insights(df: pd.DataFrame, dim: str, measure: str, *, complete: bool | None = None,
+                       share_col: str | None = None) -> list[dict]:
     values = _num(df[measure])
-    frame = pd.DataFrame({"dim": df[dim].map(lambda v: "(blank)" if v is None or v == "" else str(v)),
-                          "v": values}).dropna()
+    labels = df[dim].map(lambda v: "(blank)" if v is None or v == "" else str(v))
+    frame = pd.DataFrame({"dim": labels, "v": values}).dropna()
     if frame.empty:
         return []
     additive = is_additive(measure)
     agg = frame.groupby("dim", sort=False)["v"]
     grouped = (agg.sum() if additive else agg.mean()).sort_values(ascending=False, kind="stable")
-    total = float(grouped.sum())
-    with_share = additive and len(grouped) >= 2 and total > 0 and bool((grouped >= 0).all())
+    shown_total = float(grouped.sum())
+    shares: pd.Series | None = None
+    basis = None
+    if additive and len(grouped) >= 1 and bool((grouped >= 0).all()):
+        col_shares = _column_shares(df, labels, share_col) if share_col else None
+        if col_shares is not None:
+            shares, basis = col_shares.reindex(grouped.index), "total"  # computed in SQL over every group
+        elif len(grouped) >= 2 and shown_total > 0:
+            shares, basis = grouped / shown_total, ("total" if complete is True else "shown")
+    if shares is not None and shares.isna().any():
+        shares, basis = None, None
     out: list[dict] = []
     n = min(3, len(grouped))
     top = grouped.head(n)
-    items = [{"label": k, "value": float(v), **({"share": float(v) / total} if with_share else {})}
+    items = [{"label": k, "value": float(v), **({"share": float(shares[k])} if shares is not None else {})}
              for k, v in top.items()]
     name = human_measure(measure)
+    pct_in_listing = basis == "total"
     if len(grouped) >= 2:
-        listing = ", ".join(f"{i['label']} ({fmt_num(i['value'])}" + (f", {fmt_pct(i['share'])})" if with_share
+        listing = ", ".join(f"{i['label']} ({fmt_num(i['value'])}" + (f", {fmt_pct(i['share'])})" if pct_in_listing
                                                                        else ")") for i in items)
         text = f"Top {_human(dim)} by {name}: {listing}."
     else:
         text = f"{items[0]['label']} has {name} of {fmt_num(items[0]['value'])}."
-    out.append({"kind": "top_n", "text": text, "data": {"dimension": dim, "measure": measure, "items": items}})
-    if with_share:
-        leader, lv = grouped.index[0], float(grouped.iloc[0])
-        share = lv / total
-        topn_share = float(top.sum()) / total
-        text = f"{leader} accounts for {fmt_pct(share)} of the total {_base_name(measure)} ({fmt_num(total)})."
+    data = {"dimension": dim, "measure": measure, "items": items}
+    if basis:
+        data["share_basis"] = basis
+    out.append({"kind": "top_n", "text": text, "data": data})
+    if shares is not None and (len(grouped) >= 2 or basis == "total"):
+        leader = grouped.index[0]
+        share = float(shares.iloc[0])
+        topn_share = float(shares.head(n).sum())
+        base = _base_name(measure)
+        total = shown_total if complete is True else None  # the rows ARE every group -> their sum is the total
+        if basis == "shown":
+            groups = _plural(_human(dim), len(grouped))
+            text = (f"{leader} accounts for {fmt_pct(share)} of the combined {base} of the {len(grouped)} {groups} "
+                    f"shown ({fmt_num(shown_total)}).")
+        elif total is None:  # shares from the SQL share column; the overall total itself is not in the rows
+            text = f"{leader} accounts for {fmt_pct(share)} of the total {base}."
+        else:
+            text = f"{leader} accounts for {fmt_pct(share)} of the total {base} ({fmt_num(total)})."
         if n > 1 and len(grouped) > n:
             text += f" The top {n} together make up {fmt_pct(topn_share)}."
         out.append({"kind": "share", "text": text,
-                    "data": {"label": leader, "share": share, "total": total, "top_n_share": topn_share, "n": n}})
+                    "data": {"label": leader, "share": share, "total": total, "shown_total": shown_total,
+                             "top_n_share": topn_share, "n": n, "basis": basis,
+                             "groups_shown": int(len(grouped))}})
     return out
+
+
+def _column_shares(df: pd.DataFrame, labels: pd.Series, share_col: str) -> pd.Series | None:
+    """Per-group share (0..1) from a SQL-computed share column; percent scale when the name says pct/percent or
+    any value exceeds 1. None when the column is unusable (missing values, negative, sums above 100%)."""
+    raw = _num(df[share_col])
+    if raw.isna().any() or bool((raw < 0).any()):
+        return None
+    scale = 100.0 if (_PERCENT_NAME_RE.search(str(share_col)) or float(raw.max()) > 1.0) else 1.0
+    per_group = (raw / scale).groupby(labels, sort=False).sum()
+    if float(per_group.sum()) > 1.0 + 1e-3 * len(per_group):  # rounding slack
+        return None
+    return per_group
 
 
 def _time_insights(df: pd.DataFrame, tcol: str, measure: str, *, today: date,
