@@ -159,3 +159,40 @@ Checks:
 - **qa_security**: the two fixture issues listed under Requests (`fake_redis` vs DB job events; `s3` fixture vs fs default).
 - **qa_security / data_engineering**: `tests/security/sql/test_sql_guard_corpus.py` cases `mask-002/003/004/007/008/009/010/012` and `setop-009`, and `tests/security/sql/test_sql_guard_fuzz.py::test_differential_accepted_queries_reparse_and_stay_in_policy`, fail. This branch does not touch `apps/sqlguard` or those tests. The mask cases match the CONTRACT "Guard masks" decision: the oracle must accept `CASE WHEN FALSE THEN col END`.
 - **qa_security**: `tests/isolation/test_tenancy_core.py::test_guc_is_transaction_local_on_a_reused_connection` opens a raw psycopg connection, so it FAILS (rather than errors) without a database. This is environmental only.
+
+## Review fixes (independent review of agent/backend/w3)
+
+| # | Severity | Finding | Outcome | Commit |
+|---|---|---|---|---|
+| 1 | medium | `core/sse.py`: the job-event SSE body was always an async generator. Under `manage.py runserver` (WSGI), Django's `StreamingHttpResponse.__iter__` collects it whole with `async_to_sync`, so no frames or keep-alives arrive before `done` or the 10-minute lifetime ends. | **Fixed.** `job_events` now picks the iterator by request type, like `apps/bi/streaming.py`. An ASGI request gets `stream_db_events` / `stream_events` (async). Any other request (runserver, gunicorn sync workers, the Django test client) gets the new `stream_db_events_sync` / `stream_events_sync`. These produce the same frames, back-off, `:hb` keep-alives and lifetime. The sync DB stream queries in the request thread, with one short tenant transaction per poll. The sync Redis stream uses the shared pooled `jobs.redis_client()`. | `3de5aea` |
+| 2 | low | `core/sse.py::_check_access` ignored `jobs.view_all`: any org member could stream another user's job events. | **Fixed.** Same rule as `JobViewSet.get_queryset`: without `jobs.view_all`, the job must have `user_id` = the caller, otherwise 404. | `3de5aea` |
+| 3 | low | `bi/dashboards.py::clean_chart`: an unhashable `chart.type` (list/dict) raised `TypeError` and returned a 500. | **Fixed.** The type must be a `str` in `CHART_TYPES`; anything else is a `ValidationError` (400). | `2247780` |
+
+Regression tests:
+- `apps/core/tests/test_job_events.py`:
+  - `test_sync_db_stream_matches_the_async_one`: identical frames and sleeps for both twins, plus expiry.
+  - `test_sync_redis_stream_resumes_and_ends_after_done`.
+  - `test_wsgi_requests_get_a_sync_stream_and_asgi_requests_an_async_one[db|redis]`: real `RequestFactory` / `AsyncRequestFactory` requests through the view.
+  - `test_wsgi_db_stream_delivers_frames_live_before_done`: reads `retry` and the first `status` frame before `done` is published, with one poll per client read. It fails fast instead of hanging if the stream is buffered.
+  - DB test `test_sse_on_the_db_backend_is_member_and_org_scoped`, updated: a viewer or analyst following the owner's job gets 404; an auditor (`jobs.view_all`) gets 200 and the full stream; an analyst following their own job gets 200.
+- `apps/bi/tests/test_results.py`: `test_clean_chart_rejects_bad_types_with_a_validation_error` (8 cases) and `test_clean_chart_normalises_a_valid_chart`.
+- `apps/bi/tests/test_dashboards.py` (DB): `test_widget_validation` has 2 new cases (list/dict type → 400). The PATCH path is asserted in `test_widgets_crud_layout_and_bulk_positions`.
+- The new no-DB tests were also run against the pre-fix sources (stashed): 5 fail there (both view-selection cases, the live-WSGI test, the list and dict `clean_chart` cases). All pass with the fixes.
+
+Test counts after the fixes (REAL, this run; the DB is still not set up, so DB tests ERROR at setup with `password authentication failed for user "nexora_migrator"` = not executed):
+- `apps/core/tests/test_job_events.py`: 19 passed, 0 failed, 9 errors (no DB).
+- `apps/bi/tests/test_results.py`: 28 passed.
+- `apps/bi/tests/test_dashboards.py`: 26 errors (no DB).
+- `backend/apps` (all apps): 1680 passed, 0 failed, 1 skipped, 364 errors (no DB). With `-m "not django_db"`: 1680 passed, 1 skipped, 364 deselected.
+- Checks:
+  - `check_conventions` OK.
+  - `check_ownership --agent backend --base main` OK.
+  - `ruff check backend/apps backend/nexora`: all passed.
+  - `manage.py check`: no issues.
+  - `makemigrations --check`: no changes.
+- Frontend (`npm run lint` / `typecheck` / `test` / `build`): not executed. This worktree has no `frontend/node_modules`, so eslint/tsc/vitest are not found. Installing dependencies is not allowed. No frontend file was changed.
+
+Defects for other agents arising from these fixes:
+- **qa_security**, `tests/isolation/test_jobs_sse_isolation.py`:
+  - `test_sse_access_check_matrix` line 86 asserts that a viewer may follow the owner's job. This now returns `None` (404), as reviewed. Expect `None` for `a.viewer`, and add an auditor (`jobs.view_all`) → `str(a.id)`.
+  - `test_sse_streams_only_the_requested_orgs_events`: the test client is WSGI, so the stream is now a plain generator served by `jobs.redis_client()`. The `fake_redis` fixture already patches it. `pytest.warns(Warning)` (line 117) will fail with DID NOT WARN, so drop it. The `sse.aioredis.from_url` monkeypatch is no longer needed for this path. The test also needs `settings.JOB_EVENTS_BACKEND = "redis"` (see the earlier request about the `fake_redis` fixture).
