@@ -49,7 +49,7 @@ def _reset_sentinel():
 
 @pytest.fixture
 def ml_env(local_fs_storage, fake_gemini, fake_embedder, fake_redis):
-    fake_gemini.respond("*", text="Synthetic narration.")
+    fake_gemini.respond("*", {"summary": "Synthetic narration."}, stream=["Synthetic narration."])
     return local_fs_storage
 
 

@@ -230,16 +230,20 @@ def train(client, slug: str, project_id: str, capture, *, algorithm: str, random
     return exp
 
 
-def register(client, slug: str, experiment_id: str) -> tuple[str, Any]:
-    """POST …/experiments/{id}/register -> (model_id, version) where version is the {v} path value."""
-    resp = client.post(f"{ml_base(slug)}/experiments/{experiment_id}/register", {}, format="json")
-    assert resp.status_code in (200, 201), (resp.status_code, resp.content[:600])
-    body = resp.json()
+def parse_registration(body: dict) -> tuple[str, Any]:
+    """(model_id, version) from a register response; version is the {v} path value of the promote route."""
     model_id = pick(body, "model_id", "model.id", "version.model_id")
     version = pick(body, "version.version", "version_number", "version", "versions.-1.version", "number")
     if isinstance(version, dict):
         version = pick(version, "version", "number", "id")
     return str(model_id), version
+
+
+def register(client, slug: str, experiment_id: str, **body) -> tuple[str, Any]:
+    """POST …/experiments/{id}/register -> (model_id, version)."""
+    resp = client.post(f"{ml_base(slug)}/experiments/{experiment_id}/register", body, format="json")
+    assert resp.status_code in (200, 201), (resp.status_code, resp.content[:600])
+    return parse_registration(resp.json())
 
 
 def promote(client, slug: str, model_id: str, version, stage: str = "production"):
