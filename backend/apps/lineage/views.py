@@ -34,7 +34,7 @@ class LineageView(TenantAPIView):
             errors["depth"] = ["Must be an integer."]
         if errors:
             raise ValidationError(errors)
-        result = services.graph(node_type, node_id, depth=depth)
+        result = services.graph(node_type, node_id, depth=depth, viewer_id=request.user.pk)
         if not result["nodes"]:
             raise NotFound()  # unknown node or another org's node: 404, never 403
         return Response(result)

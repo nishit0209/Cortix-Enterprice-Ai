@@ -1,16 +1,25 @@
 """Public service API of apps.lineage. Other apps import only from here.
 
     record(from_type, from_id, to_type, to_id, run_id=None, label="", transform=None) -> LineageEdge
-    graph(node_type, node_id, depth=3) -> {"nodes": [{id, type, label}], "edges": [{from, to, label}]}
+    graph(node_type, node_id, depth=3, viewer_id=None)
+        -> {"nodes": [{id, type, label, restricted}], "edges": [{from, to, label}], "restricted_count": n}
     register_node_resolver(node_type, resolver)   # labels/expansion supplied by the owning app
+    current_viewer() -> UUID | None               # for resolvers: the user the graph is built for
 
 Node ids in the graph are the assets' UUID strings (UUIDv7, globally unique).
+
+Restricted nodes: a resolver marks a node `visible=False` when the viewer may not see it (dataset ACL `read`,
+`sources.view`, `pipelines.view`) or it no longer exists. Such nodes are never labelled, never expanded (the graph
+does not traverse through them, so nothing behind a restricted asset leaks), and are collapsed into ONE placeholder
+node `{id: "restricted", type: "restricted", label: "<n> restricted assets", restricted: true}` wired to the
+visible neighbours. Every other node carries `restricted: false`.
 """
 
 from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Iterable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from uuid import UUID
 
@@ -23,6 +32,13 @@ from .models import NODE_TYPES, LineageEdge
 VALID_TYPES = {t for t, _ in NODE_TYPES}
 MAX_DEPTH = 6
 MAX_NODES = 500
+RESTRICTED_ID = "restricted"
+_viewer: ContextVar[UUID | None] = ContextVar("lineage_viewer", default=None)
+
+
+def current_viewer() -> UUID | None:
+    """The user a graph is being built for (None = system / no per-user filtering)."""
+    return _viewer.get()
 
 
 @dataclass
@@ -98,11 +114,26 @@ def _edges_touching(keys: Iterable[tuple[str, UUID]]) -> list[LineageEdge]:
     return list(LineageEdge.objects.filter(cond)[: MAX_NODES * 4])
 
 
-def graph(node_type: str, node_id, *, depth: int = 3) -> dict:
-    """Upstream + downstream graph around a node, up to `depth` hops. Unresolvable nodes are collapsed."""
+def graph(node_type: str, node_id, *, depth: int = 3, viewer_id=None) -> dict:
+    """Upstream + downstream graph around a node, up to `depth` hops, as `viewer_id` may see it.
+
+    Unresolvable / restricted nodes are collapsed into one placeholder and not traversed. An invisible root gives
+    an empty graph (the API answers 404)."""
     require_org_id()
     if node_type not in VALID_TYPES:
         raise ValueError(f"unknown node type {node_type!r}")
+    token = _viewer.set(_uuid(viewer_id) if viewer_id else None)
+    try:
+        return _graph(node_type, node_id, depth)
+    finally:
+        _viewer.reset(token)
+
+
+def _is_visible(info: NodeInfo | None) -> bool:
+    return info is not None and info.visible
+
+
+def _graph(node_type: str, node_id, depth: int) -> dict:
     depth = max(1, min(int(depth), MAX_DEPTH))
     start = (node_type, _uuid(node_id))
     nodes: dict[tuple[str, UUID], NodeInfo | None] = {start: None}
@@ -111,12 +142,15 @@ def graph(node_type: str, node_id, *, depth: int = 3) -> dict:
     _resolve(nodes)
     root = nodes[start]
     if root is None or not root.visible:
-        return {"nodes": [], "edges": []}
+        return {"nodes": [], "edges": [], "restricted_count": 0}
     for level in range(depth):
         if not frontier or len(nodes) >= MAX_NODES:
             break
-        current = list(frontier)
+        # never expand a restricted node: its own edges would reveal what lies behind it
+        current = [k for k in frontier if _is_visible(nodes.get(k))]
         frontier.clear()
+        if not current:
+            break
         # node-supplied structural edges (e.g. dataset -> versions)
         for key in current:
             info = nodes.get(key)
@@ -138,9 +172,10 @@ def graph(node_type: str, node_id, *, depth: int = 3) -> dict:
             break
     visible = {k for k, v in nodes.items() if v is not None and v.visible}
     hidden = {k for k in nodes if k not in visible}
-    out_nodes = [{"id": str(i), "type": t, "label": nodes[(t, i)].label} for (t, i) in nodes if (t, i) in visible]
+    out_nodes = [{"id": str(i), "type": t, "label": nodes[(t, i)].label, "restricted": False}
+                 for (t, i) in nodes if (t, i) in visible]
     out_edges = []
-    restricted_id = "restricted"
+    restricted_id = RESTRICTED_ID
     for (a, b), label in edges.items():
         if a in visible and b in visible:
             out_edges.append({"from": str(a[1]), "to": str(b[1]), "label": label})
@@ -148,8 +183,11 @@ def graph(node_type: str, node_id, *, depth: int = 3) -> dict:
             src = str(a[1]) if a in visible else restricted_id
             dst = str(b[1]) if b in visible else restricted_id
             out_edges.append({"from": src, "to": dst, "label": label})
-    if hidden and any(e["from"] == restricted_id or e["to"] == restricted_id for e in out_edges):
-        out_nodes.append({"id": restricted_id, "type": "restricted", "label": f"{len(hidden)} restricted assets"})
+    linked_hidden = {k for (a, b) in edges for k in (a, b) if k in hidden and (a in visible or b in visible)}
+    if linked_hidden:
+        n = len(linked_hidden)
+        out_nodes.append({"id": restricted_id, "type": "restricted", "restricted": True,
+                          "label": f"{n} restricted asset{'s' if n != 1 else ''}"})
     # de-duplicate edges to the placeholder
     seen = set()
     unique_edges = []
@@ -158,4 +196,4 @@ def graph(node_type: str, node_id, *, depth: int = 3) -> dict:
         if key not in seen:
             seen.add(key)
             unique_edges.append(e)
-    return {"nodes": out_nodes, "edges": unique_edges}
+    return {"nodes": out_nodes, "edges": unique_edges, "restricted_count": len(linked_hidden)}
