@@ -152,7 +152,8 @@ def test_csv_ingest_end_to_end(ctx, ready_dataset):
 
     stats = client.get(url(org_a, "data-stats")).json()
     assert stats["datasets"] == 1 and stats["rows_total"] == 40 and stats["storage_bytes"] > 0
-    assert stats["avg_quality"] == ds["quality_score"] and stats["runs_7d"] == {"succeeded": 0, "failed": 0}
+    assert stats["avg_quality"] == ds["quality_score"]
+    assert stats["runs_7d"] == {"succeeded": 0, "failed": 0, "total": 0}  # W3: `total` added (additive)
 
     with tenant_context(org_a.id):
         actions = set(AuditEvent.objects.values_list("action", flat=True))

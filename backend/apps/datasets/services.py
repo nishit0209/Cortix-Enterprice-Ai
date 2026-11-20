@@ -10,6 +10,7 @@ Data:      version_columns(version), load_version_frame(version), load_current_f
 Schema:    logical_table_name(dataset), version_schema(dataset, version) -> (tables, columns_by_table)
 Registry:  dataset_classification(id), dataset_exists(id), dataset_schema(id)   (apps.core.registry providers)
 Other:     data_stats(), parse_as_type(series, pg_type)
+Notify:    notify_users(user_ids, kind, title, body, link), org_link(path)   (in-app notifications, best effort)
 Signals:   apps.datasets.signals.dataset_version_published (sent when a version becomes current)
 """
 
@@ -27,7 +28,6 @@ from typing import Any
 from uuid import UUID
 
 import polars as pl
-from botocore.exceptions import BotoCoreError, ClientError
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Avg, Max, Sum
@@ -56,6 +56,7 @@ from .ingest.errors import IngestError
 from .ingest.profiling import schema_drift
 from .models import ATTESTED_CLASSIFICATIONS, CLASSIFICATIONS, Dataset, DatasetColumn, DatasetVersion, Upload
 from .naming import logical_table_name as _logical_name
+from .notifications import notify_users, org_link  # noqa: F401 - re-exported for connectors / pipelines
 
 log = logging.getLogger(__name__)
 
@@ -105,7 +106,9 @@ def create_upload(fileobj, *, user_id=None, request=None) -> Upload:
     upload.object_key = storage.org_key("uploads", str(upload.id), key_name)
     try:
         storage.put_object(upload.object_key, raw, upload.content_type)
-    except (BotoCoreError, ClientError) as exc:
+    except storage.StorageKeyError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - any backend (fs / S3) failure is "storage unavailable"
         log.warning("upload to object storage failed: %s", type(exc).__name__)
         raise StorageUnavailable() from exc
     upload.status = "ready"
@@ -401,22 +404,37 @@ def register_stats_provider(fn: Callable[[], dict]) -> None:
 
 
 def data_stats() -> dict:
+    """Dashboard KPIs, every number computed from the DB (CONTRACT `/data-stats`, additive fields).
+
+    datasets / rows_total / avg_quality (over scored datasets) / storage_bytes / datasets_by_status here;
+    pipelines_active, pipelines_total, runs_7d {succeeded, failed, total}, runs_active from apps.pipelines and
+    sources / sources_active from apps.connectors (stats providers). Defaults are zeros, never invented values.
+    """
+    from django.db.models import Count
+
     live = Dataset.objects.exclude(status="deleted")
     agg = live.aggregate(rows=Sum("row_count"), quality=Avg("quality_score"))
     wh_bytes = DatasetVersion.objects.filter(status__in=("ready", "loading"), dataset__in=live).aggregate(
         b=Sum("byte_size"))["b"] or 0
     upload_bytes = Upload.objects.filter(status="ready").aggregate(b=Sum("size_bytes"))["b"] or 0
+    by_status = {row["status"]: row["n"] for row in live.values("status").annotate(n=Count("id"))}
     out = {
         "datasets": live.count(),
+        "datasets_by_status": {k: int(by_status.get(k, 0)) for k in ("ready", "processing", "failed")},
         "rows_total": int(agg["rows"] or 0),
         "avg_quality": round(float(agg["quality"]), 2) if agg["quality"] is not None else None,
         "pipelines_active": 0,
-        "runs_7d": {"succeeded": 0, "failed": 0},
+        "pipelines_total": 0,
+        "runs_7d": {"succeeded": 0, "failed": 0, "total": 0},
+        "runs_active": 0,
+        "sources": 0,
+        "sources_active": 0,
         "storage_bytes": int(wh_bytes) + int(upload_bytes),
     }
     for provider in _stats_providers:
         try:
-            out.update(provider())
+            with transaction.atomic():  # savepoint: a failing provider must not poison the request transaction
+                out.update(provider())
         except Exception:  # noqa: BLE001 - a broken provider must not break the dashboard
             log.exception("data-stats provider failed")
     return out
@@ -471,7 +489,9 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
             local = os.path.join(workdir, "source" + os.path.splitext(upload.filename)[1].lower())
             try:
                 storage.download_to(upload.object_key, local)
-            except (BotoCoreError, ClientError) as exc:
+            except storage.StorageKeyError:
+                raise
+            except Exception as exc:  # noqa: BLE001 - fs (OSError) or S3 errors: retryable storage failure
                 raise IngestError("storage_unavailable", "The uploaded file could not be read from storage.") from exc
             _stage(job_id, "scan")
         with open(local, "rb") as fh:
@@ -489,6 +509,7 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
         with tenant_step(org):
             _stage(job_id, "profile", rows=parsed.row_count, columns=parsed.frame.width)
         analyzed = analyze(parsed)
+        del parsed  # the all-text frame is no longer needed: only the typed frame stays in memory
         columns = _column_rows(analyzed)
 
         with tenant_step(org):
@@ -564,23 +585,61 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
                 "row_count": loaded.row_count, "column_count": len(columns), "quality_score": float(report.score),
                 "wh_table": version.wh_table, "current": not blocking, "blocking_failures": blocking,
                 "pii_columns": analyzed.profile.get("pii_columns", []),
+                "rules_passed": int(computation.summary.get("rules_passed", 0)),
+                "rules_failed": int(computation.summary.get("rules_failed", 0)),
             }
             audit.record("dataset.version.ready", target=version, metadata=result)
             jobs.finish(job_id, result=result)
+            if (options or {}).get("notify", True):
+                _notify_ingest(dataset, upload, ok=not blocking, version=version.version, rows=loaded.row_count,
+                               score=report.score, blocking=blocking)
         if not blocking:
             _notify_version_published(org, dataset.id, version.id)
+        _send_ingest_finished(org, dataset_id, job_id, ok=True)
         return result
     except IngestError as exc:
-        _fail(org, dataset_id, upload_id, version_id, job_id, exc.code, exc.message, exc.detail)
+        _fail(org, dataset_id, upload_id, version_id, job_id, exc.code, exc.message, exc.detail, options=options)
     except WarehouseError as exc:
         code = exc.get_codes() if isinstance(exc.get_codes(), str) else "warehouse_error"
-        _fail(org, dataset_id, upload_id, version_id, job_id, code, str(exc.detail))
+        _fail(org, dataset_id, upload_id, version_id, job_id, code, str(exc.detail), options=options)
     except Exception:  # noqa: BLE001 - never leak internals; the job carries a stable code
         log.exception("ingest failed dataset=%s", dataset_id)
-        _fail(org, dataset_id, upload_id, version_id, job_id, "ingest_failed", "Unexpected error while ingesting the file.")
+        _fail(org, dataset_id, upload_id, version_id, job_id, "ingest_failed", "Unexpected error while ingesting the file.",
+              options=options)
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     return None
+
+
+def _notify_ingest(dataset: Dataset, upload: Upload | None, *, ok: bool, version: int | None = None,
+                   rows: int | None = None, score=None, blocking=None, code: str = "", message: str = "") -> None:
+    """Tell the uploader (falling back to the dataset owner) that ingestion finished or failed."""
+    from . import notifications as N
+
+    user = (upload.created_by if upload is not None else None) or dataset.owner_id
+    link = org_link(f"data/datasets/{dataset.id}")
+    if ok:
+        body = f"Version {version}: {rows:,} rows" + (f", quality score {float(score):.0f}" if score is not None else "")
+        notify_users([user], N.DATASET_READY, f"Dataset '{dataset.name}' is ready", body + ".", link)
+    elif blocking:
+        notify_users([user], N.DATASET_FAILED, f"Dataset '{dataset.name}' was not published",
+                     f"Version {version} failed {len(blocking)} blocking quality rule(s); the previous version stays "
+                     "current.", link)
+    else:
+        notify_users([user], N.DATASET_FAILED, f"Ingesting '{dataset.name}' failed", f"{message} ({code})", link)
+
+
+def _send_ingest_finished(org: UUID, dataset_id, job_id, *, ok: bool, code: str | None = None) -> None:
+    from .signals import dataset_ingest_finished
+
+    try:
+        responses = dataset_ingest_finished.send_robust(sender=Dataset, org_id=org, dataset_id=UUID(str(dataset_id)),
+                                                        job_id=UUID(str(job_id)), ok=ok, code=code)
+        for receiver, response in responses:
+            if isinstance(response, Exception):
+                log.error("dataset_ingest_finished receiver %r failed: %s", receiver, response)
+    except Exception:  # noqa: BLE001 - listeners never fail a finished ingestion
+        log.exception("dataset_ingest_finished could not be delivered dataset=%s", dataset_id)
 
 
 def _notify_version_published(org: UUID, dataset_id, version_id) -> None:
@@ -603,7 +662,8 @@ _UPLOAD_REJECT_CODES = {"upload_empty", "upload_type_not_allowed", "upload_conte
                         "upload_too_large", "malformed_file", "too_many_columns", "too_many_rows", "no_columns"}
 
 
-def _fail(org: UUID, dataset_id, upload_id, version_id, job_id, code: str, message: str, detail: dict | None = None):
+def _fail(org: UUID, dataset_id, upload_id, version_id, job_id, code: str, message: str, detail: dict | None = None,
+          *, options: dict | None = None):
     with tenant_step(org):
         if version_id is not None:
             DatasetVersion.objects.filter(id=version_id).update(status="failed", error={"code": code, "message": message})
@@ -619,3 +679,6 @@ def _fail(org: UUID, dataset_id, upload_id, version_id, job_id, code: str, messa
         jobs.fail(job_id, code=code, message=message, detail=detail or None)
         audit.record("dataset.ingest.failed", target_type="datasets.dataset", target_id=str(dataset_id),
                      metadata={"code": code, "message": message, "job_id": str(job_id)})
+        if dataset is not None and (options or {}).get("notify", True):
+            _notify_ingest(dataset, Upload.objects.filter(id=upload_id).first(), ok=False, code=code, message=message)
+    _send_ingest_finished(org, dataset_id, job_id, ok=False, code=code)
