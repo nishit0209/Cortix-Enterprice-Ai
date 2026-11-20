@@ -37,11 +37,11 @@ JSON_MAX_DEPTH = 3
 
 
 def max_columns() -> int:
-    return int(getattr(settings, "DATASET_MAX_COLUMNS", 1000))
+    return int(settings.DATASET_MAX_COLUMNS)
 
 
 def max_rows() -> int:
-    return int(getattr(settings, "DATASET_MAX_ROWS", 50_000_000))
+    return int(settings.DATASET_MAX_ROWS)
 
 
 @dataclass
