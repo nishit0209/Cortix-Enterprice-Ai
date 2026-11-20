@@ -5,6 +5,7 @@ from rest_framework import serializers
 from .base import registered_types
 
 NAME_MAX = 200
+TABLE_MAX = 63  # PostgreSQL identifier limit (a qualified "schema.table" may be up to 2 * 63 + 1)
 
 
 class DataSourceCreateSerializer(serializers.Serializer):
@@ -29,7 +30,8 @@ class DataSourceUpdateSerializer(serializers.Serializer):
 
 
 class ImportSerializer(serializers.Serializer):
-    table = serializers.RegexField(r"^[^\x00]{1,63}$", max_length=63)
+    # a table name, or "schema.table" as the catalog browser lists it (split by the view when `schema` is absent)
+    table = serializers.RegexField(r"^[^\x00]{1,127}$", max_length=2 * TABLE_MAX + 1)
     schema = serializers.RegexField(r"^[A-Za-z_][A-Za-z0-9_$]{0,62}$", required=False, allow_null=True)
     name = serializers.CharField(max_length=NAME_MAX, trim_whitespace=True)
     columns = serializers.ListField(child=serializers.CharField(max_length=63), required=False, allow_empty=False,

@@ -43,6 +43,27 @@ class FakeStorage:
 
 
 @pytest.fixture
+def captured_notifications(monkeypatch):
+    """Record `apps.core.notifications.notify(...)` calls (replaces the Backend service, merged or not).
+
+    Each call becomes `{"user_ids": [str], "kind", "title", "body", "link"}`.
+    """
+    import sys
+    import types
+
+    calls: list[dict] = []
+    module = types.ModuleType("apps.core.notifications")
+
+    def notify(user_ids, kind, title, body="", link=""):
+        calls.append({"user_ids": [str(u) for u in user_ids], "kind": kind, "title": title, "body": body,
+                      "link": link})
+
+    module.notify = notify
+    monkeypatch.setitem(sys.modules, "apps.core.notifications", module)
+    return calls
+
+
+@pytest.fixture
 def fake_storage(monkeypatch):
     fake = FakeStorage()
     for name in ("put_object", "put_bytes", "get_object", "download_to", "delete_object"):

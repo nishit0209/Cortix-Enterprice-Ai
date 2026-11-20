@@ -42,7 +42,53 @@ class TestResult:
     def as_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["readonly"] = self.readonly.as_dict()
+        d["checks"] = self.checks()
         return d
+
+    def checks(self) -> list[dict[str, Any]]:
+        """The test as ordered UI checks `[{key, ok, message}]` (dns -> ssrf -> tls -> login -> readonly).
+
+        Checks run in order and stop at the first failure, so only the checks that actually ran are listed.
+        """
+        failed = None if self.ok else _failed_check(self.code, bool(self.current_user))
+        passed_messages = {
+            "dns": f"Resolved to {self.resolved_ip}." if self.resolved_ip else "The host name resolved.",
+            "ssrf": "The address passed the host allow-list (no private, loopback or link-local targets).",
+            "tls": f"Connected in {self.latency_ms} ms.",
+            "login": (f"Logged in as {self.current_user} to {self.database} (PostgreSQL {self.server_version})."
+                      if self.current_user else "Logged in."),
+            "readonly": "No write, superuser or server-file privileges.",
+        }
+        out: list[dict[str, Any]] = []
+        for key in CHECK_ORDER:
+            if key == failed:
+                message = self.message or "The check failed."
+                if key == "readonly" and self.readonly.problems:
+                    shown = ", ".join(self.readonly.problems[:5])
+                    more = " …" if len(self.readonly.problems) > 5 else ""
+                    message = f"{message} Problems: {shown}{more}"
+                out.append({"key": key, "ok": False, "message": message})
+                break
+            out.append({"key": key, "ok": True, "message": passed_messages[key]})
+        return out
+
+
+CHECK_ORDER = ("dns", "ssrf", "tls", "login", "readonly")
+_FAILED_CHECK_BY_CODE = {
+    "connector_host_invalid": "dns",
+    "connector_host_unresolvable": "dns",
+    "connector_host_forbidden": "ssrf",
+    "connector_connection_failed": "tls",   # TCP connect + TLS handshake are one step
+    "connector_timeout": "tls",
+    "connector_tls_failed": "tls",
+    "connector_auth_failed": "login",
+    "connector_role_not_readonly": "readonly",
+}
+
+
+def _failed_check(code: str | None, logged_in: bool) -> str:
+    """The check a failure code belongs to (unknown codes: after login -> readonly, before -> tls)."""
+    return _FAILED_CHECK_BY_CODE.get(code or "", "readonly" if logged_in else "tls")
 
 
 @dataclass(frozen=True)

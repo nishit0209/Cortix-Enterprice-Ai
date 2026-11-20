@@ -50,7 +50,7 @@ def run_factory(world) -> dict[str, str]:
 
 ISOLATION_FACTORIES = {
     **{name: pipeline_factory for name in ("pipeline-detail", "pipeline-runs", "pipeline-schedule",
-                                            "pipeline-preview", "pipeline-versions")},
+                                            "pipeline-preview", "pipeline-versions", "pipeline-validate-detail")},
     **{name: run_factory for name in ("pipeline-run-detail", "pipeline-run-logs", "pipeline-run-retry",
                                       "pipeline-run-cancel")},
 }

@@ -10,6 +10,7 @@ from apps.lineage import services
 from apps.lineage.models import LineageEdge
 
 pytestmark = pytest.mark.django_db
+EMPTY = {"nodes": [], "edges": [], "restricted_count": 0}
 
 
 def make_dataset(org, name="Sales"):
@@ -67,15 +68,15 @@ def test_deleted_assets_collapse_into_restricted_placeholder(two_orgs):
     assert str(v1.id) not in ids and "restricted" in ids
     assert any(e["from"] == "restricted" and e["to"] == str(ov1.id) for e in g["edges"])
     with tenant_context(org_a.id):
-        assert services.graph("dataset", ds.id) == {"nodes": [], "edges": []}
+        assert services.graph("dataset", ds.id) == EMPTY
 
 
 def test_graph_is_tenant_isolated(two_orgs):
     _, org_a, _, org_b = two_orgs
     _, ds, v1 = make_dataset(org_a)
     with tenant_context(org_b.id):
-        assert services.graph("dataset", ds.id) == {"nodes": [], "edges": []}
-        assert services.graph("dataset_version", v1.id) == {"nodes": [], "edges": []}
+        assert services.graph("dataset", ds.id) == EMPTY
+        assert services.graph("dataset_version", v1.id) == EMPTY
         assert LineageEdge.objects.count() == 0
 
 
@@ -92,3 +93,49 @@ def test_lineage_api_validation_and_404(api_client, two_orgs):
     api_client.force_authenticate(bob)
     assert api_client.get(f"/api/v1/orgs/{org_b.slug}/lineage?node_type=dataset&node_id={ds.id}").status_code == 404
     assert api_client.get(f"{base}?node_type=dataset&node_id={ds.id}").status_code == 404
+
+
+def test_nodes_the_viewer_cannot_read_are_restricted_and_not_traversed(two_orgs):
+    """A dataset ACL that denies `read` hides the dataset AND everything only reachable through it."""
+    from apps.datasets.tests.helpers import add_member
+    from apps.governance.models import DatasetAcl
+
+    alice, org_a, _bob, _org_b = two_orgs
+    upload, secret, sv1 = make_dataset(org_a, "Secret")
+    _, public, pv1 = make_dataset(org_a, "Public")
+    analyst = add_member(org_a, "analyst-lineage@example.test", "analyst")
+    with tenant_context(org_a.id):
+        services.record("dataset_version", sv1.id, "dataset_version", pv1.id, label="derived")
+        DatasetAcl.objects.create(dataset_id=secret.id, principal_type="user", principal_id=alice.pk,
+                                  privilege="admin")
+        owner_view = services.graph("dataset", public.id, viewer_id=alice.pk)
+        analyst_view = services.graph("dataset", public.id, viewer_id=analyst.pk)
+        hidden_root = services.graph("dataset", secret.id, viewer_id=analyst.pk)
+    assert str(secret.id) in {n["id"] for n in owner_view["nodes"]}
+    ids = {n["id"]: n for n in analyst_view["nodes"]}
+    assert str(sv1.id) not in ids and str(secret.id) not in ids and str(upload.id) not in ids
+    assert ids["restricted"]["restricted"] is True and ids["restricted"]["type"] == "restricted"
+    assert all(n["restricted"] is False for k, n in ids.items() if k != "restricted")
+    assert analyst_view["restricted_count"] == 1
+    assert {"from": "restricted", "to": str(pv1.id), "label": "derived"} in analyst_view["edges"]
+    assert hidden_root == EMPTY
+
+
+def test_lineage_api_marks_restricted_nodes(api_client, two_orgs):
+    from apps.datasets.tests.helpers import add_member
+    from apps.governance.models import DatasetAcl
+
+    alice, org_a, _bob, _org_b = two_orgs
+    _, secret, sv1 = make_dataset(org_a, "Secret")
+    _, public, pv1 = make_dataset(org_a, "Public")
+    analyst = add_member(org_a, "analyst-lineage-api@example.test", "analyst")
+    with tenant_context(org_a.id):
+        services.record("dataset_version", sv1.id, "dataset_version", pv1.id, label="derived")
+        DatasetAcl.objects.create(dataset_id=secret.id, principal_type="user", principal_id=alice.pk,
+                                  privilege="admin")
+    api_client.force_authenticate(analyst)
+    base = f"/api/v1/orgs/{org_a.slug}/lineage"
+    body = api_client.get(f"{base}?node_type=dataset&node_id={public.id}").json()
+    restricted = [n for n in body["nodes"] if n["restricted"]]
+    assert [n["id"] for n in restricted] == ["restricted"] and "Secret" not in str(body)
+    assert api_client.get(f"{base}?node_type=dataset&node_id={secret.id}").status_code == 404

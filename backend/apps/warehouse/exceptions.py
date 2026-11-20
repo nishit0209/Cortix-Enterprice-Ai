@@ -35,3 +35,9 @@ class WarehouseQueryFailed(WarehouseError):
     status_code = 422
     default_code = "query_failed"
     default_detail = "The query failed."
+
+
+class WarehouseSetupError(WarehouseError):
+    status_code = 503
+    default_code = "warehouse_setup_error"
+    default_detail = "The data warehouse roles are not set up correctly (run manage.py check_warehouse)."

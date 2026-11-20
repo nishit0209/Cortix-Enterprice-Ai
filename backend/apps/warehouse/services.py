@@ -8,6 +8,13 @@
     read_table(org_id, table, columns)        -> polars.DataFrame (internal system reads, e.g. quality)
     drop_table(org_id, table)                 -> None           (retention / failed-load cleanup)
     execute_readonly_sql(org_id, sql, ...)    -> nexora.contracts.ResultSet  (low-level guarded executor)
+    check_setup()                             -> SetupReport    (roles/privileges diagnostics, no tenant data)
+
+Local PostgreSQL 16/17 (scripts/bootstrap_local_db.py, no Docker): `wh_loader` is a non-superuser CREATEROLE role. Since
+PG16 such a role may only grant/alter/drop roles it holds ADMIN OPTION on; it receives that automatically for every
+role IT creates. So the loader creates each `wh_q_<id>` reader role itself and then grants it to the NOINHERIT
+`wh_executor` login (membership with SET, without INHERIT). A reader role created by someone else (e.g. a superuser)
+is refused with a clear `warehouse_role_not_administrable` error instead of a raw permission failure.
 
 Every function refuses to act for an org other than the active tenant context.
 """
@@ -17,7 +24,9 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 import re
+import tempfile
 import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -40,6 +49,7 @@ from .exceptions import (
     WarehouseQueryDenied,
     WarehouseQueryFailed,
     WarehouseQueryTimeout,
+    WarehouseSetupError,
     WarehouseTenantMismatch,
     WarehouseUnavailable,
 )
@@ -115,32 +125,118 @@ def _org_short_id(org_uuid: UUID) -> str:
 # --------------------------------------------------------------------------------------------------
 # provisioning
 # --------------------------------------------------------------------------------------------------
-def _provision_objects(schema: str, role: str, executor: str) -> None:
+def provisioning_statements(schema: str, role: str, executor: str) -> list[sql.Composable]:
+    """The idempotent DDL the loader runs for one org (role existence/membership checks are done in between)."""
     ident = sql.Identifier
+    return [
+        sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(ident(schema)),
+        sql.SQL("REVOKE ALL ON SCHEMA {} FROM PUBLIC").format(ident(schema)),
+        sql.SQL("CREATE ROLE {} NOLOGIN NOINHERIT").format(ident(role)),
+        sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(ident(schema), ident(role)),
+        sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA {} GRANT SELECT ON TABLES TO {}").format(ident(schema), ident(role)),
+        sql.SQL("GRANT SELECT ON ALL TABLES IN SCHEMA {} TO {}").format(ident(schema), ident(role)),
+        sql.SQL("GRANT {} TO {}").format(ident(role), ident(executor)),
+    ]
+
+
+_NOT_ADMIN_MSG = (
+    "The warehouse reader role {role} exists but wh_loader cannot administer it (PostgreSQL 16+ only lets a "
+    "CREATEROLE role grant roles it created). Drop it as a superuser (DROP ROLE {role};) or run "
+    "GRANT {role} TO wh_loader WITH ADMIN OPTION; then retry."
+)
+
+
+def _provision_objects(schema: str, role: str, executor: str) -> None:
+    create_schema, revoke, create_role, usage, defaults, select_all, grant_member = provisioning_statements(
+        schema, role, executor)
+    try:
+        _run_provisioning(schema, role, executor, create_schema, revoke, create_role, usage, defaults, select_all,
+                          grant_member)
+    except pg_errors.InsufficientPrivilege as exc:
+        raise WarehouseSetupError(_NOT_ADMIN_MSG.format(role=role), code="warehouse_role_not_administrable") from exc
+
+
+def _run_provisioning(schema, role, executor, create_schema, revoke, create_role, usage, defaults, select_all,
+                      grant_member) -> None:
     with loader_connection() as conn:
         with conn.transaction():
             cur = conn.cursor()
             # serialize concurrent provisioning of the same org
             cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", [f"nexora_wh_provision:{schema}"])
-            cur.execute(sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(ident(schema)))
-            cur.execute(sql.SQL("REVOKE ALL ON SCHEMA {} FROM PUBLIC").format(ident(schema)))
+            cur.execute(create_schema)
+            cur.execute(revoke)
             cur.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
             if cur.fetchone() is None:
-                cur.execute(sql.SQL("CREATE ROLE {} NOLOGIN NOINHERIT").format(ident(role)))
-            cur.execute(sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(ident(schema), ident(role)))
-            cur.execute(
-                sql.SQL("ALTER DEFAULT PRIVILEGES IN SCHEMA {} GRANT SELECT ON TABLES TO {}").format(
-                    ident(schema), ident(role)
-                )
-            )
-            cur.execute(sql.SQL("GRANT SELECT ON ALL TABLES IN SCHEMA {} TO {}").format(ident(schema), ident(role)))
+                cur.execute(create_role)  # PG16+: the loader now holds ADMIN OPTION on the new role
+            cur.execute(usage)
+            cur.execute(defaults)
+            cur.execute(select_all)
             cur.execute(
                 "SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid "
                 "JOIN pg_roles u ON u.oid = m.member WHERE r.rolname = %s AND u.rolname = %s",
                 [role, executor],
             )
             if cur.fetchone() is None:
-                cur.execute(sql.SQL("GRANT {} TO {}").format(ident(role), ident(executor)))
+                cur.execute(grant_member)
+
+
+@dataclass(frozen=True)
+class SetupReport:
+    ok: bool
+    server_version: int | None
+    problems: tuple[str, ...]
+    checks: dict[str, Any]
+
+
+def evaluate_setup(facts: Mapping[str, Any], executor: str) -> SetupReport:
+    """Pure: turn catalog facts about the loader/executor roles into a verdict (unit-testable)."""
+    problems: list[str] = []
+    version = facts.get("server_version_num")
+    if version is not None and int(version) < 160000:
+        problems.append(f"PostgreSQL {int(version) // 10000} is older than the supported 16+.")
+    if not facts.get("loader_createrole"):
+        problems.append("wh_loader lacks CREATEROLE (needed to create the per-org reader roles).")
+    if facts.get("loader_superuser"):
+        problems.append("wh_loader must not be a superuser.")
+    if not facts.get("loader_owns_db"):
+        problems.append("wh_loader does not own the warehouse database (it creates the per-org schemas).")
+    if facts.get("executor_exists") is False:
+        problems.append(f"The executor login role {executor} does not exist.")
+    else:
+        if facts.get("executor_inherit"):
+            problems.append(f"{executor} must be NOINHERIT (queries run only after SET LOCAL ROLE <reader>).")
+        if facts.get("executor_superuser") or facts.get("executor_bypassrls"):
+            problems.append(f"{executor} must not be a superuser or BYPASSRLS.")
+    for role in facts.get("unadministrable_roles") or ():
+        problems.append(_NOT_ADMIN_MSG.format(role=role))
+    return SetupReport(ok=not problems, server_version=int(version) if version is not None else None,
+                       problems=tuple(problems), checks=dict(facts))
+
+
+def check_setup() -> SetupReport:
+    """Inspect the warehouse roles as the loader (catalog only, no tenant data). Used by `manage.py check_warehouse`."""
+    executor = naming.executor_login_role()
+    prefix = naming.reader_role_prefix()
+    with loader_connection(autocommit=True) as conn:
+        facts: dict[str, Any] = {}
+        facts["server_version_num"] = int(conn.execute("SHOW server_version_num").fetchone()[0])
+        row = conn.execute("SELECT rolcreaterole, rolsuper FROM pg_roles WHERE rolname = current_user").fetchone()
+        facts["loader_createrole"], facts["loader_superuser"] = bool(row[0]), bool(row[1])
+        facts["loader_owns_db"] = bool(conn.execute(
+            "SELECT pg_get_userbyid(datdba) = current_user FROM pg_database WHERE datname = current_database()"
+        ).fetchone()[0])
+        row = conn.execute("SELECT rolinherit, rolsuper, rolbypassrls FROM pg_roles WHERE rolname = %s",
+                           [executor]).fetchone()
+        facts["executor_exists"] = row is not None
+        if row is not None:
+            facts["executor_inherit"], facts["executor_superuser"], facts["executor_bypassrls"] = map(bool, row)
+        if facts["server_version_num"] >= 160000:
+            facts["unadministrable_roles"] = [r[0] for r in conn.execute(
+                "SELECT r.rolname FROM pg_roles r WHERE left(r.rolname, %s) = %s AND NOT EXISTS ("
+                " SELECT 1 FROM pg_auth_members m JOIN pg_roles u ON u.oid = m.member"
+                " WHERE m.roleid = r.oid AND u.rolname = current_user AND m.admin_option)",
+                [len(prefix), prefix]).fetchall()]
+    return evaluate_setup(facts, executor)
 
 
 def provision(org_id: UUID | str) -> WhOrgBinding:
@@ -258,7 +354,7 @@ def load_table(
     table = naming.check_ident(table)
     if not columns:
         raise WarehouseError("a table needs at least one column", code="warehouse_no_columns")
-    frame = prepare_frame(df, columns)
+    prepare_frame(df.head(0), columns)  # fail fast on a schema mismatch, before any DDL
     qualified = sql.SQL("{}.{}").format(sql.Identifier(schema), sql.Identifier(table))
     col_list = sql.SQL(", ").join(sql.Identifier(c.name) for c in columns)
     rows = 0
@@ -270,9 +366,11 @@ def load_table(
                 cur.execute(sql.SQL("CREATE TABLE {} ({})").format(qualified, _column_defs(columns)))
                 copy_stmt = sql.SQL("COPY {} ({}) FROM STDIN (FORMAT csv)").format(qualified, col_list)
                 with cur.copy(copy_stmt) as copy:
-                    for chunk in frame.iter_slices(n_rows=max(1, batch_rows)):
-                        copy.write(_frame_to_csv(chunk))
-                rows = cur.rowcount if cur.rowcount and cur.rowcount > 0 else frame.height
+                    # batched COPY: each slice is cast + serialised on its own, so peak extra memory is one
+                    # batch of CSV text instead of a second full copy of the frame
+                    for chunk in df.iter_slices(n_rows=max(1, batch_rows)):
+                        copy.write(_frame_to_csv(prepare_frame(chunk, columns)))
+                rows = cur.rowcount if cur.rowcount and cur.rowcount > 0 else df.height
                 cur.execute(
                     sql.SQL("GRANT SELECT ON {} TO {}").format(qualified, sql.Identifier(binding.reader_role))
                 )
@@ -334,27 +432,38 @@ def read_table(
     )
     if limit is not None:
         select = select + sql.SQL(" LIMIT {}").format(sql.Literal(int(limit)))
-    buf = io.BytesIO()
+    # COPY output is spooled to a temp file (streamed block by block, never held as one bytes buffer) and parsed
+    # by Polars from disk.
+    fd, spool = tempfile.mkstemp(prefix="nexora_wh_read_", suffix=".csv")
     try:
-        with loader_connection() as conn:
-            with conn.transaction():
-                cur = conn.cursor()
-                cur.execute("SELECT set_config('TimeZone', 'UTC', true)")
-                with cur.copy(sql.SQL("COPY ({}) TO STDOUT (FORMAT csv)").format(select)) as copy:
-                    for block in copy:
-                        buf.write(block)
-    except psycopg.OperationalError as exc:
-        raise WarehouseUnavailable() from exc
-    except psycopg.Error as exc:
-        raise WarehouseError(f"warehouse read failed: {exc.diag.message_primary or type(exc).__name__}",
-                             code="warehouse_read_failed") from exc
-    data = buf.getvalue()
-    if not data:
+        with os.fdopen(fd, "wb") as out:
+            try:
+                with loader_connection() as conn:
+                    with conn.transaction():
+                        cur = conn.cursor()
+                        cur.execute("SELECT set_config('TimeZone', 'UTC', true)")
+                        with cur.copy(sql.SQL("COPY ({}) TO STDOUT (FORMAT csv)").format(select)) as copy:
+                            for block in copy:
+                                out.write(block)
+            except psycopg.OperationalError as exc:
+                raise WarehouseUnavailable() from exc
+            except psycopg.Error as exc:
+                raise WarehouseError(f"warehouse read failed: {exc.diag.message_primary or type(exc).__name__}",
+                                     code="warehouse_read_failed") from exc
+        return frame_from_pg_csv(spool, names, columns)
+    finally:
+        try:
+            os.unlink(spool)
+        except OSError:  # pragma: no cover - Windows: file still mapped; the temp dir is cleaned eventually
+            log.debug("could not remove %s", spool)
+
+
+def frame_from_pg_csv(path: str, names: Sequence[str], columns: Sequence[ColumnSpec]) -> pl.DataFrame:
+    """Parse a PostgreSQL `COPY ... (FORMAT csv)` file back into typed Polars columns (pure)."""
+    if os.path.getsize(path) == 0:
         return pl.DataFrame({n: pl.Series(n, [], dtype=PG_TYPES[c.pg_type]) for n, c in zip(names, columns, strict=True)})
     # PG CSV: NULL is an unquoted empty field, '' is a quoted empty field; Polars keeps that distinction.
-    raw = pl.read_csv(
-        io.BytesIO(data), has_header=False, new_columns=names, schema={n: pl.String for n in names}
-    )
+    raw = pl.read_csv(path, has_header=False, new_columns=list(names), schema={n: pl.String for n in names})
     return pl.DataFrame([_cast_from_pg_text(raw[n], c.pg_type).alias(n) for n, c in zip(names, columns, strict=True)])
 
 

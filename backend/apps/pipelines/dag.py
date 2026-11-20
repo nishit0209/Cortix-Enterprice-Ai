@@ -12,6 +12,14 @@
 MVP shape: a LINEAR chain source -> steps -> destination (exactly one source and one destination, every node
 connected, acyclic, at most one incoming and one outgoing edge per node). `join` brings in a second dataset
 through its config. Every problem is reported per node and field so the builder can highlight it.
+
+Builder dialect (W3, additive): node types/configs written by the pipeline builder (`source`, `casts`, `keys`, text
+expressions, ...) are first mapped onto the canonical form by `builder.normalize_node`.
+
+Builder join (W3, additive): the pipeline builder draws a join's right side as a second `source.dataset` node wired
+to the join's right handle (edges may carry `port: "left" | "right"`). Such a source - one that has no inputs and
+feeds only that join - is folded into the join's `config.dataset_id` (+ `columns`) before validation, so the chain
+stays linear. `DagValidation.folded` maps the folded source to its join. The stored DAG keeps the builder's form.
 """
 
 from __future__ import annotations
@@ -91,6 +99,7 @@ class EdgeIn(BaseModel):
 
     from_: NodeId = Field(alias="from")
     to: NodeId
+    port: Literal["left", "right"] | None = None   # builder join handle (see the module docstring)
 
 
 class DagIn(BaseModel):
@@ -98,6 +107,7 @@ class DagIn(BaseModel):
 
     nodes: list[NodeIn] = Field(min_length=1, max_length=MAX_NODES)
     edges: list[EdgeIn] = Field(default_factory=list, max_length=MAX_NODES * 2)
+    settings: dict[str, Any] | None = None         # builder settings, round-tripped and ignored by the engine
 
     @model_validator(mode="before")
     @classmethod
@@ -119,7 +129,11 @@ class DagIssue:
     message: str
 
     def as_dict(self) -> dict[str, Any]:
-        return {"node": self.node, "field": self.field, "code": self.code, "message": self.message}
+        """`node_id` names the node (None for DAG-level issues); `field` is the full path `nodes.<id>.<field>` so
+        clients can pin the message on the node; `node` is kept for W2 clients."""
+        path = f"nodes.{self.node}.{self.field}" if self.node and self.field else (
+            f"nodes.{self.node}" if self.node else self.field)
+        return {"node_id": self.node, "node": self.node, "field": path, "code": self.code, "message": self.message}
 
 
 @dataclass
@@ -153,6 +167,7 @@ class DagValidation:
     issues: list[DagIssue] = field(default_factory=list)
     order: list[Node] = field(default_factory=list)            # source -> ... -> destination
     schemas: dict[str, T.Schema | None] = field(default_factory=dict)
+    folded: dict[str, str] = field(default_factory=dict)       # builder right-input source id -> its join id
 
     @property
     def ok(self) -> bool:
@@ -196,6 +211,80 @@ def parse_dag(raw: Any) -> tuple[DagIn | None, list[DagIssue]]:
         return None, _pyd_issues(exc, None, "")
 
 
+def _normalize_builder_nodes(dag: DagIn, result: DagValidation) -> tuple[DagIn, set[tuple[str, str]]]:
+    """Map builder node types/configs onto the canonical form (`builder.py`); problems are pinned on the node.
+
+    Returns the DAG and the (node id, field) pairs already reported, so config validation does not repeat them."""
+    from .builder import normalize_node
+
+    nodes = []
+    reported: set[tuple[str, str]] = set()
+    changed = False
+    for n in dag.nodes:
+        node_type, config, problems = normalize_node(n.type, n.config)
+        for fld, code, message in problems:
+            result.issues.append(DagIssue(n.id, fld, code, message))
+            reported.add((n.id, fld))
+        if node_type != n.type or config != n.config:
+            changed = True
+            n = n.model_copy(update={"type": node_type, "config": config})
+        nodes.append(n)
+    return (dag.model_copy(update={"nodes": nodes}) if changed else dag), reported
+
+
+def fold_join_inputs(dag: DagIn) -> tuple[DagIn, dict[str, str], list[DagIssue]]:
+    """Fold builder-style join right inputs into `join.config.dataset_id` (see the module docstring).
+
+    Returns (the folded DAG, {folded source id: join id}, issues). A join with two inputs whose right side is not a
+    dataset source used only by that join is reported on the join; other shapes are left to the graph checks.
+    """
+    by_id = {n.id: n for n in dag.nodes}
+    incoming: dict[str, list[EdgeIn]] = {}
+    outgoing: dict[str, list[EdgeIn]] = {}
+    for e in dag.edges:
+        incoming.setdefault(e.to, []).append(e)
+        outgoing.setdefault(e.from_, []).append(e)
+    configs: dict[str, dict[str, Any]] = {}
+    folded: dict[str, str] = {}
+    dropped_edges: list[EdgeIn] = []
+    issues: list[DagIssue] = []
+    for node in dag.nodes:
+        ins = incoming.get(node.id, [])
+        if node.type != "join" or len(ins) != 2:
+            continue
+        left = [e for e in ins if e.port == "left"]
+        right = [e for e in ins if e.port == "right"] or [e for e in ins if e.port != "left"]
+        if len(left) != 1 or len(right) != 1 or left[0] is right[0]:
+            issues.append(DagIssue(node.id, "edges", "join_inputs",
+                                   "Connect the main input to the join's left handle and the right dataset to its "
+                                   "right handle."))
+            continue
+        source = by_id.get(right[0].from_)
+        if (source is None or source.type != "source.dataset" or incoming.get(source.id)
+                or len(outgoing.get(source.id, [])) != 1 or source.id in folded):
+            issues.append(DagIssue(node.id, "edges", "join_right_input",
+                                   "The right input of a join must be a dataset source that feeds only this join."))
+            continue
+        cfg = dict(node.config)
+        src_cfg = source.config or {}
+        if cfg.get("dataset_id") not in (None, "", src_cfg.get("dataset_id")):
+            issues.append(DagIssue(node.id, "config.dataset_id", "join_right_conflict",
+                                   "The join has both a right input and a different config.dataset_id."))
+            continue
+        cfg["dataset_id"] = src_cfg.get("dataset_id")
+        if src_cfg.get("columns") and not cfg.get("columns"):
+            cfg["columns"] = src_cfg["columns"]
+        configs[node.id] = cfg
+        folded[source.id] = node.id
+        dropped_edges.append(right[0])
+    if not folded:
+        return dag, folded, issues
+    nodes = [n.model_copy(update={"config": configs[n.id]}) if n.id in configs else n
+             for n in dag.nodes if n.id not in folded]
+    edges = [e for e in dag.edges if not any(e is d for d in dropped_edges)]
+    return dag.model_copy(update={"nodes": nodes, "edges": edges}), folded, issues
+
+
 def validate_dag(raw: Any, resolvers: Resolvers | None = None) -> DagValidation:
     """Full validation: structure, node configs, graph shape and (when resolvers are given) column/type checks."""
     result = DagValidation()
@@ -203,6 +292,9 @@ def validate_dag(raw: Any, resolvers: Resolvers | None = None) -> DagValidation:
     if dag is None:
         result.issues.extend(issues)
         return result
+    dag, reported = _normalize_builder_nodes(dag, result)
+    dag, result.folded, fold_issues = fold_join_inputs(dag)
+    result.issues.extend(fold_issues)
     resolvers = resolvers or Resolvers()
     nodes: dict[str, Node] = {}
     for n in dag.nodes:
@@ -218,7 +310,7 @@ def validate_dag(raw: Any, resolvers: Resolvers | None = None) -> DagValidation:
         try:
             cfg = model.model_validate(n.config)
         except PydanticValidationError as exc:
-            result.issues.extend(_pyd_issues(exc, n.id, "config"))
+            result.issues.extend(i for i in _pyd_issues(exc, n.id, "config") if (n.id, i.field) not in reported)
             cfg = None
         nodes[n.id] = Node(n.id, n.type, cfg, n.model_dump(by_alias=True))
 
@@ -248,8 +340,9 @@ def validate_dag(raw: Any, resolvers: Resolvers | None = None) -> DagValidation:
     if len(dests) != 1:
         result.issues.append(DagIssue(None, "graph", "destination_count",
                                       f"A pipeline needs exactly one destination node (found {len(dests)})."))
+    joins_reported = {i.node for i in fold_issues}
     for n in nodes.values():
-        if len(pred[n.id]) > 1:
+        if len(pred[n.id]) > 1 and n.id not in joins_reported:
             result.issues.append(DagIssue(n.id, "edges", "fan_in", "Steps take one input; use a join step instead."))
         if len(succ[n.id]) > 1:
             result.issues.append(DagIssue(n.id, "edges", "fan_out", "Branching is not supported; chain the steps."))

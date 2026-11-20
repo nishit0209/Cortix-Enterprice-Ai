@@ -34,8 +34,14 @@ def preview_connector_source(*, org_id: str, data_source_id: str, table: str, sc
 
 
 @shared_task(name="pipelines.dispatch_due", acks_late=False, ignore_result=True)
-def dispatch_due() -> dict:
-    """Celery beat (every 30 s): fire due schedules per org and reap runs whose worker died."""
-    from .scheduling import dispatch_due as _dispatch
+def dispatch_due() -> dict | None:
+    """Celery beat (every 30 s): fire due schedules per org and reap runs whose worker died.
 
+    Only active with TASK_RUNNER="celery"; other runners dispatch through apps.core.scheduler
+    (scheduling.local_tick), so a leftover beat entry can never double-dispatch."""
+    from .scheduling import dispatch_due as _dispatch
+    from .scheduling import runner_mode
+
+    if runner_mode() != "celery":
+        return None
     return _dispatch()

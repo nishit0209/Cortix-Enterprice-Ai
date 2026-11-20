@@ -39,6 +39,7 @@ log = logging.getLogger(__name__)
 
 FINALIZE_POLL_S = 5
 FINALIZE_MAX_POLLS = 720          # 1 hour of ingestion at most
+_INGEST_OPTIONS = {"notify": False}  # the run notifies its owner; no separate "dataset ready" notification
 
 
 def max_rows() -> int:
@@ -46,7 +47,25 @@ def max_rows() -> int:
 
 
 def _is_eager() -> bool:
-    return bool(getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False))
+    return runner_mode() == "eager"
+
+
+def runner_mode() -> str:
+    """"celery" | "eager" | "thread" (settings.TASK_RUNNER; CONTRACT "Local runtime")."""
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        return "eager"
+    mode = str(getattr(settings, "TASK_RUNNER", "celery") or "celery")
+    return mode if mode in ("celery", "eager", "thread") else "thread"
+
+
+def enqueue_later(task, kwargs: dict, countdown: int) -> bool:
+    """Run `task` after `countdown` seconds (after commit). Returns False when the caller relies on the periodic
+    dispatcher instead: the in-process thread runner has no durable delayed queue, so delayed work (retry backoff,
+    finalize polling) is picked up by `scheduling.dispatch_due` from the run's own columns."""
+    if runner_mode() == "thread":
+        return False
+    transaction.on_commit(lambda: task.apply_async(kwargs=kwargs, countdown=countdown))
+    return True
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -240,12 +259,13 @@ def _write_output(org: UUID, run_id, dest: Node, result: engine.ExecutionResult,
                                      node=dest.id, retryable=False) from None
                 target = None
         if target is not None:
-            ingest_job = datasets.add_version(target, upload_id=upload.id, user_id=actor)
+            ingest_job = datasets.add_version(target, upload_id=upload.id, user_id=actor, options=_INGEST_OPTIONS)
             dataset = target
         else:
             dataset, ingest_job = datasets.create_dataset(
                 name=cfg.name, upload_id=upload.id, classification=cfg.classification, user_id=actor,
                 description=cfg.description or f"Output of pipeline {pipeline.name}", tags=["pipeline"],
+                options=_INGEST_OPTIONS,
             )
             Pipeline.objects.filter(id=pipeline.id).update(output_dataset_id=dataset.id)
         dm.status = "running"
@@ -258,8 +278,9 @@ def _write_output(org: UUID, run_id, dest: Node, result: engine.ExecutionResult,
         if run.job_id:
             jobs.update(run.job_id, status="running", progress=92, message="Ingesting the output")
         kwargs = {"org_id": str(org), "run_id": str(run_id), "poll": 0}
-        # registered AFTER create_dataset/add_version's own on_commit, so in eager mode ingestion runs first
-        transaction.on_commit(lambda: finalize_pipeline_run.apply_async(kwargs=kwargs, countdown=FINALIZE_POLL_S))
+        # registered AFTER create_dataset/add_version's own on_commit, so in eager mode ingestion runs first.
+        # Every runner also finalizes from the ingest-finished signal (signals.finalize_on_ingest).
+        enqueue_later(finalize_pipeline_run, kwargs, FINALIZE_POLL_S)
 
 
 def _slug(name: str) -> str:
@@ -282,11 +303,11 @@ def finalize_run(*, org_id, run_id, poll: int = 0) -> str:
         job = Job.objects.filter(id=run.ingest_job_id).first()
         status = job.status if job else "failed"
         if status in ("queued", "running"):
-            if poll < FINALIZE_MAX_POLLS and not _is_eager():
+            if poll < FINALIZE_MAX_POLLS and not _is_eager() and not _waited_too_long(run):
                 PipelineRun.objects.filter(id=run_id).update(heartbeat_at=timezone.now())
                 kwargs = {"org_id": str(org), "run_id": str(run_id), "poll": poll + 1}
-                transaction.on_commit(lambda: finalize_pipeline_run.apply_async(kwargs=kwargs,
-                                                                                countdown=FINALIZE_POLL_S))
+                # thread runner: the ingest-finished signal (or the dispatcher's finalize scan) comes back here
+                enqueue_later(finalize_pipeline_run, kwargs, FINALIZE_POLL_S)
                 return "waiting"
             failure = RunFailure("ingest_timeout", "Ingesting the pipeline output did not finish in time.")
         elif status == "succeeded":
@@ -296,6 +317,7 @@ def finalize_run(*, org_id, run_id, poll: int = 0) -> str:
                 "blocking_failures": res.get("blocking_failures") or [], "version": res.get("version"),
                 "row_count": res.get("row_count"), "column_count": res.get("column_count"),
                 "pii_columns": res.get("pii_columns") or [],
+                "rules_passed": res.get("rules_passed"), "rules_failed": res.get("rules_failed"),
             }
             version_id = res.get("version_id")
             run.quality_summary = summary
@@ -318,6 +340,47 @@ def finalize_run(*, org_id, run_id, poll: int = 0) -> str:
                                  err.get("message") or "Ingesting the pipeline output failed.")
     fail_or_retry(org, run_id, failure)
     return "failed"
+
+
+def handoff_at(run: PipelineRun) -> dt.datetime | None:
+    """When the output was handed to ingestion (the destination step's start), else the run start."""
+    for step in run.steps or []:
+        if str(step.get("type", "")).startswith("destination.") and step.get("started_at"):
+            try:
+                return dt.datetime.fromisoformat(step["started_at"])
+            except (TypeError, ValueError):
+                break
+    return run.started_at
+
+
+def _waited_too_long(run: PipelineRun) -> bool:
+    started = handoff_at(run)
+    return started is not None and (timezone.now() - started).total_seconds() > FINALIZE_POLL_S * FINALIZE_MAX_POLLS
+
+
+def finalize_for_ingest_job(org_id, job_id) -> list[str]:
+    """Finalize every running run whose output ingestion is `job_id` (called when that job finished)."""
+    org = UUID(str(org_id))
+    with tenant_step(org):
+        run_ids = list(PipelineRun.objects.filter(ingest_job_id=job_id, status="running").values_list("id", flat=True))
+    return [finalize_run(org_id=org, run_id=rid) for rid in run_ids]
+
+
+def _notify_owner(run: PipelineRun, *, ok: bool) -> None:
+    """In-app notification to the pipeline owner (inside the run's tenant step; best effort)."""
+    from apps.datasets import services as datasets
+    from apps.datasets.notifications import PIPELINE_RUN_FAILED, PIPELINE_RUN_SUCCEEDED
+
+    pipeline = run.pipeline
+    link = datasets.org_link(f"data/pipelines/{pipeline.id}/runs/{run.id}")
+    if ok:
+        rows = f"{run.rows_out:,} rows written" if run.rows_out is not None else "Finished"
+        datasets.notify_users([pipeline.owner_id], PIPELINE_RUN_SUCCEEDED,
+                              f"Pipeline '{pipeline.name}' run #{run.number} succeeded", f"{rows}.", link)
+    else:
+        datasets.notify_users([pipeline.owner_id], PIPELINE_RUN_FAILED,
+                              f"Pipeline '{pipeline.name}' run #{run.number} failed",
+                              f"{run.error_message} ({run.error_code}) after {run.attempt} attempt(s).", link)
 
 
 def _succeed(run: PipelineRun, summary: dict) -> None:
@@ -352,6 +415,7 @@ def _succeed(run: PipelineRun, summary: dict) -> None:
     audit.record("pipeline.run.succeeded", target=run.pipeline, metadata={**result, "attempt": run.attempt})
     if run.job_id:
         jobs.finish(run.job_id, result=result)
+    _notify_owner(run, ok=True)
 
 
 def fail_or_retry(org: UUID, run_id, failure: RunFailure) -> str:
@@ -392,7 +456,8 @@ def fail_or_retry(org: UUID, run_id, failure: RunFailure) -> str:
             if run.job_id:
                 jobs.update(run.job_id, status="running", message=f"Retrying in {delay}s after {failure.code}")
             kwargs = {"org_id": str(org), "run_id": str(run.id)}
-            transaction.on_commit(lambda: execute_pipeline_run.apply_async(kwargs=kwargs, countdown=delay))
+            # thread runner: scheduling.dispatch_due starts the attempt once next_attempt_at is due
+            enqueue_later(execute_pipeline_run, kwargs, delay)
             return "retrying"
         run.status = "failed"
         run.finished_at = now
@@ -408,6 +473,8 @@ def fail_or_retry(org: UUID, run_id, failure: RunFailure) -> str:
                       detail={"run_id": str(run.id), "node": failure.node} if failure.node else {"run_id": str(run.id)})
         from .signals import notify_run_failed
 
+        if pipeline.notify_on_failure:
+            _notify_owner(run, ok=False)
         ids = {"org_id": org, "run_id": run.id, "pipeline_id": pipeline.id}
         transaction.on_commit(lambda: notify_run_failed(**ids))
         return "failed"

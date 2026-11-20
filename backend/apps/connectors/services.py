@@ -115,6 +115,14 @@ def get_source(source_id) -> DataSource:
         raise NotFound() from exc
 
 
+def stats() -> dict[str, Any]:
+    """data-stats contribution (registered with datasets.register_stats_provider): data sources from the DB."""
+    return {
+        "sources": DataSource.objects.count(),
+        "sources_active": DataSource.objects.filter(status="active").count(),
+    }
+
+
 def source_exists(source_id) -> bool:
     try:
         return DataSource.objects.filter(id=UUID(str(source_id))).exists()
@@ -285,6 +293,24 @@ def _previous_import_dataset(source: DataSource, schema: str, table: str) -> UUI
     return prev.dataset_id if prev else None
 
 
+def split_qualified_table(source: DataSource, table: str) -> tuple[str | None, str]:
+    """`schema.table` (as the catalog browser lists it) -> (schema, table); anything else -> (None, table).
+
+    A table name may itself contain a dot, so the name is only split when the stored catalog lists exactly that
+    schema + table, or (no catalog yet) when the prefix is the source's configured schema.
+    """
+    prefix, dot, rest = table.partition(".")
+    if not dot or not prefix or not rest:
+        return None, table
+    catalog = (source.catalog or {}).get("schemas") or []
+    for s in catalog:
+        if s.get("name") == prefix and any(t.get("name") == rest for t in s.get("tables") or ()):
+            return prefix, rest
+    if not catalog and prefix == (source.config or {}).get("schema"):
+        return prefix, rest
+    return None, table
+
+
 def start_import(source: DataSource, *, table: str, name: str, schema: str | None = None,
                  columns: Sequence[str] | None = None, classification: str | None = None, attest: bool = False,
                  mode: str = "full", cursor_column: str | None = None, dataset_id=None, user_id=None,
@@ -389,7 +415,8 @@ def catalog_payload(tables: list[TableInfo]) -> dict[str, Any]:
     schemas: dict[str, list[dict[str, Any]]] = {}
     for t in tables:
         schemas.setdefault(t.schema, []).append({
-            "name": t.name, "kind": t.kind, "estimated_rows": t.estimated_rows,
+            # `row_estimate` is the catalog browser's name for `estimated_rows` (additive alias)
+            "name": t.name, "kind": t.kind, "estimated_rows": t.estimated_rows, "row_estimate": t.estimated_rows,
             "columns": [{"name": c.name, "type": c.type, "nullable": c.nullable} for c in t.columns],
         })
     from .postgres import MAX_TABLES
@@ -496,6 +523,7 @@ def _fail_import(org: UUID, import_id, job_id, code: str, message: str) -> None:
         if imp is not None:
             audit.record("data_source.import.failed", target=imp.data_source,
                          metadata={"code": code, "message": message, "import_id": str(import_id)})
+            _notify_import(imp, ok=False, code=code, message=message)
 
 
 def _previous_rows_frame(dataset_id) -> pl.DataFrame | None:
@@ -601,6 +629,7 @@ def run_import(*, org_id, source_id, import_id, job_id, actor_id=None) -> dict |
             }
             audit.record("data_source.import.succeeded", target=imp.data_source, metadata=result)
             jobs.finish(job_id, result=result)
+            _notify_import(imp, ok=True, dataset_id=dataset.id)
         return result
     except ConnectorError as exc:
         err = _error_dict(exc)
@@ -614,6 +643,23 @@ def run_import(*, org_id, source_id, import_id, job_id, actor_id=None) -> dict |
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     return None
+
+
+def _notify_import(imp: SourceImport, *, ok: bool, dataset_id=None, code: str = "", message: str = "") -> None:
+    """In-app notification to the user who started the import (inside the import's tenant step)."""
+    from apps.datasets import services as datasets
+    from apps.datasets.notifications import IMPORT_FAILED, IMPORT_FINISHED
+
+    table = f"{imp.schema_name}.{imp.table_name}"
+    if ok:
+        datasets.notify_users(
+            [imp.created_by], IMPORT_FINISHED, f"Import of {table} finished",
+            f"{imp.rows or 0:,} rows read from {imp.data_source.name} into '{imp.dataset_name}'. "
+            "The dataset is being profiled and quality-checked.",
+            datasets.org_link(f"data/datasets/{dataset_id}") if dataset_id else datasets.org_link("data/sources"))
+    else:
+        datasets.notify_users([imp.created_by], IMPORT_FAILED, f"Import of {table} failed", f"{message} ({code})",
+                              datasets.org_link("data/sources"))
 
 
 def _textify(frame: pl.DataFrame) -> pl.DataFrame:

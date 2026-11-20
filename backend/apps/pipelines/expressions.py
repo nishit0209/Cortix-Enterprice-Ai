@@ -12,6 +12,7 @@ depth limits) and compiled to a Polars expression. Unknown keys are rejected.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -353,3 +354,204 @@ def cast_expr(e: pl.Expr, target: str, fmt: str | None = None, source: pl.DataTy
             norm.str.strptime(pl.Date, "%Y-%m-%d", strict=False).cast(pl.Datetime("us")).dt.replace_time_zone("UTC"),
         ])
     return e.cast(pl.String)
+
+
+# ---------------------------------------------------------------------------------------------------
+# text form (pipeline builder): "round(amount * 1.18, 2)" -> the JSON tree above. A small recursive-descent parser:
+# no eval, and the result still goes through `check()` (whitelist, arity, typing, size/depth limits).
+# ---------------------------------------------------------------------------------------------------
+MAX_TEXT_LEN = 2000
+# Parenthesis / function-call / unary nesting allowed while parsing text. The recursive-descent parser uses several
+# Python frames per level, so this bound keeps it far from the interpreter recursion limit (check() then enforces
+# MAX_DEPTH on the resulting tree).
+MAX_PARSE_DEPTH = 32
+_TOKEN_RE = re.compile(
+    r"\s*(?:(?P<num>(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?)"
+    r"|(?P<str>'(?:[^'\\]|\\.|'')*'|\"(?:[^\"\\]|\\.|\"\")*\")"
+    r"|(?P<bq>`[^`]+`)"
+    r"|(?P<ident>[A-Za-z_][A-Za-z0-9_]*)"
+    r"|(?P<sym><=|>=|!=|<>|==|&&|\|\||[-+*/%(),<>=!]))"
+)
+_BINARY = {"+": "add", "-": "sub", "*": "mul", "/": "div", "%": "mod"}
+_COMPARE = {"=": "eq", "==": "eq", "!=": "ne", "<>": "ne", "<": "lt", "<=": "lte", ">": "gt", ">=": "gte"}
+_FLAT = frozenset({"add", "mul", "and", "or"})          # n-ary operators: chains stay shallow
+_KEYWORDS = {"true": True, "false": False, "null": None}
+
+
+def _tokens(text: str) -> list[tuple[str, str, int]]:
+    out: list[tuple[str, str, int]] = []
+    pos = 0
+    while pos < len(text):
+        if text[pos:].strip() == "":
+            break
+        m = _TOKEN_RE.match(text, pos)
+        if m is None or m.end() == pos:
+            raise ExpressionError(f"Unexpected character {text[pos:].lstrip()[:1]!r} at position {pos + 1}.",
+                                  "invalid_expression")
+        kind = m.lastgroup or ""
+        out.append((kind, m.group(kind), m.start(kind)))
+        pos = m.end()
+    return out
+
+
+def _unquote(raw: str) -> str:
+    quote, body = raw[0], raw[1:-1]
+    return re.sub(r"\\(.)", r"\1", body.replace(quote * 2, quote))
+
+
+class _Parser:
+    def __init__(self, text: str):
+        self.toks = _tokens(text)
+        self.i = 0
+        self.depth = 0
+
+    def nest(self) -> None:
+        self.depth += 1
+        if self.depth > MAX_PARSE_DEPTH:
+            raise ExpressionError(f"The expression is nested deeper than {MAX_PARSE_DEPTH} levels.",
+                                  "expression_too_deep")
+
+    def peek(self, value: str | None = None, kind: str | None = None) -> bool:
+        if self.i >= len(self.toks):
+            return False
+        k, v, _ = self.toks[self.i]
+        word = v.lower() if k == "ident" else v
+        return (value is None or word == value) and (kind is None or k == kind)
+
+    def take(self) -> tuple[str, str, int]:
+        if self.i >= len(self.toks):
+            raise ExpressionError("The expression ends too early.", "invalid_expression")
+        tok = self.toks[self.i]
+        self.i += 1
+        return tok
+
+    def expect(self, value: str) -> None:
+        kind, got, pos = self.take()
+        if got != value:
+            raise ExpressionError(f"Expected {value!r} at position {pos + 1}, found {got!r}.", "invalid_expression")
+
+    def node(self, op: str, args: list[dict[str, Any]]) -> dict[str, Any]:
+        if op in _FLAT:  # a + b + c -> add(a, b, c), as long as the operator's arity allows it
+            total = sum(len(a["args"]) if a.get("op") == op else 1 for a in args)
+            if total <= OPS[op].max_args:
+                args = [x for a in args for x in (a["args"] if a.get("op") == op else [a])]
+        return {"op": op, "args": args}
+
+    def parse(self) -> dict[str, Any]:
+        tree = self.or_expr()
+        if self.i < len(self.toks):
+            _, got, pos = self.toks[self.i]
+            raise ExpressionError(f"Unexpected {got!r} at position {pos + 1}.", "invalid_expression")
+        return tree
+
+    def or_expr(self) -> dict[str, Any]:
+        left = self.and_expr()
+        while self.peek("or") or self.peek("||"):
+            self.take()
+            left = self.node("or", [left, self.and_expr()])
+        return left
+
+    def and_expr(self) -> dict[str, Any]:
+        left = self.not_expr()
+        while self.peek("and") or self.peek("&&"):
+            self.take()
+            left = self.node("and", [left, self.not_expr()])
+        return left
+
+    def not_expr(self) -> dict[str, Any]:
+        if self.peek("not") or self.peek("!"):
+            self.take()
+            self.nest()
+            inner = self.not_expr()
+            self.depth -= 1
+            return {"op": "not", "args": [inner]}
+        return self.compare()
+
+    def compare(self) -> dict[str, Any]:
+        left = self.additive()
+        if self.i < len(self.toks) and self.toks[self.i][1] in _COMPARE and self.toks[self.i][0] == "sym":
+            op = _COMPARE[self.take()[1]]
+            left = {"op": op, "args": [left, self.additive()]}
+        return left
+
+    def additive(self) -> dict[str, Any]:
+        left = self.term()
+        while self.peek("+", "sym") or self.peek("-", "sym"):
+            left = self.node(_BINARY[self.take()[1]], [left, self.term()])
+        return left
+
+    def term(self) -> dict[str, Any]:
+        left = self.unary()
+        while self.peek("*", "sym") or self.peek("/", "sym") or self.peek("%", "sym"):
+            left = self.node(_BINARY[self.take()[1]], [left, self.unary()])
+        return left
+
+    def unary(self) -> dict[str, Any]:
+        if self.peek("-", "sym"):
+            self.take()
+            self.nest()
+            operand = self.unary()
+            self.depth -= 1
+            if set(operand) == {"lit"} and isinstance(operand["lit"], (int, float)) and \
+                    not isinstance(operand["lit"], bool):
+                return {"lit": -operand["lit"]}
+            return {"op": "neg", "args": [operand]}
+        if self.peek("+", "sym"):
+            self.take()
+            self.nest()
+            operand = self.unary()
+            self.depth -= 1
+            return operand
+        return self.primary()
+
+    def primary(self) -> dict[str, Any]:
+        kind, value, pos = self.take()
+        if kind == "num":
+            return {"lit": float(value) if any(c in value for c in ".eE") else int(value)}
+        if kind == "str":
+            return {"lit": _unquote(value)}
+        if kind == "bq":
+            return {"col": value[1:-1]}
+        if kind == "ident":
+            word = value.lower()
+            if word in _KEYWORDS:
+                return {"lit": _KEYWORDS[word]}
+            if self.peek("(", "sym"):
+                if word not in OPS:
+                    raise ExpressionError(f"Unknown function {value}() at position {pos + 1}.", "operator_not_allowed")
+                self.take()
+                self.nest()
+                args: list[dict[str, Any]] = []
+                if not self.peek(")", "sym"):
+                    args.append(self.or_expr())
+                    while self.peek(",", "sym"):
+                        self.take()
+                        args.append(self.or_expr())
+                self.expect(")")
+                self.depth -= 1
+                return {"op": word, "args": args}
+            return {"col": value}
+        if value == "(":
+            self.nest()
+            inner = self.or_expr()
+            self.expect(")")
+            self.depth -= 1
+            return inner
+        raise ExpressionError(f"Unexpected {value!r} at position {pos + 1}.", "invalid_expression")
+
+
+def parse_text(text: str) -> dict[str, Any]:
+    """Parse the builder's text form into an expression tree (validate it with `check()` afterwards).
+
+    Columns are bare identifiers (or `back-quoted`), strings use '...' or "...", numbers, true/false/null;
+    operators + - * / %, comparisons (= != <> < <= > >=), and/or/not, parentheses and whitelisted functions
+    such as round(x, 2), upper(x), coalesce(a, b), if(cond, a, b), cast(x, 'integer').
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise ExpressionError("The expression is empty.", "invalid_expression")
+    if len(text) > MAX_TEXT_LEN:
+        raise ExpressionError(f"The expression is longer than {MAX_TEXT_LEN} characters.", "expression_too_large")
+    try:
+        return _Parser(text).parse()
+    except RecursionError:  # defence in depth: MAX_PARSE_DEPTH should always trip first
+        raise ExpressionError("The expression is nested too deeply.", "expression_too_deep") from None

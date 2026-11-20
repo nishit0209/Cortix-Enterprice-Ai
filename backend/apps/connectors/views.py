@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from rest_framework import mixins, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -10,7 +11,7 @@ from apps.core.tenancy.views import TenantGenericViewSet
 
 from . import services
 from .models import DataSource, SourceImport
-from .serializers import DataSourceCreateSerializer, DataSourceUpdateSerializer, ImportSerializer
+from .serializers import TABLE_MAX, DataSourceCreateSerializer, DataSourceUpdateSerializer, ImportSerializer
 
 
 def job_links(request, job) -> dict:
@@ -117,8 +118,13 @@ class DataSourceViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         classification = d.get("classification")
         if classification and classification != "internal" and not request.tenant.has_perm("datasets.classify"):
             self.permission_denied(request, message="Setting a classification requires datasets.classify.")
+        schema, table = d.get("schema"), d["table"]
+        if not schema:  # the catalog browser sends "schema.table"
+            schema, table = services.split_qualified_table(source, table)
+        if len(table) > TABLE_MAX:
+            raise ValidationError({"table": [f"Ensure this field has no more than {TABLE_MAX} characters."]})
         imp, job = services.start_import(
-            source, table=d["table"], schema=d.get("schema"), name=d["name"], columns=d.get("columns"),
+            source, table=table, schema=schema, name=d["name"], columns=d.get("columns"),
             classification=classification, attest=d.get("attest", False), mode=d.get("mode", "full"),
             cursor_column=d.get("cursor_column"), dataset_id=d.get("dataset_id"), user_id=request.user.pk,
             request=request,

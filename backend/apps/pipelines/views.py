@@ -45,6 +45,7 @@ class PipelineViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         "schedule": "pipelines.view",      # PUT/DELETE additionally need pipelines.manage
         "preview": "pipelines.manage",
         "validate": "pipelines.manage",
+        "validate_detail": "pipelines.manage",
         "versions": "pipelines.view",
         "*": "pipelines.view",
     }
@@ -125,11 +126,7 @@ class PipelineViewSet(mixins.ListModelMixin, TenantGenericViewSet):
                                       enabled=d.get("enabled", True), user_id=request.user.pk, request=request)
         return Response(services.schedule_payload(sched))
 
-    @action(detail=True, methods=["post"])
-    def preview(self, request, *args, **kwargs):
-        pipeline = services.get_pipeline(kwargs["pk"])
-        ser = PreviewSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+    def _dag_for(self, pipeline, ser):
         dag = ser.validated_data.get("dag")
         if dag is None:
             dag = pipeline.current_version.dag if pipeline.current_version else None
@@ -137,7 +134,27 @@ class PipelineViewSet(mixins.ListModelMixin, TenantGenericViewSet):
             from apps.core.exceptions import Conflict
 
             raise Conflict("The pipeline has no DAG to preview.", code="pipeline_has_no_version")
-        return Response(services.preview(dag, user_id=request.user.pk, limit=ser.validated_data.get("limit", 200)))
+        return dag
+
+    @action(detail=True, methods=["post"])
+    def preview(self, request, *args, **kwargs):
+        """Dry run of a valid DAG (posted, or the current version) on a sample; optional `node_id` + `limit`."""
+        pipeline = services.get_pipeline(kwargs["pk"])
+        ser = PreviewSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        return Response(services.preview(self._dag_for(pipeline, ser), user_id=request.user.pk,
+                                         limit=d.get("limit", 200), node_id=d.get("node_id") or None))
+
+    @action(detail=True, methods=["post"], url_path="validate", url_name="validate-detail")
+    def validate_detail(self, request, *args, **kwargs):
+        """Validate (per-node errors naming node ids) and, when valid, preview on a 1,000-row sample."""
+        pipeline = services.get_pipeline(kwargs["pk"])
+        ser = PreviewSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        return Response(services.dry_run(self._dag_for(pipeline, ser), user_id=request.user.pk,
+                                         limit=d.get("limit", 200), node_id=d.get("node_id") or None))
 
     @action(detail=False, methods=["post"])
     def validate(self, request, *args, **kwargs):
