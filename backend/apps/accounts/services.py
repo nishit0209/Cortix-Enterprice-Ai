@@ -33,6 +33,7 @@ API_KEY_FORBIDDEN_SCOPES = frozenset(
         "governance.policy.edit",
         "governance.retention.edit",
         "approvals.decide",
+        "ml.promote",  # W4: promoting a model to production is an interactive, audited decision
     }
 )
 API_KEY_ALLOWED_SCOPES = frozenset(PERMISSIONS) - API_KEY_FORBIDDEN_SCOPES

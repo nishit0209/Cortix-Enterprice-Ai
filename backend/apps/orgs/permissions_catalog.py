@@ -61,11 +61,16 @@ PERMISSIONS: dict[str, str] = {
 }
 
 _ALL = set(PERMISSIONS)
+# CONTRACT "W4 additions / Permissions": Owner/Admin hold all of them; Analyst (and the roles built on it) holds
+# view + manage + review but never `ml.promote`; Viewer (and Auditor) hold `*.view`. Existing orgs receive the same
+# grants through migration orgs/0004 (keep both in sync).
+W4_VIEW = {"ml.view", "customers.view", "products.view"}
+W4_WORK = W4_VIEW | {"ml.manage", "customers.manage", "customers.review", "products.manage", "products.review"}
 _ANALYST = {
     "org.view", "members.view", "roles.view", "sources.view", "datasets.view", "pipelines.view",
     "bi.chat", "bi.sql", "dashboards.view", "dashboards.create", "dashboards.manage", "exports.create",
-    "documents.view", "documents.ask", "ml.view", "customers.view", "products.view", "automation.view",
-}
+    "documents.view", "documents.ask", "automation.view",
+} | W4_WORK
 
 SYSTEM_ROLES: dict[str, dict] = {
     "owner": {"name": "Owner", "permissions": _ALL},
@@ -86,11 +91,11 @@ SYSTEM_ROLES: dict[str, dict] = {
     "viewer": {
         "name": "Viewer",
         "permissions": {"org.view", "datasets.view", "bi.chat", "dashboards.view", "documents.view",
-                        "documents.ask", "customers.view", "products.view"},
+                        "documents.ask"} | W4_VIEW,
     },
     "auditor": {
         "name": "Auditor",
         "permissions": {"org.view", "members.view", "roles.view", "audit.view", "jobs.view_all",
-                        "datasets.view", "pipelines.view", "dashboards.view", "automation.view"},
+                        "datasets.view", "pipelines.view", "dashboards.view", "automation.view"} | W4_VIEW,
     },
 }
