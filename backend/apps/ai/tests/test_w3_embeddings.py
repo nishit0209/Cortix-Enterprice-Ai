@@ -64,7 +64,7 @@ def st(monkeypatch):
 @pytest.fixture
 def hub(monkeypatch, tmp_path):
     """huggingface_hub.snapshot_download(local_files_only=True) answering from a fake cache."""
-    state = {"cached": False, "calls": 0}
+    state = {"cached": False, "calls": 0, "weights": True}
 
     def snapshot_download(repo_id, cache_dir=None, local_files_only=False):
         state["calls"] += 1
@@ -73,6 +73,12 @@ def hub(monkeypatch, tmp_path):
             raise FileNotFoundError("LocalEntryNotFoundError")
         path = tmp_path / "snap"
         path.mkdir(exist_ok=True)
+        (path / "config.json").write_text("{}")
+        weights = path / "model.safetensors"
+        if state["weights"]:
+            weights.write_bytes(b"w")
+        elif weights.exists():
+            weights.unlink()
         return str(path)
 
     monkeypatch.setitem(sys.modules, "huggingface_hub", types.SimpleNamespace(snapshot_download=snapshot_download))
@@ -134,6 +140,91 @@ def test_download_fetches_then_reports_the_path(st, hub):
     path = emb.download()
     assert path and path.endswith("snap") and emb.loaded
     assert st.created[-1]["local_files_only"] is False
+
+
+def test_partial_snapshot_is_not_cached(st, hub):
+    """Hugging Face creates snapshots/<sha>/ (config files) before model.safetensors arrives: not cached yet."""
+    hub["cached"], hub["weights"] = True, False
+    emb = LocalEmbedder("intfloat/multilingual-e5-base", dim=4, clock=Clock())
+    assert emb.is_cached() is False and emb.available is False
+    with pytest.raises(EmbeddingUnavailable) as err:
+        emb.embed_queries(["x"])
+    assert err.value.reason == "model_not_downloaded" and st.created == []
+
+
+class _SlowST(StubST):
+    """A SentenceTransformer whose construction blocks until released (stands in for a 1.1 GB download)."""
+
+    started = None
+    release = None
+
+    def __init__(self, *a, **k):
+        _SlowST.started.set()
+        assert _SlowST.release.wait(10)
+        super().__init__(*a, **k)
+
+
+def test_request_path_never_waits_for_a_background_download(st, hub, monkeypatch):
+    """Review fix: download() must not hold the load lock; requests degrade at once instead of hanging."""
+    import threading
+    import time as _time
+
+    _SlowST.started, _SlowST.release = threading.Event(), threading.Event()
+    monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=_SlowST))
+    emb = LocalEmbedder("intfloat/multilingual-e5-base", dim=4, clock=Clock())
+    errors = []
+    worker = threading.Thread(target=lambda: errors.append(_try(emb.download)), daemon=True)
+    worker.start()
+    assert _SlowST.started.wait(5)
+    hub["cached"] = True  # the partial snapshot folder already exists while the download runs
+    try:
+        assert emb.downloading is True and emb.available is False
+        assert emb.status()["downloading"] is True and emb.status()["available"] is False
+        with override_embedder(emb):
+            assert embedding_available() is False
+            t0 = _time.monotonic()
+            with pytest.raises(EmbeddingUnavailable) as err:
+                embed_query("revenue")
+            assert _time.monotonic() - t0 < 1.0  # no waiting on the download
+        assert err.value.reason == "model_downloading"
+        with pytest.raises(EmbeddingUnavailable) as again:  # a second download attempt does not queue up
+            emb.download()
+        assert again.value.reason == "model_downloading"
+    finally:
+        _SlowST.release.set()
+        worker.join(10)
+    assert errors == [None] and emb.loaded and emb.available and not emb.downloading
+    assert emb.embed_queries(["revenue"]).shape == (1, 4)
+
+
+def test_concurrent_cache_load_degrades_instead_of_blocking(st, hub, monkeypatch):
+    import threading
+
+    hub["cached"] = True
+    _SlowST.started, _SlowST.release = threading.Event(), threading.Event()
+    monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=_SlowST))
+    emb = LocalEmbedder("intfloat/multilingual-e5-base", dim=4, clock=Clock())
+    results = []
+    loader = threading.Thread(target=lambda: results.append(_try(lambda: emb.embed_queries(["a"]))), daemon=True)
+    loader.start()
+    assert _SlowST.started.wait(5)
+    try:
+        with pytest.raises(EmbeddingUnavailable) as err:
+            emb.embed_passages(["b"])
+        assert err.value.reason == "model_loading"
+        assert emb._failed_until == 0.0  # a busy loader is not a failure: no cooldown
+    finally:
+        _SlowST.release.set()
+        loader.join(10)
+    assert results == [None] and emb.loaded
+
+
+def _try(fn):
+    try:
+        fn()
+    except Exception as exc:  # noqa: BLE001
+        return exc
+    return None
 
 
 def test_offline_download_fails_cleanly(st, hub):
@@ -282,8 +373,34 @@ def test_reembed_runs_each_org_in_its_tenant_context(registry, monkeypatch):
     with override_embedder(FakeEmbedder(dim=8)):
         out = reembed.run_reembed_pending(batch=100)
     assert out == {"documents.chunks": 10, "nl2sql.cache": 1}
-    assert registry == [("ctx", o1), ("documents.chunks", 100), ("ctx", o2), ("documents.chunks", 100),
-                        ("ctx", o2), ("nl2sql.cache", 100)]
+    want = min(100, reembed.COMMIT_EVERY)
+    assert registry == [("ctx", o1), ("documents.chunks", want), ("ctx", o2), ("documents.chunks", want),
+                        ("ctx", o2), ("nl2sql.cache", want)]
+
+
+def test_reembed_commits_each_slice_in_its_own_tenant_transaction(registry, monkeypatch):
+    """Review fix: a large backlog is embedded COMMIT_EVERY rows per transaction, never one transaction per org."""
+    org = uuid4()
+    monkeypatch.setattr(reembed, "COMMIT_EVERY", 10)
+    pending = {"n": 25}
+
+    def run(emb, limit):
+        got = min(limit, pending["n"])
+        pending["n"] -= got
+        registry.append(("run", limit, got))
+        return got
+
+    reembed.register_reembedder(reembed.Reembedder("t", "SELECT 1", run))
+    monkeypatch.setattr(reembed, "scan_orgs", lambda r, using="ops": [org])
+    with override_embedder(FakeEmbedder(dim=4)):
+        assert reembed.run_reembed_pending(batch=100) == {"t": 25}
+    assert registry == [("ctx", org), ("run", 10, 10), ("ctx", org), ("run", 10, 10), ("ctx", org),
+                        ("run", 10, 5)]
+    pending["n"] = 100
+    registry.clear()
+    with override_embedder(FakeEmbedder(dim=4)):
+        assert reembed.run_reembed_pending(batch=15) == {"t": 15}  # the per-run batch still caps the work
+    assert [c for c in registry if c[0] == "run"] == [("run", 10, 10), ("run", 5, 5)]
 
 
 def test_reembed_skips_when_model_unavailable_and_download_disabled(registry, monkeypatch):
@@ -349,7 +466,43 @@ def test_periodic_registration_is_skipped_without_scheduler(monkeypatch):
     monkeypatch.setitem(sys.modules, "apps.core.scheduler", types.SimpleNamespace(
         register_periodic=lambda name, every, fn: seen.append((name, every, fn))))
     assert reembed.register_periodic_job() is True
-    assert seen == [("ai.reembed_pending", 600, reembed.run_reembed_pending)]
+    assert seen == [("ai.reembed_pending", 600, reembed.enqueue_reembed_pending)]
+
+
+def test_periodic_fn_only_enqueues_the_task(monkeypatch):
+    """Review fix: the scheduler tick never runs the download / encoding itself."""
+    sent = []
+    monkeypatch.setattr(reembed, "_reembed_task", lambda: types.SimpleNamespace(delay=lambda: sent.append(1)))
+    monkeypatch.setattr(reembed, "run_reembed_pending", lambda *a, **k: pytest.fail("ran inline in the tick"))
+    assert reembed.enqueue_reembed_pending() == {"enqueued": "task"}
+    assert sent == [1]
+    assert reembed._run_lock.acquire(blocking=False)
+    try:
+        assert reembed.enqueue_reembed_pending() == {"skipped": "already_running"}
+    finally:
+        reembed._run_lock.release()
+    assert sent == [1]
+
+
+def test_periodic_fn_falls_back_to_a_daemon_thread_without_the_task_base(monkeypatch):
+    import threading
+
+    ran = threading.Event()
+    monkeypatch.setattr(reembed, "_reembed_task", lambda: None)
+    monkeypatch.setattr(reembed, "run_reembed_pending", lambda *a, **k: ran.set())
+    monkeypatch.setattr(reembed.connections, "close_all", lambda: None)
+    assert reembed.enqueue_reembed_pending() == {"enqueued": "thread"}
+    assert ran.wait(5)
+
+
+def test_reembed_task_is_an_ops_task_on_the_ml_queue():
+    from apps.ai import tasks
+
+    if tasks.reembed_pending is None:  # NexoraTask (Backend W3) not merged into this branch yet
+        assert reembed._reembed_task() is None
+        return
+    assert tasks.reembed_pending.name == "apps.ai.tasks.reembed_pending" and tasks.reembed_pending.queue == "ml"
+    assert reembed._reembed_task() is tasks.reembed_pending
 
 
 def test_apps_register_their_reembedders():

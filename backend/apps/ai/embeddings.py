@@ -3,8 +3,10 @@
 * `LocalEmbedder`: sentence-transformers model `settings.EMBEDDING_MODEL` (default intfloat/multilingual-e5-base,
   768-d, about 1.1 GB), loaded LAZILY from the local cache (EMBEDDING_CACHE_DIR / SENTENCE_TRANSFORMERS_HOME /
   HF_HOME). It is fetched by `manage.py download_models` or by the `ai.reembed_pending` background job; request
-  paths never download and raise `EmbeddingUnavailable` instead. e5 prefixes "query: " / "passage: ",
-  L2-normalised float32 vectors, batched encoding.
+  paths never download and raise `EmbeddingUnavailable` instead. Request paths never WAIT either: while the model
+  is being downloaded or loaded by another thread they get EmbeddingUnavailable("model_downloading" /
+  "model_loading") at once and degrade. e5 prefixes "query: " / "passage: ", L2-normalised float32 vectors,
+  batched encoding.
 * `FakeEmbedder`: deterministic hashing embedder for tests (never downloads anything). Lexically similar
   texts get high cosine similarity, unrelated texts get low similarity.
 
@@ -20,7 +22,7 @@ import threading
 import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from typing import Protocol
+from typing import NoReturn, Protocol
 
 import numpy as np
 from django.conf import settings
@@ -67,6 +69,7 @@ class EmbeddingUnavailable(RuntimeError):
 
 
 FAILURE_COOLDOWN_S = 300.0  # after a failed load, fail fast for this long instead of retrying on every call
+_WEIGHT_SUFFIXES = (".safetensors", ".bin")
 
 
 def model_cache_dir() -> str | None:
@@ -88,6 +91,11 @@ class LocalEmbedder:
     `allow_download=False` (the default for the process-wide instance) means a model that is not cached yet raises
     EmbeddingUnavailable immediately instead of starting a 1.1 GB download inside a request. `download()` (used by
     `manage.py download_models` and the re-embed job) fetches it explicitly.
+
+    Locking: the download (network + load) runs WITHOUT `_lock`, guarded by its own `_download_lock`, and only the
+    hand-over of the finished model takes `_lock`. While a download runs `available` is False. Callers that may
+    not download (requests, document processing) never block: if another thread holds `_lock` (it is loading the
+    model from the cache) they get EmbeddingUnavailable(reason="model_loading") and degrade.
     """
 
     def __init__(self, model_name: str | None = None, *, dim: int | None = None, cache_dir: str | None = None,
@@ -101,7 +109,9 @@ class LocalEmbedder:
         self.allow_download = allow_download
         self._clock = clock
         self._model = None
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()  # held only while loading from the local cache / installing a model
+        self._download_lock = threading.Lock()  # one download at a time; request paths never take it
+        self._downloading = False
         self._failed_until = 0.0
         self._last_error = ""
 
@@ -109,8 +119,15 @@ class LocalEmbedder:
     def loaded(self) -> bool:
         return self._model is not None
 
+    @property
+    def downloading(self) -> bool:
+        return self._downloading
+
     def cached_path(self) -> str | None:
-        """The local model directory (a directory name, or a complete Hugging Face cache snapshot), else None."""
+        """The local model directory (a directory name, or a COMPLETE Hugging Face cache snapshot), else None.
+
+        A snapshot without a weights file yet (a download in progress, possibly in another process: Hugging Face
+        creates `snapshots/<sha>/` before the large file arrives) does not count as cached."""
         if os.path.isdir(self.model_name):
             return os.path.abspath(self.model_name)
         try:
@@ -119,7 +136,9 @@ class LocalEmbedder:
             path = snapshot_download(repo_id=self.model_name, cache_dir=self.cache_dir, local_files_only=True)
         except Exception:  # noqa: BLE001 - LocalEntryNotFoundError, offline errors, bad cache: all "not cached"
             return None
-        return path if path and os.path.isdir(path) else None
+        if not path or not os.path.isdir(path) or not _has_weights(path):
+            return None
+        return path
 
     def is_cached(self) -> bool:
         return self.cached_path() is not None
@@ -129,58 +148,95 @@ class LocalEmbedder:
         """Can embeddings be computed now without a download? (cheap; never loads or downloads)."""
         if self._model is not None:
             return True
-        if self._clock() < self._failed_until:
+        if self._downloading or self._clock() < self._failed_until:
             return False
         return self.allow_download or self.is_cached()
 
     def status(self) -> dict:
         loaded = self._model is not None
         cooling = not loaded and self._clock() < self._failed_until
-        cached = loaded or self.is_cached()
+        downloading = not loaded and self._downloading
+        cached = loaded or (not downloading and self.is_cached())
         return {"provider": "local", "model": self.model_name, "dim": self.dim, "loaded": loaded,
-                "cached": cached, "cache_dir": self.cache_dir,
-                "available": loaded or (not cooling and (cached or self.allow_download)),
+                "cached": cached, "cache_dir": self.cache_dir, "downloading": downloading,
+                "available": loaded or (not cooling and not downloading and (cached or self.allow_download)),
                 "last_error": self._last_error or None}
+
+    def _fail(self, message: str, *, reason: str, error: str, cause: BaseException | None = None) -> NoReturn:
+        self._last_error = error
+        self._failed_until = self._clock() + FAILURE_COOLDOWN_S
+        raise EmbeddingUnavailable(message, reason=reason) from cause
+
+    def _construct(self, *, local_files_only: bool):
+        """Build the SentenceTransformer (fetches missing files unless local_files_only). Takes no lock."""
+        try:
+            from sentence_transformers import SentenceTransformer
+
+            model = SentenceTransformer(self.model_name, cache_folder=self.cache_dir, device=self.device,
+                                        local_files_only=local_files_only)
+        except ImportError as exc:
+            self._fail("sentence-transformers is not installed", reason="library_missing",
+                       error="sentence-transformers is not installed", cause=exc)
+        except Exception as exc:  # noqa: BLE001 - offline, corrupt cache, out of memory
+            error = f"{type(exc).__name__}: {str(exc)[:200]}"
+            self._fail(f"could not load {self.model_name}: {error}", reason="load_failed", error=error, cause=exc)
+        got = model.get_sentence_embedding_dimension()
+        if got is not None and int(got) != self.dim:
+            raise ImproperlyConfigured(
+                f"EMBEDDING_MODEL {self.model_name} has dimension {got}, EMBEDDING_DIM is {self.dim}")
+        return model
+
+    def _install(self, model) -> None:
+        self._model = model
+        self._failed_until = 0.0
+        self._last_error = ""
 
     def _load(self, *, allow_download: bool | None = None):
         if self._model is not None:
             return self._model
         allow = self.allow_download if allow_download is None else allow_download
-        with self._lock:
+        if allow:
+            return self._download_and_install()
+        if self._downloading:
+            raise EmbeddingUnavailable(f"{self.model_name} is being downloaded", reason="model_downloading")
+        if not self._lock.acquire(blocking=False):  # another thread is loading it: degrade, never wait
+            raise EmbeddingUnavailable(f"{self.model_name} is loading", reason="model_loading")
+        try:
             if self._model is not None:
                 return self._model
-            if not allow and self._clock() < self._failed_until:
+            if self._clock() < self._failed_until:
                 raise EmbeddingUnavailable(f"embedding model unavailable: {self._last_error}",
                                            reason="model_unavailable")
-            if not allow and not self.is_cached():
-                self._last_error = "model not downloaded (run `manage.py download_models`)"
-                self._failed_until = self._clock() + FAILURE_COOLDOWN_S
-                raise EmbeddingUnavailable(f"{self.model_name} is not downloaded yet", reason="model_not_downloaded")
-            try:
-                from sentence_transformers import SentenceTransformer
+            if not self.is_cached():
+                self._fail(f"{self.model_name} is not downloaded yet", reason="model_not_downloaded",
+                           error="model not downloaded (run `manage.py download_models`)")
+            self._install(self._construct(local_files_only=True))
+            return self._model
+        finally:
+            self._lock.release()
 
-                model = SentenceTransformer(self.model_name, cache_folder=self.cache_dir, device=self.device,
-                                            local_files_only=not allow)
-            except ImportError as exc:
-                self._last_error = "sentence-transformers is not installed"
-                self._failed_until = self._clock() + FAILURE_COOLDOWN_S
-                raise EmbeddingUnavailable(self._last_error, reason="library_missing") from exc
-            except Exception as exc:  # noqa: BLE001 - offline, corrupt cache, out of memory
-                self._last_error = f"{type(exc).__name__}: {str(exc)[:200]}"
-                self._failed_until = self._clock() + FAILURE_COOLDOWN_S
-                raise EmbeddingUnavailable(f"could not load {self.model_name}: {self._last_error}",
-                                           reason="load_failed") from exc
-            got = model.get_sentence_embedding_dimension()
-            if got is not None and int(got) != self.dim:
-                raise ImproperlyConfigured(
-                    f"EMBEDDING_MODEL {self.model_name} has dimension {got}, EMBEDDING_DIM is {self.dim}")
-            self._model = model
-            self._failed_until = 0.0
-            self._last_error = ""
-        return self._model
+    def _download_and_install(self):
+        """Download (when needed) and load OUTSIDE `_lock`; only installing the finished model takes it."""
+        if not self._download_lock.acquire(blocking=False):
+            raise EmbeddingUnavailable(f"{self.model_name} is being downloaded", reason="model_downloading")
+        try:
+            if self._model is not None:
+                return self._model
+            self._downloading = True
+            try:
+                model = self._construct(local_files_only=False)
+            finally:
+                self._downloading = False
+            with self._lock:  # waits at most for a concurrent load from the cache, never for a download
+                if self._model is None:
+                    self._install(model)
+            return self._model
+        finally:
+            self._download_lock.release()
 
     def download(self) -> str | None:
-        """Fetch (or verify) the model files and load it. Returns the local snapshot path."""
+        """Fetch (or verify) the model files and load it. Returns the local snapshot path.
+        Raises EmbeddingUnavailable(reason="model_downloading") while another thread is downloading it."""
         self._failed_until = 0.0
         self._load(allow_download=True)
         return self.cached_path()
@@ -198,6 +254,14 @@ class LocalEmbedder:
 
     def embed_passages(self, texts: Sequence[str]) -> np.ndarray:
         return self._encode(list(texts), PASSAGE_PREFIX)
+
+
+def _has_weights(path: str) -> bool:
+    """True when the snapshot holds a weights file (Hugging Face links it in only once it is fully downloaded)."""
+    for _root, _dirs, files in os.walk(path):
+        if any(f.endswith(_WEIGHT_SUFFIXES) for f in files):
+            return True
+    return False
 
 
 class UnavailableEmbedder:
