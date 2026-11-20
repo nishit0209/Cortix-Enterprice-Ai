@@ -4,6 +4,8 @@ from pathlib import Path
 
 import environ
 
+from nexora.dbconfig import role_url
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 REPO_DIR = BACKEND_DIR.parent
 
@@ -102,10 +104,17 @@ def _db(url_var: str, default: str, *, owner: bool = False) -> dict:
     return cfg
 
 
-# Defaults target a plain local PostgreSQL on 5432 (scripts/bootstrap_local_db.py writes the real URLs to .env).
-_APP_URL = "postgres://nexora_app:nexora_app_dev@localhost:5432/nexora_app"
-_MIG_URL = "postgres://nexora_migrator:nexora_migrator_dev@localhost:5432/nexora_app"
-_OPS_URL = "postgres://nexora_ops:nexora_ops_dev@localhost:5432/nexora_app"
+# Simple local config: .env holds only POSTGRES_HOST/PORT/USER/PASSWORD + APP_DB_NAME + WAREHOUSE_DB_NAME.
+# The app connects with NEXORA's internal roles (passwords derived from SECRET_KEY; created by scripts/setup_local.py).
+POSTGRES_HOST = env("POSTGRES_HOST", default="localhost")
+POSTGRES_PORT = env.int("POSTGRES_PORT", default=5432)
+APP_DB_NAME = env("APP_DB_NAME", default="nexora_app")
+WAREHOUSE_DB_NAME = env("WAREHOUSE_DB_NAME", default="nexora_wh")
+_DB_LOC = {"host": POSTGRES_HOST, "port": POSTGRES_PORT, "app_db": APP_DB_NAME, "wh_db": WAREHOUSE_DB_NAME,
+           "secret_key": SECRET_KEY}
+_APP_URL = role_url("nexora_app", **_DB_LOC)
+_MIG_URL = role_url("nexora_migrator", **_DB_LOC)
+_OPS_URL = role_url("nexora_ops", **_DB_LOC)
 
 DATABASES = {
     "default": (
@@ -121,10 +130,8 @@ DATABASES = {
 DATABASES["ops"]["TEST"] = {"MIRROR": "default"}
 DATABASES["durable"]["TEST"] = {"MIRROR": "default"}
 DATABASE_ROUTERS: list[str] = []
-WH_DATABASE_URL_LOADER = env("WH_DATABASE_URL_LOADER", default="postgres://wh_loader:wh_loader_dev@localhost:5432/nexora_wh")
-WH_DATABASE_URL_EXECUTOR = env(
-    "WH_DATABASE_URL_EXECUTOR", default="postgres://wh_executor:wh_loader_dev@localhost:5432/nexora_wh"
-)
+WH_DATABASE_URL_LOADER = env("WH_DATABASE_URL_LOADER", default=role_url("wh_loader", **_DB_LOC))
+WH_DATABASE_URL_EXECUTOR = env("WH_DATABASE_URL_EXECUTOR", default=role_url("wh_executor", **_DB_LOC))
 # Test runs isolate warehouse objects per agent/test session with this schema prefix ("org_" in prod).
 WH_SCHEMA_PREFIX = env("WH_SCHEMA_PREFIX", default="org_")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

@@ -26,7 +26,7 @@
 | Area | Module | Status | Evidence / notes |
 |---|---|---|---|
 | Foundation | Monorepo, Django project, apps pre-wired, CI workflow | Prototype | CI not run on GitHub (no remote yet, by user choice). |
-| Foundation | Local PostgreSQL bootstrap (`scripts/bootstrap_local_db.py`), local-runtime settings | Prototype | Script written. Not run yet (the user creates the DB at the end). |
+| Foundation | One-command local PostgreSQL setup (`scripts/setup_local.py`; 6 lines in .env), local-runtime settings | Working | Ran successfully on the user's PostgreSQL 17.10 (2026-11-20): users + 2 DBs created, all migrations OK, warehouse provision test OK. |
 | Foundation | Tenancy core (RLS `app.org_id`, fail-closed managers, `TenantAPIView`, `TenantTask`) | Prototype | All 6 W1 QA defects fixed (W2 Backend). Repro tests need the DB. |
 | Foundation | Local runtime: thread task runner, DB job events + SSE (ASGI/WSGI), fs storage + signed links, local scheduler (advisory lock), DB cache, pgvector-optional vectors | Prototype | Unit tests pass. DB tests written, not run. |
 | Auth/Orgs | Signup, login, lockout, MFA, orgs, members, invitations, roles, API keys (password re-auth) | Prototype | Unit tests pass. API tests need the DB. |

@@ -128,7 +128,7 @@
 
 ## Local runtime: PostgreSQL only, no Docker (binding from W3, Integrator 2026-11-20)
 
-The product must run fully with only a local PostgreSQL that the user creates (`scripts/bootstrap_local_db.py`), plus
+The product must run fully with only a local PostgreSQL that the user creates (`scripts/setup_local.py`: .env holds only POSTGRES_HOST/PORT/USER/PASSWORD + APP_DB_NAME + WAREHOUSE_DB_NAME; internal role passwords are derived from SECRET_KEY by `nexora.dbconfig`), plus
 `manage.py runserver` / `uvicorn` and `npm run dev`. Redis, S3/MinIO and pgvector are OPTIONAL accelerators.
 
 **Every screen shows data from the database. There are no hardcoded or mock datasets in the UI.** Demo content comes only from `manage.py seed_demo`, which goes through the real services.
