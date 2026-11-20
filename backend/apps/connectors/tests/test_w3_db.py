@@ -1,4 +1,4 @@
-﻿"""W3 data sources (DB-backed: real Postgres under RLS; connector faked, storage faked, ingest real).
+"""W3 data sources (DB-backed: real Postgres under RLS; connector faked, storage faked, ingest real).
 
 The catalog browser's request shapes (`table: "schema.table"`, `row_estimate`, connection `checks`) and the import
 notifications to the user who started the import.

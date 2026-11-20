@@ -1,4 +1,4 @@
-﻿"""In-app notifications for the data apps (datasets, connectors, pipelines), re-exported by `services`.
+"""In-app notifications for the data apps (datasets, connectors, pipelines), re-exported by `services`.
 
 Producers call `notify_users(user_ids, kind, title, body, link)` inside the org's tenant context. It delegates to
 `apps.core.notifications.notify` (Backend, CONTRACT "W3 additions / Notifications"), which is imported lazily:

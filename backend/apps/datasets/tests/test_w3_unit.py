@@ -1,4 +1,4 @@
-﻿"""W3 datasets (pure, no DB): notification helper, staged type casting equals a single pass, storage-agnostic errors."""
+"""W3 datasets (pure, no DB): notification helper, staged type casting equals a single pass, storage-agnostic errors."""
 
 from __future__ import annotations
 

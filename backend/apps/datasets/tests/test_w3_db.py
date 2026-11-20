@@ -1,4 +1,4 @@
-﻿"""W3 datasets (DB-backed: real Postgres under RLS + nexora_wh; storage faked).
+"""W3 datasets (DB-backed: real Postgres under RLS + nexora_wh; storage faked).
 
 Ingestion notifications go to the uploader (ready / failed / blocked by a quality gate), the ingest-finished signal
 is delivered once per terminal job, data-stats carries the connector source counts, and - once the Backend

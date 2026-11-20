@@ -1,4 +1,4 @@
-﻿"""W3 pipelines (DB-backed: real Postgres under RLS + nexora_wh; storage faked, notify recorded).
+"""W3 pipelines (DB-backed: real Postgres under RLS + nexora_wh; storage faked, notify recorded).
 
 Covers the frontend W2 requests (detail validate = dry run with per-node errors, preview `node_id` + `limit`,
 schedule `is_active`, UI step names, rule counts), owner notifications, data-stats KPIs and the dispatcher paths the
