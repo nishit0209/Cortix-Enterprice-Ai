@@ -19,6 +19,7 @@ STORAGE_BACKEND="fs" must land below LOCAL_STORAGE_DIR, and the S3 client must n
 
 from __future__ import annotations
 
+import os
 import shutil
 import threading
 import time
@@ -117,22 +118,88 @@ def test_traversal_and_foreign_keys_are_rejected(fs, tmp_path, key, op):
     assert _all_files(fs) == [] and _all_files(outside) == [], "a rejected key must not touch the filesystem"
 
 
-@pytest.mark.parametrize(
-    "segment",
-    ["C:", "file.csv:stream", "CON", "nul.txt", "trailing.", "trailing ", "a|b", "a?b", 'a"b', "a<b>"],
-)
-def test_filesystem_special_names_are_rejected_or_stay_inside_the_root(fs, segment):
-    """Names Windows reinterprets (drive letters, ADS streams, devices, trailing dot/space) must never escape."""
+SPECIAL_SEGMENTS = [
+    "C:",
+    "file.csv:stream",
+    "CON",
+    "nul.txt",
+    "trailing.",
+    "trailing ",
+    "a|b",
+    "a?b",
+    'a"b',
+    "a<b>",
+]
+
+
+def _outside_snapshot(root: Path) -> tuple[set[Path], set[str]]:
+    """Everything next to the storage root (the test's tmp dir) and the names in the current directory."""
+    siblings = {p for p in root.parent.rglob("*") if p != root and root not in p.parents}
+    return siblings, set(os.listdir(os.getcwd()))
+
+
+def _assert_stored_exactly_at_the_key(root: Path, segment: str, read_back, before) -> None:
+    """An ACCEPTED special name must be a plain file named exactly `segment` in uploads/, holding the bytes.
+
+    Catches what Windows does silently: a device name (CON, nul.txt) swallows the write and leaves no file, an NTFS
+    alternate data stream ("file.csv:stream") lands in a stream of "file.csv", a trailing dot/space is stripped
+    ("trailing." aliases "trailing"), a drive-relative segment ("C:") writes on another drive. The on-disk checks
+    run BEFORE `read_back()` (the backend's get_object) so a device name such as CON never blocks on a read.
+    """
+    uploads = root / "orgs" / str(ORG_A) / "uploads"
+    on_disk = sorted(os.listdir(uploads)) if uploads.is_dir() else []
+    assert on_disk == [segment], f"{segment!r} was stored as {on_disk} (a device, a stream or an alias)"
+    real_root = root.resolve()
+    files = _all_files(root)
+    assert files == [uploads / segment], f"{segment!r}: unexpected files under the root: {files}"
+    for path in files:
+        assert real_root in path.resolve().parents, f"{segment!r} escaped the storage root: {path}"
+    assert _outside_snapshot(root) == before, f"{segment!r} wrote outside the storage root"
+    assert (uploads / segment).read_bytes() == b"x"
+    data = read_back()
+    assert data == b"x", f"{segment!r}: get_object returned {data!r}"
+
+
+@pytest.mark.parametrize("segment", SPECIAL_SEGMENTS)
+def test_filesystem_special_names_are_rejected_or_stored_exactly_at_the_key(fs, segment):
+    """Names Windows reinterprets (drive letters, ADS streams, devices, trailing dot/space) are rejected, or else
+    stored as exactly that file inside the root: never a device, a stream, an alias or a path outside the root."""
     key = f"orgs/{ORG_A}/uploads/{segment}"
+    before = _outside_snapshot(fs)
+    assert _all_files(fs) == []
     with active(ORG_A):
         try:
             storage.put_bytes(key, b"x")
         except (PermissionError, ValueError):
-            return  # rejected: fine
-    root = fs.resolve()
-    for path in _all_files(fs):
-        assert root in path.resolve().parents, f"{segment!r} escaped the storage root: {path}"
-    assert (fs / "orgs" / str(ORG_A)).exists()
+            assert _all_files(fs) == [] and _outside_snapshot(fs) == before, "a rejected key touched the disk"
+            return
+        _assert_stored_exactly_at_the_key(fs, segment, lambda: storage.get_object(key), before)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="these names are ordinary file names outside Windows")
+@pytest.mark.parametrize("segment", ["file.csv:stream", "trailing.", "trailing ", "nul"])
+def test_the_special_name_check_catches_a_backend_that_writes_them_naively(tmp_path, segment):
+    """Self-test of the oracle above: a backend doing `open(root / key, "wb")` with no name check must fail it."""
+    root = tmp_path / "storage"
+    (root / "orgs" / str(ORG_A) / "uploads").mkdir(parents=True)
+    before = _outside_snapshot(root)
+    target = root / "orgs" / str(ORG_A) / "uploads" / segment
+    try:
+        target.write_bytes(b"x")
+    except OSError:
+        pytest.skip(f"this Windows build refuses {segment!r} outright")
+    with pytest.raises(AssertionError):
+        _assert_stored_exactly_at_the_key(root, segment, target.read_bytes, before)
+
+
+def test_the_special_name_check_accepts_a_plain_file(tmp_path):
+    """...and passes for a name stored exactly at the key (the check itself is not always-failing)."""
+    root = tmp_path / "storage"
+    uploads = root / "orgs" / str(ORG_A) / "uploads"
+    uploads.mkdir(parents=True)
+    before = _outside_snapshot(root)
+    (uploads / "plain-name.csv").write_bytes(b"x")
+    _assert_stored_exactly_at_the_key(root, "plain-name.csv", (uploads / "plain-name.csv").read_bytes, before)
 
 
 def test_symlinked_directory_cannot_escape_the_root(fs, tmp_path):
