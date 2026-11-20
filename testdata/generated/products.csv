@@ -1,0 +1,79 @@
+product_id,sku,product_name,brand,category,unit,pack_size,list_price_inr,cost_inr,status,launched_on
+PRD-0001,NIL-BASRIC-5KG,Nilgiri Basmati Rice 5 kg,Nilgiri,Grocery,kg,5,554.11,357.71,active,2021-03-01
+PRD-0002,NIL-BASRIC-10KG,Nilgiri Basmati Rice 10 kg,Nilgiri,Grocery,kg,10,1498.88,1076.25,active,2024-01-06
+PRD-0003,SAH-BASRIC-5KG,Sahyadri Basmati Rice 5 kg,Sahyadri,Grocery,kg,5,623.09,450.10,active,2023-10-19
+PRD-0004,KON-TOODAL-1KG,Konark Toor Dal 1 kg,Konark,Grocery,kg,1,171.69,124.54,active,2023-01-26
+PRD-0005,KON-TOODAL-2KG,Konark Toor Dal 2 kg,Konark,Grocery,kg,2,441.90,304.34,active,2021-04-11
+PRD-0006,THA-TOODAL-1KG,Thar Toor Dal 1 kg,Thar,Grocery,kg,1,206.21,114.33,active,2022-01-20
+PRD-0007,KES-SUNOIL-5L,Kesar Sunflower Oil 5 l,Kesar,Grocery,l,5,853.02,517.29,active,2021-08-09
+PRD-0008,NIL-SUNOIL-5L,Nilgiri Sunflower Oil 5 l,Nilgiri,Grocery,l,5,1039.61,776.12,active,2022-12-07
+PRD-0009,NIL-SUNOIL-10L,Nilgiri Sunflower Oil 10 l,Nilgiri,Grocery,l,10,2210.67,1629.02,active,2023-07-26
+PRD-0010,VIN-MASCHA-500G,Vindhya Masala Chai 500 g,Vindhya,Grocery,g,500,351.18,251.32,active,2023-02-19
+PRD-0011,VIN-MASCHA-250G,Vindhya Masala Chai 250 g,Vindhya,Grocery,g,250,158.45,113.78,active,2021-03-23
+PRD-0012,KON-MASCHA-500G,Konark Masala Chai 500 g,Konark,Grocery,g,500,388.55,216.81,active,2023-07-27
+PRD-0013,GAN-ATTFLO-5KG,Ganga Atta Flour 5 kg,Ganga,Grocery,kg,5,329.50,200.24,active,2024-04-08
+PRD-0014,GAN-ATTFLO-10KG,Ganga Atta Flour 10 kg,Ganga,Grocery,kg,10,624.95,365.14,active,2022-02-19
+PRD-0015,THA-ATTFLO-5KG,Thar Atta Flour 5 kg,Thar,Grocery,kg,5,345.60,218.19,active,2022-09-11
+PRD-0016,KON-CASNUT-500G,Konark Cashew Nuts 500 g,Konark,Grocery,g,500,561.13,372.53,active,2022-08-05
+PRD-0017,KON-CASNUT-250G,Konark Cashew Nuts 250 g,Konark,Grocery,g,250,252.84,188.64,active,2022-09-07
+PRD-0018,SAH-CASNUT-500G,Sahyadri Cashew Nuts 500 g,Sahyadri,Grocery,g,500,433.46,316.69,active,2021-10-24
+PRD-0019,SAH-CASNUT-250G,Sahyadri Cashew Nuts 250 g,Sahyadri,Grocery,g,250,212.43,120.44,active,2022-02-16
+PRD-0020,NIL-BLUEAR-1PC,Nilgiri Bluetooth Earbuds,Nilgiri,Electronics,pc,1,2013.79,1439.35,active,2022-11-27
+PRD-0021,SUN-BLUEAR-1PC,Sunrise Bluetooth Earbuds,Sunrise,Electronics,pc,1,2205.69,1449.11,active,2022-01-23
+PRD-0022,SAH-SMAWAT-1PC,Sahyadri Smart Watch,Sahyadri,Electronics,pc,1,3065.78,2071.80,active,2021-04-10
+PRD-0023,THA-SMAWAT-1PC,Thar Smart Watch,Thar,Electronics,pc,1,2991.25,1793.00,active,2023-09-22
+PRD-0024,KES-POWBAN-1PC,Kesar Power Bank 10000mAh,Kesar,Electronics,pc,1,1342.07,861.89,active,2021-03-26
+PRD-0025,KON-POWBAN-1PC,Konark Power Bank 10000mAh,Konark,Electronics,pc,1,1437.07,981.52,active,2021-03-11
+PRD-0026,KES-LEDBUL-1PC,Kesar LED Bulb 9W,Kesar,Electronics,pc,1,161.19,102.56,active,2021-03-03
+PRD-0027,THA-LEDBUL-1PC,Thar LED Bulb 9W,Thar,Electronics,pc,1,126.72,91.94,active,2023-02-25
+PRD-0028,SAH-WIFI-1PC,Sahyadri Wi-Fi Router,Sahyadri,Electronics,pc,1,2191.93,1609.99,active,2021-04-22
+PRD-0029,THA-WIFI-1PC,Thar Wi-Fi Router,Thar,Electronics,pc,1,2265.64,1679.18,active,2023-10-09
+PRD-0030,KON-USBC-1PC,Konark USB-C Cable,Konark,Electronics,pc,1,305.06,211.44,active,2024-01-28
+PRD-0031,KES-USBC-1PC,Kesar USB-C Cable,Kesar,Electronics,pc,1,368.19,249.83,active,2023-10-26
+PRD-0032,NIL-COTKUR-1PC,Nilgiri Cotton Kurta,Nilgiri,Apparel,pc,1,953.41,524.39,active,2022-08-19
+PRD-0033,THA-COTKUR-1PC,Thar Cotton Kurta,Thar,Apparel,pc,1,845.59,534.48,active,2023-02-22
+PRD-0034,SAH-SILSAR-1PC,Sahyadri Silk Saree,Sahyadri,Apparel,pc,1,6004.52,4185.83,active,2021-06-05
+PRD-0035,SUN-SILSAR-1PC,Sunrise Silk Saree,Sunrise,Apparel,pc,1,4636.98,3129.87,active,2021-01-20
+PRD-0036,KES-DENJEA-1PC,Kesar Denim Jeans,Kesar,Apparel,pc,1,1663.08,955.33,active,2022-10-30
+PRD-0037,KON-DENJEA-1PC,Konark Denim Jeans,Konark,Apparel,pc,1,1572.55,1103.64,active,2022-06-23
+PRD-0038,NIL-SPOSHO-1PAIR,Nilgiri Sports Shoes,Nilgiri,Apparel,pair,1,2707.00,1635.95,active,2023-03-01
+PRD-0039,VIN-SPOSHO-1PAIR,Vindhya Sports Shoes,Vindhya,Apparel,pair,1,3133.27,2117.60,active,2023-08-09
+PRD-0040,SAH-PRECOO-1PC,Sahyadri Pressure Cooker 5L,Sahyadri,Home,pc,1,2572.91,1597.18,active,2023-06-02
+PRD-0041,NIL-PRECOO-1PC,Nilgiri Pressure Cooker 5L,Nilgiri,Home,pc,1,2737.27,1584.82,active,2024-02-13
+PRD-0042,THA-STETIF-1PC,Thar Steel Tiffin Box,Thar,Home,pc,1,629.45,391.14,active,2021-06-28
+PRD-0043,VIN-STETIF-1PC,Vindhya Steel Tiffin Box,Vindhya,Home,pc,1,733.96,494.54,active,2021-05-10
+PRD-0044,NIL-COTBED-1PC,Nilgiri Cotton Bedsheet,Nilgiri,Home,pc,1,1064.98,782.78,active,2021-01-27
+PRD-0045,SAH-COTBED-1PC,Sahyadri Cotton Bedsheet,Sahyadri,Home,pc,1,897.83,595.48,active,2023-12-18
+PRD-0046,SUN-CEIFAN-1PC,Sunrise Ceiling Fan,Sunrise,Home,pc,1,2527.42,1513.12,active,2021-04-17
+PRD-0047,VIN-CEIFAN-1PC,Vindhya Ceiling Fan,Vindhya,Home,pc,1,2853.92,1759.33,active,2023-10-22
+PRD-0048,NIL-HERSHA-340ML,Nilgiri Herbal Shampoo 340 ml,Nilgiri,Beauty,ml,340,219.02,159.44,active,2021-12-26
+PRD-0049,NIL-HERSHA-170ML,Nilgiri Herbal Shampoo 170 ml,Nilgiri,Beauty,ml,170,137.71,94.95,active,2022-04-22
+PRD-0050,KON-HERSHA-340ML,Konark Herbal Shampoo 340 ml,Konark,Beauty,ml,340,297.06,221.56,active,2022-05-09
+PRD-0051,GAN-SUNSPF-100ML,Ganga Sunscreen SPF50 100 ml,Ganga,Beauty,ml,100,497.60,291.65,active,2021-01-15
+PRD-0052,GAN-SUNSPF-50ML,Ganga Sunscreen SPF50 50 ml,Ganga,Beauty,ml,50,213.55,136.87,active,2022-05-15
+PRD-0053,NIL-SUNSPF-100ML,Nilgiri Sunscreen SPF50 100 ml,Nilgiri,Beauty,ml,100,427.64,239.55,active,2022-10-21
+PRD-0054,NIL-SUNSPF-50ML,Nilgiri Sunscreen SPF50 50 ml,Nilgiri,Beauty,ml,50,277.89,188.40,active,2023-07-24
+PRD-0055,NIL-AYUFAC-50G,Nilgiri Ayurvedic Face Cream 50 g,Nilgiri,Beauty,g,50,379.72,232.43,active,2022-01-26
+PRD-0056,VIN-AYUFAC-50G,Vindhya Ayurvedic Face Cream 50 g,Vindhya,Beauty,g,50,382.04,221.40,active,2023-03-26
+PRD-0057,SUN-HAIOIL-200ML,Sunrise Hair Oil 200 ml,Sunrise,Beauty,ml,200,220.59,160.82,active,2022-01-15
+PRD-0058,THA-HAIOIL-200ML,Thar Hair Oil 200 ml,Thar,Beauty,ml,200,226.24,126.00,active,2021-03-28
+PRD-0059,SUNSILSAR1PC,Sunrise Silk Saere,Sunrise,Apparel,pc,1,4747.11,3221.84,discontinued,2021-01-20
+PRD-0060,SUNBLUEAR1PC,Bluetooth Earbuds (Sunrise),Sunrise,Electronics,pc,1,2199.03,1452.32,active,2022-01-23
+PRD-0061,KES-SUNOIL-5000ML,Sunflower Oil 5000 ml (Kesar),Kesar,Grocery,ml,5000,864.52,502.91,discontinued,2021-08-09
+PRD-0062,OLD-THA-ATTFLO-5KG,Thar Atta Flour 5 kg,Thar,Grocery,kg,5,345.71,215.56,active,2022-09-11
+PRD-0063,OLD-NIL-BLUEAR-1PC,Bluetooth Earbuds (Nilgiri),Nilgiri,Electronics,pc,1,1975.96,1432.96,active,2022-11-27
+PRD-0064,OLD-VIN-CEIFAN-1PC,VINDHYA CEILING FAN,Vindhya,Home,pc,1,2898.02,1792.78,active,2023-10-22
+PRD-0065,tha haioil 200ml,Thar Hair Oil 200 ml,Thar,Beauty,ml,200,224.01,127.86,discontinued,2021-03-28
+PRD-0066,NILPRECOO1PC,Pressure Cooker 5L (Nilgiri),Nilgiri,Home,pc,1,2754.49,1609.46,active,2024-02-13
+PRD-0067,kon casnut 250g,Cashew Nuts 250 g (Konark),Konark,Grocery,g,250,256.06,184.56,discontinued,2022-09-07
+PRD-0068,vin sposho 1pair,Sports Shoes (Vindhya),Vindhya,Apparel,pair,1,3215.64,2106.56,active,2023-08-09
+PRD-0069,THAWIFI1PC,THAR WI-FI ROUTER,Thar,Electronics,pc,1,2270.66,1712.19,discontinued,2023-10-09
+PRD-0070,gan attflo 10kg,Atta Flour 10 kg (Ganga),Ganga,Grocery,kg,10,621.35,360.68,active,2022-02-19
+PRD-0071,NIL-BASRIC-5000G,Nilgiri Basmati Rice 5000 g,Nilgiri,Grocery,g,5000,560.85,361.66,discontinued,2021-03-01
+PRD-0072,kon casnut 500g,Konark Cashew NNuts 500 g,Konark,Grocery,g,500,548.68,369.57,active,2022-08-05
+PRD-0073,KONPOWBAN1PC,KONARK POWER BANK 10000MAH,Konark,Electronics,pc,1,1414.97,956.92,active,2021-03-11
+PRD-0074,OLD-GAN-ATTFLO-5KG,Ganga Atta Flour 5 kg,Ganga,Grocery,kg,5,327.32,196.64,active,2024-04-08
+PRD-0075,KON-HERSHA-0.34L,KONARK HERBAL SHAMPOO 0.34 L,Konark,Beauty,l,0.34,298.44,226.39,discontinued,2022-05-09
+PRD-0076,KESPOWBAN1PC,Kesar Power Bank 10000mAh,Kesar,Electronics,pc,1,1327.74,857.38,discontinued,2021-03-26
+PRD-0077,nil hersha 170ml,Nilgiri HerbalShampoo 170 ml,Nilgiri,Beauty,ml,170,136.48,97.26,active,2022-04-22
+PRD-0078,VINMASCHA250G,Masala Chai 250 g (Vindhya),Vindhya,Grocery,g,250,158.25,117.03,active,2021-03-23

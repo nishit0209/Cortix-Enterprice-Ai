@@ -1,0 +1,4956 @@
+{
+ "anchor": "2026-11-17",
+ "churn_hazard": {
+  "consumer": 0.35,
+  "intercept": -4.3,
+  "satisfaction": -1.0,
+  "tenure_years": -0.15
+ },
+ "customers": {
+  "C00001": {
+   "churn_date": null,
+   "orders_per_month": 0.8842,
+   "satisfaction": -1.1591,
+   "value_multiplier": 1.2545
+  },
+  "C00002": {
+   "churn_date": null,
+   "orders_per_month": 0.3397,
+   "satisfaction": -0.1952,
+   "value_multiplier": 0.6137
+  },
+  "C00003": {
+   "churn_date": null,
+   "orders_per_month": 0.7067,
+   "satisfaction": -0.6251,
+   "value_multiplier": 1.3321
+  },
+  "C00004": {
+   "churn_date": null,
+   "orders_per_month": 0.6193,
+   "satisfaction": -0.2826,
+   "value_multiplier": 0.3104
+  },
+  "C00005": {
+   "churn_date": null,
+   "orders_per_month": 0.9512,
+   "satisfaction": 0.3815,
+   "value_multiplier": 0.6966
+  },
+  "C00006": {
+   "churn_date": null,
+   "orders_per_month": 1.0733,
+   "satisfaction": -0.1832,
+   "value_multiplier": 1.0667
+  },
+  "C00007": {
+   "churn_date": null,
+   "orders_per_month": 0.4325,
+   "satisfaction": 0.5118,
+   "value_multiplier": 1.3666
+  },
+  "C00008": {
+   "churn_date": null,
+   "orders_per_month": 0.6438,
+   "satisfaction": -0.6322,
+   "value_multiplier": 0.5858
+  },
+  "C00009": {
+   "churn_date": null,
+   "orders_per_month": 0.3318,
+   "satisfaction": 0.7011,
+   "value_multiplier": 2.5608
+  },
+  "C00010": {
+   "churn_date": null,
+   "orders_per_month": 2.0168,
+   "satisfaction": -0.7802,
+   "value_multiplier": 2.8844
+  },
+  "C00011": {
+   "churn_date": null,
+   "orders_per_month": 1.1558,
+   "satisfaction": -0.2858,
+   "value_multiplier": 0.506
+  },
+  "C00012": {
+   "churn_date": "2025-05-18",
+   "orders_per_month": 0.9424,
+   "satisfaction": -1.0135,
+   "value_multiplier": 0.7024
+  },
+  "C00013": {
+   "churn_date": null,
+   "orders_per_month": 0.5309,
+   "satisfaction": -0.5989,
+   "value_multiplier": 1.4269
+  },
+  "C00014": {
+   "churn_date": null,
+   "orders_per_month": 0.4584,
+   "satisfaction": 1.0403,
+   "value_multiplier": 0.8465
+  },
+  "C00015": {
+   "churn_date": null,
+   "orders_per_month": 0.2868,
+   "satisfaction": -0.2947,
+   "value_multiplier": 1.0926
+  },
+  "C00016": {
+   "churn_date": "2025-12-30",
+   "orders_per_month": 0.241,
+   "satisfaction": -0.9579,
+   "value_multiplier": 0.8141
+  },
+  "C00017": {
+   "churn_date": "2025-03-01",
+   "orders_per_month": 0.5325,
+   "satisfaction": -1.1236,
+   "value_multiplier": 2.0389
+  },
+  "C00018": {
+   "churn_date": "2025-10-20",
+   "orders_per_month": 0.6868,
+   "satisfaction": -0.8245,
+   "value_multiplier": 1.5183
+  },
+  "C00019": {
+   "churn_date": "2025-01-28",
+   "orders_per_month": 0.9347,
+   "satisfaction": -1.7471,
+   "value_multiplier": 0.9355
+  },
+  "C00020": {
+   "churn_date": "2025-03-07",
+   "orders_per_month": 0.5649,
+   "satisfaction": -2.1723,
+   "value_multiplier": 2.3444
+  },
+  "C00021": {
+   "churn_date": "2026-08-18",
+   "orders_per_month": 0.51,
+   "satisfaction": -1.7118,
+   "value_multiplier": 0.6814
+  },
+  "C00022": {
+   "churn_date": null,
+   "orders_per_month": 0.9119,
+   "satisfaction": 1.3203,
+   "value_multiplier": 1.6128
+  },
+  "C00023": {
+   "churn_date": null,
+   "orders_per_month": 0.6497,
+   "satisfaction": -0.3054,
+   "value_multiplier": 2.1008
+  },
+  "C00024": {
+   "churn_date": null,
+   "orders_per_month": 0.1533,
+   "satisfaction": 0.4365,
+   "value_multiplier": 4.8001
+  },
+  "C00025": {
+   "churn_date": null,
+   "orders_per_month": 0.8495,
+   "satisfaction": -1.747,
+   "value_multiplier": 8.2433
+  },
+  "C00026": {
+   "churn_date": null,
+   "orders_per_month": 0.4802,
+   "satisfaction": 0.9181,
+   "value_multiplier": 1.2534
+  },
+  "C00027": {
+   "churn_date": null,
+   "orders_per_month": 1.1298,
+   "satisfaction": 0.5615,
+   "value_multiplier": 2.4192
+  },
+  "C00028": {
+   "churn_date": "2026-03-28",
+   "orders_per_month": 0.4837,
+   "satisfaction": -0.6543,
+   "value_multiplier": 1.0482
+  },
+  "C00029": {
+   "churn_date": null,
+   "orders_per_month": 0.693,
+   "satisfaction": -0.0687,
+   "value_multiplier": 2.3543
+  },
+  "C00030": {
+   "churn_date": "2025-01-10",
+   "orders_per_month": 1.0218,
+   "satisfaction": -2.6471,
+   "value_multiplier": 2.1937
+  },
+  "C00031": {
+   "churn_date": null,
+   "orders_per_month": 0.2349,
+   "satisfaction": -0.3327,
+   "value_multiplier": 0.8203
+  },
+  "C00032": {
+   "churn_date": null,
+   "orders_per_month": 1.9956,
+   "satisfaction": 0.8484,
+   "value_multiplier": 0.8826
+  },
+  "C00033": {
+   "churn_date": null,
+   "orders_per_month": 1.8913,
+   "satisfaction": 0.1621,
+   "value_multiplier": 3.4572
+  },
+  "C00034": {
+   "churn_date": "2026-05-24",
+   "orders_per_month": 1.4702,
+   "satisfaction": -2.4327,
+   "value_multiplier": 0.7423
+  },
+  "C00035": {
+   "churn_date": "2025-06-21",
+   "orders_per_month": 0.4051,
+   "satisfaction": 0.3209,
+   "value_multiplier": 1.1135
+  },
+  "C00036": {
+   "churn_date": null,
+   "orders_per_month": 0.5259,
+   "satisfaction": -0.2282,
+   "value_multiplier": 0.5383
+  },
+  "C00037": {
+   "churn_date": null,
+   "orders_per_month": 0.2613,
+   "satisfaction": -0.8298,
+   "value_multiplier": 8.5378
+  },
+  "C00038": {
+   "churn_date": null,
+   "orders_per_month": 0.3195,
+   "satisfaction": 1.6356,
+   "value_multiplier": 0.9927
+  },
+  "C00039": {
+   "churn_date": "2026-04-26",
+   "orders_per_month": 0.204,
+   "satisfaction": -0.0704,
+   "value_multiplier": 3.7554
+  },
+  "C00040": {
+   "churn_date": null,
+   "orders_per_month": 0.5305,
+   "satisfaction": -0.2428,
+   "value_multiplier": 1.9205
+  },
+  "C00041": {
+   "churn_date": "2025-12-19",
+   "orders_per_month": 0.2224,
+   "satisfaction": -0.9013,
+   "value_multiplier": 2.2895
+  },
+  "C00042": {
+   "churn_date": null,
+   "orders_per_month": 0.1973,
+   "satisfaction": -0.1197,
+   "value_multiplier": 0.7658
+  },
+  "C00043": {
+   "churn_date": null,
+   "orders_per_month": 0.4098,
+   "satisfaction": -0.4925,
+   "value_multiplier": 4.6288
+  },
+  "C00044": {
+   "churn_date": "2025-02-12",
+   "orders_per_month": 0.0756,
+   "satisfaction": -0.7558,
+   "value_multiplier": 0.6524
+  },
+  "C00045": {
+   "churn_date": null,
+   "orders_per_month": 0.464,
+   "satisfaction": -0.9414,
+   "value_multiplier": 0.7333
+  },
+  "C00046": {
+   "churn_date": null,
+   "orders_per_month": 0.7682,
+   "satisfaction": 1.1812,
+   "value_multiplier": 0.8855
+  },
+  "C00047": {
+   "churn_date": null,
+   "orders_per_month": 0.6362,
+   "satisfaction": -0.6731,
+   "value_multiplier": 5.2025
+  },
+  "C00048": {
+   "churn_date": "2026-01-26",
+   "orders_per_month": 0.6197,
+   "satisfaction": -1.1798,
+   "value_multiplier": 1.0803
+  },
+  "C00049": {
+   "churn_date": "2025-06-08",
+   "orders_per_month": 0.2486,
+   "satisfaction": -1.1336,
+   "value_multiplier": 0.7506
+  },
+  "C00050": {
+   "churn_date": "2025-03-31",
+   "orders_per_month": 1.1727,
+   "satisfaction": 0.3183,
+   "value_multiplier": 0.6493
+  },
+  "C00051": {
+   "churn_date": null,
+   "orders_per_month": 0.7615,
+   "satisfaction": 1.7397,
+   "value_multiplier": 3.5499
+  },
+  "C00052": {
+   "churn_date": "2025-05-10",
+   "orders_per_month": 1.6903,
+   "satisfaction": -0.4205,
+   "value_multiplier": 1.5433
+  },
+  "C00053": {
+   "churn_date": null,
+   "orders_per_month": 0.2288,
+   "satisfaction": 0.8671,
+   "value_multiplier": 1.1006
+  },
+  "C00054": {
+   "churn_date": null,
+   "orders_per_month": 0.6672,
+   "satisfaction": 1.6464,
+   "value_multiplier": 0.5176
+  },
+  "C00055": {
+   "churn_date": null,
+   "orders_per_month": 0.5896,
+   "satisfaction": -0.4588,
+   "value_multiplier": 0.4114
+  },
+  "C00056": {
+   "churn_date": null,
+   "orders_per_month": 1.0411,
+   "satisfaction": 2.0315,
+   "value_multiplier": 1.723
+  },
+  "C00057": {
+   "churn_date": null,
+   "orders_per_month": 0.2851,
+   "satisfaction": 0.1284,
+   "value_multiplier": 1.3606
+  },
+  "C00058": {
+   "churn_date": null,
+   "orders_per_month": 1.313,
+   "satisfaction": 0.767,
+   "value_multiplier": 1.1585
+  },
+  "C00059": {
+   "churn_date": "2024-12-23",
+   "orders_per_month": 0.2169,
+   "satisfaction": -0.2667,
+   "value_multiplier": 1.5031
+  },
+  "C00060": {
+   "churn_date": null,
+   "orders_per_month": 1.223,
+   "satisfaction": -0.6094,
+   "value_multiplier": 0.9419
+  },
+  "C00061": {
+   "churn_date": null,
+   "orders_per_month": 0.0801,
+   "satisfaction": -0.7441,
+   "value_multiplier": 0.8761
+  },
+  "C00062": {
+   "churn_date": null,
+   "orders_per_month": 0.2947,
+   "satisfaction": 0.0233,
+   "value_multiplier": 1.0307
+  },
+  "C00063": {
+   "churn_date": null,
+   "orders_per_month": 1.2886,
+   "satisfaction": 0.7647,
+   "value_multiplier": 8.0949
+  },
+  "C00064": {
+   "churn_date": null,
+   "orders_per_month": 0.4086,
+   "satisfaction": 0.8701,
+   "value_multiplier": 7.9009
+  },
+  "C00065": {
+   "churn_date": null,
+   "orders_per_month": 0.1127,
+   "satisfaction": 0.9533,
+   "value_multiplier": 1.9811
+  },
+  "C00066": {
+   "churn_date": "2025-04-06",
+   "orders_per_month": 0.1992,
+   "satisfaction": -1.197,
+   "value_multiplier": 1.0869
+  },
+  "C00067": {
+   "churn_date": null,
+   "orders_per_month": 0.4768,
+   "satisfaction": 1.1652,
+   "value_multiplier": 0.1629
+  },
+  "C00068": {
+   "churn_date": null,
+   "orders_per_month": 0.4435,
+   "satisfaction": -0.0751,
+   "value_multiplier": 1.2432
+  },
+  "C00069": {
+   "churn_date": null,
+   "orders_per_month": 0.4008,
+   "satisfaction": -1.145,
+   "value_multiplier": 1.1003
+  },
+  "C00070": {
+   "churn_date": null,
+   "orders_per_month": 0.1721,
+   "satisfaction": -1.3059,
+   "value_multiplier": 0.7719
+  },
+  "C00071": {
+   "churn_date": null,
+   "orders_per_month": 0.6146,
+   "satisfaction": 0.0799,
+   "value_multiplier": 0.6245
+  },
+  "C00072": {
+   "churn_date": null,
+   "orders_per_month": 1.1855,
+   "satisfaction": 1.0651,
+   "value_multiplier": 0.6036
+  },
+  "C00073": {
+   "churn_date": "2025-08-29",
+   "orders_per_month": 1.4463,
+   "satisfaction": -0.7368,
+   "value_multiplier": 1.0564
+  },
+  "C00074": {
+   "churn_date": null,
+   "orders_per_month": 0.2462,
+   "satisfaction": 1.238,
+   "value_multiplier": 1.1862
+  },
+  "C00075": {
+   "churn_date": null,
+   "orders_per_month": 1.169,
+   "satisfaction": 1.9466,
+   "value_multiplier": 1.3529
+  },
+  "C00076": {
+   "churn_date": null,
+   "orders_per_month": 1.1875,
+   "satisfaction": 1.2853,
+   "value_multiplier": 0.4439
+  },
+  "C00077": {
+   "churn_date": null,
+   "orders_per_month": 1.0382,
+   "satisfaction": -0.024,
+   "value_multiplier": 0.8426
+  },
+  "C00078": {
+   "churn_date": "2025-01-17",
+   "orders_per_month": 0.0927,
+   "satisfaction": -0.9788,
+   "value_multiplier": 1.0772
+  },
+  "C00079": {
+   "churn_date": null,
+   "orders_per_month": 1.0667,
+   "satisfaction": 0.28,
+   "value_multiplier": 1.1393
+  },
+  "C00080": {
+   "churn_date": null,
+   "orders_per_month": 0.7003,
+   "satisfaction": -0.3736,
+   "value_multiplier": 2.0817
+  },
+  "C00081": {
+   "churn_date": null,
+   "orders_per_month": 0.3381,
+   "satisfaction": -0.3575,
+   "value_multiplier": 2.4162
+  },
+  "C00082": {
+   "churn_date": null,
+   "orders_per_month": 0.6745,
+   "satisfaction": -0.5967,
+   "value_multiplier": 1.6393
+  },
+  "C00083": {
+   "churn_date": null,
+   "orders_per_month": 0.7214,
+   "satisfaction": 0.5581,
+   "value_multiplier": 1.1441
+  },
+  "C00084": {
+   "churn_date": null,
+   "orders_per_month": 1.0406,
+   "satisfaction": -0.7202,
+   "value_multiplier": 2.3281
+  },
+  "C00085": {
+   "churn_date": null,
+   "orders_per_month": 1.4526,
+   "satisfaction": 0.2294,
+   "value_multiplier": 0.8734
+  },
+  "C00086": {
+   "churn_date": null,
+   "orders_per_month": 1.1625,
+   "satisfaction": -0.8574,
+   "value_multiplier": 2.3431
+  },
+  "C00087": {
+   "churn_date": null,
+   "orders_per_month": 2.331,
+   "satisfaction": -1.8216,
+   "value_multiplier": 0.9875
+  },
+  "C00088": {
+   "churn_date": "2025-09-09",
+   "orders_per_month": 1.2602,
+   "satisfaction": -1.5906,
+   "value_multiplier": 2.7508
+  },
+  "C00089": {
+   "churn_date": null,
+   "orders_per_month": 0.397,
+   "satisfaction": -0.979,
+   "value_multiplier": 5.6534
+  },
+  "C00090": {
+   "churn_date": null,
+   "orders_per_month": 0.6453,
+   "satisfaction": -0.4048,
+   "value_multiplier": 1.4093
+  },
+  "C00091": {
+   "churn_date": null,
+   "orders_per_month": 0.2778,
+   "satisfaction": 0.7597,
+   "value_multiplier": 0.5427
+  },
+  "C00092": {
+   "churn_date": null,
+   "orders_per_month": 1.3787,
+   "satisfaction": 1.6103,
+   "value_multiplier": 1.0336
+  },
+  "C00093": {
+   "churn_date": null,
+   "orders_per_month": 1.3841,
+   "satisfaction": 0.0297,
+   "value_multiplier": 12.0589
+  },
+  "C00094": {
+   "churn_date": null,
+   "orders_per_month": 1.1118,
+   "satisfaction": -0.0838,
+   "value_multiplier": 1.2127
+  },
+  "C00095": {
+   "churn_date": "2026-05-25",
+   "orders_per_month": 0.4556,
+   "satisfaction": -1.1524,
+   "value_multiplier": 3.7991
+  },
+  "C00096": {
+   "churn_date": "2026-07-16",
+   "orders_per_month": 0.4385,
+   "satisfaction": -0.2102,
+   "value_multiplier": 1.0003
+  },
+  "C00097": {
+   "churn_date": null,
+   "orders_per_month": 0.2258,
+   "satisfaction": 0.8262,
+   "value_multiplier": 0.3539
+  },
+  "C00098": {
+   "churn_date": "2026-02-06",
+   "orders_per_month": 0.7221,
+   "satisfaction": -1.1738,
+   "value_multiplier": 6.3588
+  },
+  "C00099": {
+   "churn_date": "2025-03-02",
+   "orders_per_month": 0.4988,
+   "satisfaction": -0.4749,
+   "value_multiplier": 1.1403
+  },
+  "C00100": {
+   "churn_date": null,
+   "orders_per_month": 0.6514,
+   "satisfaction": 0.2368,
+   "value_multiplier": 0.3238
+  },
+  "C00101": {
+   "churn_date": null,
+   "orders_per_month": 0.3467,
+   "satisfaction": 1.304,
+   "value_multiplier": 3.4551
+  },
+  "C00102": {
+   "churn_date": null,
+   "orders_per_month": 0.6663,
+   "satisfaction": -0.208,
+   "value_multiplier": 0.7272
+  },
+  "C00103": {
+   "churn_date": "2026-02-08",
+   "orders_per_month": 0.5286,
+   "satisfaction": -0.7246,
+   "value_multiplier": 0.5827
+  },
+  "C00104": {
+   "churn_date": null,
+   "orders_per_month": 0.7685,
+   "satisfaction": 0.345,
+   "value_multiplier": 1.1175
+  },
+  "C00105": {
+   "churn_date": null,
+   "orders_per_month": 0.7361,
+   "satisfaction": -0.7023,
+   "value_multiplier": 0.3746
+  },
+  "C00106": {
+   "churn_date": "2026-03-07",
+   "orders_per_month": 0.2586,
+   "satisfaction": 0.3854,
+   "value_multiplier": 2.2496
+  },
+  "C00107": {
+   "churn_date": null,
+   "orders_per_month": 0.4565,
+   "satisfaction": 0.4138,
+   "value_multiplier": 0.8365
+  },
+  "C00108": {
+   "churn_date": null,
+   "orders_per_month": 0.3241,
+   "satisfaction": -0.2064,
+   "value_multiplier": 2.497
+  },
+  "C00109": {
+   "churn_date": null,
+   "orders_per_month": 0.4849,
+   "satisfaction": -0.633,
+   "value_multiplier": 0.5806
+  },
+  "C00110": {
+   "churn_date": "2025-05-29",
+   "orders_per_month": 0.7966,
+   "satisfaction": -1.2888,
+   "value_multiplier": 0.5586
+  },
+  "C00111": {
+   "churn_date": null,
+   "orders_per_month": 0.3446,
+   "satisfaction": 0.2931,
+   "value_multiplier": 2.6174
+  },
+  "C00112": {
+   "churn_date": null,
+   "orders_per_month": 0.3778,
+   "satisfaction": 0.7195,
+   "value_multiplier": 0.4519
+  },
+  "C00113": {
+   "churn_date": null,
+   "orders_per_month": 0.6666,
+   "satisfaction": -0.4174,
+   "value_multiplier": 1.9542
+  },
+  "C00114": {
+   "churn_date": null,
+   "orders_per_month": 0.6814,
+   "satisfaction": 0.3345,
+   "value_multiplier": 1.6774
+  },
+  "C00115": {
+   "churn_date": "2025-01-31",
+   "orders_per_month": 0.6905,
+   "satisfaction": -1.3484,
+   "value_multiplier": 0.4423
+  },
+  "C00116": {
+   "churn_date": null,
+   "orders_per_month": 0.7596,
+   "satisfaction": 0.6609,
+   "value_multiplier": 0.7647
+  },
+  "C00117": {
+   "churn_date": "2025-02-07",
+   "orders_per_month": 0.2327,
+   "satisfaction": -1.0025,
+   "value_multiplier": 0.8661
+  },
+  "C00118": {
+   "churn_date": null,
+   "orders_per_month": 1.1028,
+   "satisfaction": 0.3231,
+   "value_multiplier": 3.167
+  },
+  "C00119": {
+   "churn_date": null,
+   "orders_per_month": 0.2365,
+   "satisfaction": 1.0201,
+   "value_multiplier": 5.3193
+  },
+  "C00120": {
+   "churn_date": "2026-06-23",
+   "orders_per_month": 0.3086,
+   "satisfaction": 0.015,
+   "value_multiplier": 0.5273
+  },
+  "C00121": {
+   "churn_date": "2025-07-06",
+   "orders_per_month": 0.8195,
+   "satisfaction": -3.1732,
+   "value_multiplier": 6.4624
+  },
+  "C00122": {
+   "churn_date": null,
+   "orders_per_month": 0.4653,
+   "satisfaction": 0.8484,
+   "value_multiplier": 1.0363
+  },
+  "C00123": {
+   "churn_date": "2025-01-06",
+   "orders_per_month": 0.5581,
+   "satisfaction": -2.0589,
+   "value_multiplier": 0.8502
+  },
+  "C00124": {
+   "churn_date": null,
+   "orders_per_month": 0.5154,
+   "satisfaction": -0.8702,
+   "value_multiplier": 0.9047
+  },
+  "C00125": {
+   "churn_date": null,
+   "orders_per_month": 0.0778,
+   "satisfaction": 0.5441,
+   "value_multiplier": 2.0536
+  },
+  "C00126": {
+   "churn_date": null,
+   "orders_per_month": 0.7341,
+   "satisfaction": 1.3628,
+   "value_multiplier": 0.2498
+  },
+  "C00127": {
+   "churn_date": null,
+   "orders_per_month": 1.4479,
+   "satisfaction": 2.5123,
+   "value_multiplier": 2.1392
+  },
+  "C00128": {
+   "churn_date": null,
+   "orders_per_month": 1.0306,
+   "satisfaction": 0.6889,
+   "value_multiplier": 1.1094
+  },
+  "C00129": {
+   "churn_date": null,
+   "orders_per_month": 0.6279,
+   "satisfaction": 0.2302,
+   "value_multiplier": 0.9062
+  },
+  "C00130": {
+   "churn_date": "2025-03-11",
+   "orders_per_month": 0.4466,
+   "satisfaction": -1.4116,
+   "value_multiplier": 1.2308
+  },
+  "C00131": {
+   "churn_date": null,
+   "orders_per_month": 0.2154,
+   "satisfaction": -1.0419,
+   "value_multiplier": 1.3357
+  },
+  "C00132": {
+   "churn_date": "2026-05-13",
+   "orders_per_month": 0.3905,
+   "satisfaction": -0.0363,
+   "value_multiplier": 1.8615
+  },
+  "C00133": {
+   "churn_date": null,
+   "orders_per_month": 0.6599,
+   "satisfaction": 0.2881,
+   "value_multiplier": 0.6735
+  },
+  "C00134": {
+   "churn_date": "2025-08-04",
+   "orders_per_month": 0.0893,
+   "satisfaction": 1.0836,
+   "value_multiplier": 0.8781
+  },
+  "C00135": {
+   "churn_date": null,
+   "orders_per_month": 0.2261,
+   "satisfaction": 0.4073,
+   "value_multiplier": 1.1822
+  },
+  "C00136": {
+   "churn_date": "2025-12-26",
+   "orders_per_month": 0.6601,
+   "satisfaction": -0.6208,
+   "value_multiplier": 1.0734
+  },
+  "C00137": {
+   "churn_date": null,
+   "orders_per_month": 0.137,
+   "satisfaction": 1.316,
+   "value_multiplier": 1.3232
+  },
+  "C00138": {
+   "churn_date": null,
+   "orders_per_month": 0.1757,
+   "satisfaction": -0.3445,
+   "value_multiplier": 1.1211
+  },
+  "C00139": {
+   "churn_date": null,
+   "orders_per_month": 0.7736,
+   "satisfaction": -0.3697,
+   "value_multiplier": 1.3674
+  },
+  "C00140": {
+   "churn_date": "2026-03-25",
+   "orders_per_month": 1.0383,
+   "satisfaction": -0.8612,
+   "value_multiplier": 1.0935
+  },
+  "C00141": {
+   "churn_date": null,
+   "orders_per_month": 1.5864,
+   "satisfaction": 0.0047,
+   "value_multiplier": 3.3655
+  },
+  "C00142": {
+   "churn_date": null,
+   "orders_per_month": 0.5557,
+   "satisfaction": 0.1413,
+   "value_multiplier": 1.9909
+  },
+  "C00143": {
+   "churn_date": "2026-08-09",
+   "orders_per_month": 1.6603,
+   "satisfaction": -0.9728,
+   "value_multiplier": 1.2003
+  },
+  "C00144": {
+   "churn_date": null,
+   "orders_per_month": 0.2789,
+   "satisfaction": 0.9259,
+   "value_multiplier": 0.5733
+  },
+  "C00145": {
+   "churn_date": null,
+   "orders_per_month": 0.8186,
+   "satisfaction": -0.1481,
+   "value_multiplier": 1.1468
+  },
+  "C00146": {
+   "churn_date": "2026-02-06",
+   "orders_per_month": 0.8395,
+   "satisfaction": -0.733,
+   "value_multiplier": 2.3637
+  },
+  "C00147": {
+   "churn_date": null,
+   "orders_per_month": 0.3373,
+   "satisfaction": 0.8739,
+   "value_multiplier": 1.1303
+  },
+  "C00148": {
+   "churn_date": null,
+   "orders_per_month": 0.9379,
+   "satisfaction": 1.9051,
+   "value_multiplier": 1.1568
+  },
+  "C00149": {
+   "churn_date": "2026-01-19",
+   "orders_per_month": 0.8401,
+   "satisfaction": -0.0645,
+   "value_multiplier": 0.9133
+  },
+  "C00150": {
+   "churn_date": null,
+   "orders_per_month": 0.333,
+   "satisfaction": -0.5335,
+   "value_multiplier": 0.8946
+  },
+  "C00151": {
+   "churn_date": "2025-04-24",
+   "orders_per_month": 0.8151,
+   "satisfaction": -1.6388,
+   "value_multiplier": 0.8671
+  },
+  "C00152": {
+   "churn_date": null,
+   "orders_per_month": 0.9652,
+   "satisfaction": 0.4017,
+   "value_multiplier": 0.4282
+  },
+  "C00153": {
+   "churn_date": null,
+   "orders_per_month": 1.1638,
+   "satisfaction": -0.9522,
+   "value_multiplier": 2.7319
+  },
+  "C00154": {
+   "churn_date": null,
+   "orders_per_month": 0.5919,
+   "satisfaction": 0.6719,
+   "value_multiplier": 0.9061
+  },
+  "C00155": {
+   "churn_date": null,
+   "orders_per_month": 0.9115,
+   "satisfaction": 0.3855,
+   "value_multiplier": 0.3328
+  },
+  "C00156": {
+   "churn_date": "2025-10-09",
+   "orders_per_month": 0.1257,
+   "satisfaction": -1.5167,
+   "value_multiplier": 0.7514
+  },
+  "C00157": {
+   "churn_date": "2025-07-14",
+   "orders_per_month": 0.6394,
+   "satisfaction": -1.1021,
+   "value_multiplier": 0.8437
+  },
+  "C00158": {
+   "churn_date": null,
+   "orders_per_month": 0.2056,
+   "satisfaction": -1.0909,
+   "value_multiplier": 0.8733
+  },
+  "C00159": {
+   "churn_date": null,
+   "orders_per_month": 0.7668,
+   "satisfaction": -0.6447,
+   "value_multiplier": 0.4947
+  },
+  "C00160": {
+   "churn_date": "2025-06-11",
+   "orders_per_month": 0.6082,
+   "satisfaction": -1.615,
+   "value_multiplier": 1.036
+  },
+  "C00161": {
+   "churn_date": null,
+   "orders_per_month": 0.5365,
+   "satisfaction": -1.2866,
+   "value_multiplier": 0.9316
+  },
+  "C00162": {
+   "churn_date": null,
+   "orders_per_month": 1.6168,
+   "satisfaction": 0.9427,
+   "value_multiplier": 4.3342
+  },
+  "C00163": {
+   "churn_date": "2025-02-06",
+   "orders_per_month": 0.679,
+   "satisfaction": -1.5787,
+   "value_multiplier": 1.2729
+  },
+  "C00164": {
+   "churn_date": null,
+   "orders_per_month": 0.321,
+   "satisfaction": 2.0711,
+   "value_multiplier": 4.9106
+  },
+  "C00165": {
+   "churn_date": null,
+   "orders_per_month": 0.3135,
+   "satisfaction": -0.843,
+   "value_multiplier": 1.6103
+  },
+  "C00166": {
+   "churn_date": "2026-08-25",
+   "orders_per_month": 0.8028,
+   "satisfaction": -0.3727,
+   "value_multiplier": 2.7582
+  },
+  "C00167": {
+   "churn_date": null,
+   "orders_per_month": 0.0911,
+   "satisfaction": -0.8124,
+   "value_multiplier": 0.336
+  },
+  "C00168": {
+   "churn_date": null,
+   "orders_per_month": 0.1705,
+   "satisfaction": -0.5435,
+   "value_multiplier": 3.8467
+  },
+  "C00169": {
+   "churn_date": null,
+   "orders_per_month": 0.5187,
+   "satisfaction": -0.6416,
+   "value_multiplier": 0.8833
+  },
+  "C00170": {
+   "churn_date": "2025-05-17",
+   "orders_per_month": 0.5757,
+   "satisfaction": -0.0337,
+   "value_multiplier": 2.9555
+  },
+  "C00171": {
+   "churn_date": "2024-12-16",
+   "orders_per_month": 0.6767,
+   "satisfaction": -2.5013,
+   "value_multiplier": 3.1035
+  },
+  "C00172": {
+   "churn_date": null,
+   "orders_per_month": 0.724,
+   "satisfaction": 0.5664,
+   "value_multiplier": 2.095
+  },
+  "C00173": {
+   "churn_date": null,
+   "orders_per_month": 1.195,
+   "satisfaction": -0.3328,
+   "value_multiplier": 4.8729
+  },
+  "C00174": {
+   "churn_date": null,
+   "orders_per_month": 1.1432,
+   "satisfaction": 0.3845,
+   "value_multiplier": 1.1397
+  },
+  "C00175": {
+   "churn_date": null,
+   "orders_per_month": 1.1803,
+   "satisfaction": 0.5142,
+   "value_multiplier": 1.0549
+  },
+  "C00176": {
+   "churn_date": null,
+   "orders_per_month": 0.9095,
+   "satisfaction": 0.757,
+   "value_multiplier": 1.659
+  },
+  "C00177": {
+   "churn_date": null,
+   "orders_per_month": 0.3925,
+   "satisfaction": 0.172,
+   "value_multiplier": 0.5125
+  },
+  "C00178": {
+   "churn_date": null,
+   "orders_per_month": 1.0432,
+   "satisfaction": -1.8864,
+   "value_multiplier": 12.8126
+  },
+  "C00179": {
+   "churn_date": "2025-11-20",
+   "orders_per_month": 1.9309,
+   "satisfaction": -0.1667,
+   "value_multiplier": 1.3278
+  },
+  "C00180": {
+   "churn_date": null,
+   "orders_per_month": 0.1539,
+   "satisfaction": -0.2972,
+   "value_multiplier": 0.6457
+  },
+  "C00181": {
+   "churn_date": "2025-09-29",
+   "orders_per_month": 0.3044,
+   "satisfaction": -1.0151,
+   "value_multiplier": 0.4723
+  },
+  "C00182": {
+   "churn_date": null,
+   "orders_per_month": 0.555,
+   "satisfaction": 0.3015,
+   "value_multiplier": 1.964
+  },
+  "C00183": {
+   "churn_date": null,
+   "orders_per_month": 2.107,
+   "satisfaction": -0.9945,
+   "value_multiplier": 2.5287
+  },
+  "C00184": {
+   "churn_date": null,
+   "orders_per_month": 1.0816,
+   "satisfaction": 0.6461,
+   "value_multiplier": 0.444
+  },
+  "C00185": {
+   "churn_date": null,
+   "orders_per_month": 0.7832,
+   "satisfaction": -1.406,
+   "value_multiplier": 1.1324
+  },
+  "C00186": {
+   "churn_date": null,
+   "orders_per_month": 1.601,
+   "satisfaction": -0.2802,
+   "value_multiplier": 0.9343
+  },
+  "C00187": {
+   "churn_date": null,
+   "orders_per_month": 0.4528,
+   "satisfaction": -1.3518,
+   "value_multiplier": 3.4424
+  },
+  "C00188": {
+   "churn_date": "2025-04-25",
+   "orders_per_month": 0.7736,
+   "satisfaction": 0.5995,
+   "value_multiplier": 2.2251
+  },
+  "C00189": {
+   "churn_date": "2026-07-07",
+   "orders_per_month": 0.3172,
+   "satisfaction": -1.1103,
+   "value_multiplier": 1.4482
+  },
+  "C00190": {
+   "churn_date": "2025-08-10",
+   "orders_per_month": 0.7712,
+   "satisfaction": 0.104,
+   "value_multiplier": 1.8455
+  },
+  "C00191": {
+   "churn_date": null,
+   "orders_per_month": 0.7316,
+   "satisfaction": -0.1504,
+   "value_multiplier": 6.3457
+  },
+  "C00192": {
+   "churn_date": null,
+   "orders_per_month": 0.7308,
+   "satisfaction": 0.2517,
+   "value_multiplier": 2.3897
+  },
+  "C00193": {
+   "churn_date": null,
+   "orders_per_month": 0.8004,
+   "satisfaction": -0.4763,
+   "value_multiplier": 7.1898
+  },
+  "C00194": {
+   "churn_date": null,
+   "orders_per_month": 0.603,
+   "satisfaction": 0.119,
+   "value_multiplier": 0.7372
+  },
+  "C00195": {
+   "churn_date": "2025-04-23",
+   "orders_per_month": 0.82,
+   "satisfaction": -1.2413,
+   "value_multiplier": 0.6176
+  },
+  "C00196": {
+   "churn_date": null,
+   "orders_per_month": 0.6539,
+   "satisfaction": -1.0804,
+   "value_multiplier": 1.6389
+  },
+  "C00197": {
+   "churn_date": "2026-02-23",
+   "orders_per_month": 0.1232,
+   "satisfaction": -0.4398,
+   "value_multiplier": 0.8471
+  },
+  "C00198": {
+   "churn_date": null,
+   "orders_per_month": 0.9486,
+   "satisfaction": 0.1433,
+   "value_multiplier": 1.8256
+  },
+  "C00199": {
+   "churn_date": "2025-04-27",
+   "orders_per_month": 0.2183,
+   "satisfaction": -0.0763,
+   "value_multiplier": 2.5698
+  },
+  "C00200": {
+   "churn_date": null,
+   "orders_per_month": 0.3728,
+   "satisfaction": 0.1239,
+   "value_multiplier": 0.9794
+  },
+  "C00201": {
+   "churn_date": null,
+   "orders_per_month": 0.8931,
+   "satisfaction": 0.5048,
+   "value_multiplier": 1.6882
+  },
+  "C00202": {
+   "churn_date": null,
+   "orders_per_month": 1.0762,
+   "satisfaction": -0.8841,
+   "value_multiplier": 0.5105
+  },
+  "C00203": {
+   "churn_date": null,
+   "orders_per_month": 0.3578,
+   "satisfaction": 0.6494,
+   "value_multiplier": 0.3375
+  },
+  "C00204": {
+   "churn_date": null,
+   "orders_per_month": 0.4837,
+   "satisfaction": 0.8592,
+   "value_multiplier": 2.2504
+  },
+  "C00205": {
+   "churn_date": null,
+   "orders_per_month": 0.8175,
+   "satisfaction": 1.2771,
+   "value_multiplier": 3.8419
+  },
+  "C00206": {
+   "churn_date": null,
+   "orders_per_month": 0.338,
+   "satisfaction": -0.2348,
+   "value_multiplier": 1.5429
+  },
+  "C00207": {
+   "churn_date": null,
+   "orders_per_month": 0.5964,
+   "satisfaction": -0.8486,
+   "value_multiplier": 1.3655
+  },
+  "C00208": {
+   "churn_date": null,
+   "orders_per_month": 0.985,
+   "satisfaction": -0.2703,
+   "value_multiplier": 2.0634
+  },
+  "C00209": {
+   "churn_date": null,
+   "orders_per_month": 0.8092,
+   "satisfaction": 0.7736,
+   "value_multiplier": 0.9149
+  },
+  "C00210": {
+   "churn_date": null,
+   "orders_per_month": 0.6051,
+   "satisfaction": -1.0373,
+   "value_multiplier": 1.1011
+  },
+  "C00211": {
+   "churn_date": "2025-06-27",
+   "orders_per_month": 0.5203,
+   "satisfaction": -0.1552,
+   "value_multiplier": 0.8821
+  },
+  "C00212": {
+   "churn_date": null,
+   "orders_per_month": 0.375,
+   "satisfaction": 1.6026,
+   "value_multiplier": 2.9429
+  },
+  "C00213": {
+   "churn_date": "2025-01-28",
+   "orders_per_month": 1.6443,
+   "satisfaction": 0.9465,
+   "value_multiplier": 10.5316
+  },
+  "C00214": {
+   "churn_date": null,
+   "orders_per_month": 0.4731,
+   "satisfaction": 0.0204,
+   "value_multiplier": 0.541
+  },
+  "C00215": {
+   "churn_date": "2025-01-26",
+   "orders_per_month": 0.6126,
+   "satisfaction": -2.2362,
+   "value_multiplier": 0.5366
+  },
+  "C00216": {
+   "churn_date": null,
+   "orders_per_month": 1.3253,
+   "satisfaction": 0.2058,
+   "value_multiplier": 0.4349
+  },
+  "C00217": {
+   "churn_date": null,
+   "orders_per_month": 1.4976,
+   "satisfaction": -0.3266,
+   "value_multiplier": 1.6185
+  },
+  "C00218": {
+   "churn_date": null,
+   "orders_per_month": 1.3053,
+   "satisfaction": 0.8926,
+   "value_multiplier": 2.6481
+  },
+  "C00219": {
+   "churn_date": "2025-02-19",
+   "orders_per_month": 0.8207,
+   "satisfaction": -1.2834,
+   "value_multiplier": 0.5747
+  },
+  "C00220": {
+   "churn_date": "2026-02-01",
+   "orders_per_month": 1.1482,
+   "satisfaction": -1.4198,
+   "value_multiplier": 0.7025
+  },
+  "C00221": {
+   "churn_date": null,
+   "orders_per_month": 1.1272,
+   "satisfaction": -0.6593,
+   "value_multiplier": 0.7312
+  },
+  "C00222": {
+   "churn_date": null,
+   "orders_per_month": 0.1919,
+   "satisfaction": 0.1268,
+   "value_multiplier": 1.4553
+  },
+  "C00223": {
+   "churn_date": null,
+   "orders_per_month": 0.3595,
+   "satisfaction": 1.0021,
+   "value_multiplier": 0.7624
+  },
+  "C00224": {
+   "churn_date": null,
+   "orders_per_month": 0.3708,
+   "satisfaction": 1.9947,
+   "value_multiplier": 0.922
+  },
+  "C00225": {
+   "churn_date": "2025-03-25",
+   "orders_per_month": 0.853,
+   "satisfaction": -0.8662,
+   "value_multiplier": 0.7324
+  },
+  "C00226": {
+   "churn_date": null,
+   "orders_per_month": 0.6409,
+   "satisfaction": -0.1987,
+   "value_multiplier": 2.363
+  },
+  "C00227": {
+   "churn_date": null,
+   "orders_per_month": 0.9306,
+   "satisfaction": -0.304,
+   "value_multiplier": 0.8522
+  },
+  "C00228": {
+   "churn_date": null,
+   "orders_per_month": 1.3435,
+   "satisfaction": -1.1444,
+   "value_multiplier": 1.6696
+  },
+  "C00229": {
+   "churn_date": null,
+   "orders_per_month": 0.7828,
+   "satisfaction": 1.1925,
+   "value_multiplier": 2.3682
+  },
+  "C00230": {
+   "churn_date": "2025-12-07",
+   "orders_per_month": 1.2301,
+   "satisfaction": -1.3244,
+   "value_multiplier": 0.3681
+  },
+  "C00231": {
+   "churn_date": null,
+   "orders_per_month": 0.1387,
+   "satisfaction": 0.4022,
+   "value_multiplier": 2.3989
+  },
+  "C00232": {
+   "churn_date": "2026-03-09",
+   "orders_per_month": 0.4451,
+   "satisfaction": -0.3545,
+   "value_multiplier": 0.786
+  },
+  "C00233": {
+   "churn_date": "2025-04-08",
+   "orders_per_month": 0.0427,
+   "satisfaction": -1.1967,
+   "value_multiplier": 0.7836
+  },
+  "C00234": {
+   "churn_date": null,
+   "orders_per_month": 0.7069,
+   "satisfaction": 0.4316,
+   "value_multiplier": 4.5318
+  },
+  "C00235": {
+   "churn_date": "2025-10-08",
+   "orders_per_month": 0.1914,
+   "satisfaction": -1.5708,
+   "value_multiplier": 2.181
+  },
+  "C00236": {
+   "churn_date": null,
+   "orders_per_month": 0.5136,
+   "satisfaction": -0.7051,
+   "value_multiplier": 1.7703
+  },
+  "C00237": {
+   "churn_date": null,
+   "orders_per_month": 1.3569,
+   "satisfaction": 1.0522,
+   "value_multiplier": 1.5267
+  },
+  "C00238": {
+   "churn_date": null,
+   "orders_per_month": 0.3672,
+   "satisfaction": 1.0137,
+   "value_multiplier": 1.0755
+  },
+  "C00239": {
+   "churn_date": null,
+   "orders_per_month": 1.2133,
+   "satisfaction": -1.7714,
+   "value_multiplier": 4.2198
+  },
+  "C00240": {
+   "churn_date": "2025-12-25",
+   "orders_per_month": 0.199,
+   "satisfaction": 0.2273,
+   "value_multiplier": 0.4757
+  },
+  "C00241": {
+   "churn_date": "2025-06-05",
+   "orders_per_month": 0.5088,
+   "satisfaction": 0.4824,
+   "value_multiplier": 1.1722
+  },
+  "C00242": {
+   "churn_date": "2026-02-24",
+   "orders_per_month": 0.4468,
+   "satisfaction": -2.4292,
+   "value_multiplier": 1.7765
+  },
+  "C00243": {
+   "churn_date": null,
+   "orders_per_month": 0.4445,
+   "satisfaction": 1.3587,
+   "value_multiplier": 2.01
+  },
+  "C00244": {
+   "churn_date": null,
+   "orders_per_month": 0.3898,
+   "satisfaction": 3.1706,
+   "value_multiplier": 1.6869
+  },
+  "C00245": {
+   "churn_date": "2026-04-26",
+   "orders_per_month": 1.0995,
+   "satisfaction": -0.179,
+   "value_multiplier": 1.3092
+  },
+  "C00246": {
+   "churn_date": "2025-09-11",
+   "orders_per_month": 1.1898,
+   "satisfaction": 1.5514,
+   "value_multiplier": 0.3312
+  },
+  "C00247": {
+   "churn_date": "2025-02-13",
+   "orders_per_month": 0.9948,
+   "satisfaction": -2.1057,
+   "value_multiplier": 1.4881
+  },
+  "C00248": {
+   "churn_date": null,
+   "orders_per_month": 0.8013,
+   "satisfaction": 0.3194,
+   "value_multiplier": 0.6332
+  },
+  "C00249": {
+   "churn_date": null,
+   "orders_per_month": 0.7541,
+   "satisfaction": 0.9663,
+   "value_multiplier": 1.4337
+  },
+  "C00250": {
+   "churn_date": null,
+   "orders_per_month": 0.5175,
+   "satisfaction": 1.2448,
+   "value_multiplier": 0.7919
+  },
+  "C00251": {
+   "churn_date": null,
+   "orders_per_month": 0.4876,
+   "satisfaction": 2.1917,
+   "value_multiplier": 1.2388
+  },
+  "C00252": {
+   "churn_date": null,
+   "orders_per_month": 0.4551,
+   "satisfaction": 0.049,
+   "value_multiplier": 7.9905
+  },
+  "C00253": {
+   "churn_date": null,
+   "orders_per_month": 0.2182,
+   "satisfaction": -0.8549,
+   "value_multiplier": 3.6047
+  },
+  "C00254": {
+   "churn_date": null,
+   "orders_per_month": 0.42,
+   "satisfaction": -0.6048,
+   "value_multiplier": 1.1148
+  },
+  "C00255": {
+   "churn_date": "2025-06-09",
+   "orders_per_month": 0.0728,
+   "satisfaction": 0.3033,
+   "value_multiplier": 0.5066
+  },
+  "C00256": {
+   "churn_date": null,
+   "orders_per_month": 4.9619,
+   "satisfaction": -0.5882,
+   "value_multiplier": 1.1136
+  },
+  "C00257": {
+   "churn_date": "2026-02-25",
+   "orders_per_month": 1.8129,
+   "satisfaction": -1.6633,
+   "value_multiplier": 1.4951
+  },
+  "C00258": {
+   "churn_date": null,
+   "orders_per_month": 0.3494,
+   "satisfaction": 1.0543,
+   "value_multiplier": 1.2301
+  },
+  "C00259": {
+   "churn_date": null,
+   "orders_per_month": 0.4062,
+   "satisfaction": -1.1291,
+   "value_multiplier": 0.6333
+  },
+  "C00260": {
+   "churn_date": null,
+   "orders_per_month": 1.0677,
+   "satisfaction": 0.6449,
+   "value_multiplier": 2.4344
+  },
+  "C00261": {
+   "churn_date": null,
+   "orders_per_month": 0.1052,
+   "satisfaction": 1.126,
+   "value_multiplier": 3.691
+  },
+  "C00262": {
+   "churn_date": null,
+   "orders_per_month": 0.8136,
+   "satisfaction": 0.7167,
+   "value_multiplier": 2.108
+  },
+  "C00263": {
+   "churn_date": "2026-10-22",
+   "orders_per_month": 0.2492,
+   "satisfaction": -1.3795,
+   "value_multiplier": 1.3965
+  },
+  "C00264": {
+   "churn_date": "2025-10-27",
+   "orders_per_month": 0.8167,
+   "satisfaction": -1.4582,
+   "value_multiplier": 1.0072
+  },
+  "C00265": {
+   "churn_date": null,
+   "orders_per_month": 1.0703,
+   "satisfaction": 0.1078,
+   "value_multiplier": 0.8816
+  },
+  "C00266": {
+   "churn_date": null,
+   "orders_per_month": 0.1857,
+   "satisfaction": 0.4508,
+   "value_multiplier": 1.0321
+  },
+  "C00267": {
+   "churn_date": null,
+   "orders_per_month": 0.8824,
+   "satisfaction": 0.8863,
+   "value_multiplier": 1.7266
+  },
+  "C00268": {
+   "churn_date": "2025-11-07",
+   "orders_per_month": 0.4693,
+   "satisfaction": -0.1493,
+   "value_multiplier": 2.586
+  },
+  "C00269": {
+   "churn_date": null,
+   "orders_per_month": 0.5926,
+   "satisfaction": -0.5001,
+   "value_multiplier": 1.4222
+  },
+  "C00270": {
+   "churn_date": null,
+   "orders_per_month": 1.5308,
+   "satisfaction": -1.2498,
+   "value_multiplier": 2.766
+  },
+  "C00271": {
+   "churn_date": null,
+   "orders_per_month": 0.9852,
+   "satisfaction": -0.6034,
+   "value_multiplier": 1.5433
+  },
+  "C00272": {
+   "churn_date": null,
+   "orders_per_month": 2.1944,
+   "satisfaction": -0.0186,
+   "value_multiplier": 1.1669
+  },
+  "C00273": {
+   "churn_date": "2025-05-14",
+   "orders_per_month": 0.853,
+   "satisfaction": -1.9517,
+   "value_multiplier": 2.8805
+  },
+  "C00274": {
+   "churn_date": null,
+   "orders_per_month": 0.8053,
+   "satisfaction": -0.4482,
+   "value_multiplier": 0.6987
+  },
+  "C00275": {
+   "churn_date": null,
+   "orders_per_month": 1.3064,
+   "satisfaction": 0.0425,
+   "value_multiplier": 1.0746
+  },
+  "C00276": {
+   "churn_date": null,
+   "orders_per_month": 0.5238,
+   "satisfaction": 0.1438,
+   "value_multiplier": 0.8391
+  },
+  "C00277": {
+   "churn_date": null,
+   "orders_per_month": 0.3931,
+   "satisfaction": 2.2162,
+   "value_multiplier": 1.504
+  },
+  "C00278": {
+   "churn_date": null,
+   "orders_per_month": 1.231,
+   "satisfaction": 0.2995,
+   "value_multiplier": 1.3689
+  },
+  "C00279": {
+   "churn_date": null,
+   "orders_per_month": 0.3838,
+   "satisfaction": 1.5712,
+   "value_multiplier": 3.9271
+  },
+  "C00280": {
+   "churn_date": null,
+   "orders_per_month": 1.0914,
+   "satisfaction": -0.5905,
+   "value_multiplier": 16.4729
+  },
+  "C00281": {
+   "churn_date": "2026-06-30",
+   "orders_per_month": 2.0265,
+   "satisfaction": -0.257,
+   "value_multiplier": 3.0368
+  },
+  "C00282": {
+   "churn_date": null,
+   "orders_per_month": 0.6919,
+   "satisfaction": -0.8819,
+   "value_multiplier": 1.324
+  },
+  "C00283": {
+   "churn_date": null,
+   "orders_per_month": 0.1962,
+   "satisfaction": -0.2753,
+   "value_multiplier": 8.8947
+  },
+  "C00284": {
+   "churn_date": "2026-02-03",
+   "orders_per_month": 0.4586,
+   "satisfaction": -1.1678,
+   "value_multiplier": 3.0942
+  },
+  "C00285": {
+   "churn_date": null,
+   "orders_per_month": 0.1811,
+   "satisfaction": 1.4376,
+   "value_multiplier": 1.8199
+  },
+  "C00286": {
+   "churn_date": null,
+   "orders_per_month": 0.9655,
+   "satisfaction": -0.2434,
+   "value_multiplier": 0.8465
+  },
+  "C00287": {
+   "churn_date": "2026-09-30",
+   "orders_per_month": 0.305,
+   "satisfaction": -0.5738,
+   "value_multiplier": 1.0211
+  },
+  "C00288": {
+   "churn_date": null,
+   "orders_per_month": 0.7783,
+   "satisfaction": -0.1537,
+   "value_multiplier": 0.5451
+  },
+  "C00289": {
+   "churn_date": null,
+   "orders_per_month": 1.2466,
+   "satisfaction": -0.4653,
+   "value_multiplier": 1.5881
+  },
+  "C00290": {
+   "churn_date": null,
+   "orders_per_month": 0.8772,
+   "satisfaction": 1.0626,
+   "value_multiplier": 0.6008
+  },
+  "C00291": {
+   "churn_date": null,
+   "orders_per_month": 0.123,
+   "satisfaction": 1.2605,
+   "value_multiplier": 1.1038
+  },
+  "C00292": {
+   "churn_date": null,
+   "orders_per_month": 0.5075,
+   "satisfaction": -0.4843,
+   "value_multiplier": 0.6383
+  },
+  "C00293": {
+   "churn_date": "2026-01-09",
+   "orders_per_month": 0.328,
+   "satisfaction": -1.6007,
+   "value_multiplier": 0.7613
+  },
+  "C00294": {
+   "churn_date": null,
+   "orders_per_month": 0.5524,
+   "satisfaction": -0.3345,
+   "value_multiplier": 0.7414
+  },
+  "C00295": {
+   "churn_date": "2025-10-18",
+   "orders_per_month": 0.5266,
+   "satisfaction": -1.7329,
+   "value_multiplier": 7.4617
+  },
+  "C00296": {
+   "churn_date": null,
+   "orders_per_month": 0.2794,
+   "satisfaction": 1.2124,
+   "value_multiplier": 1.2849
+  },
+  "C00297": {
+   "churn_date": "2025-06-30",
+   "orders_per_month": 0.2313,
+   "satisfaction": -1.6825,
+   "value_multiplier": 2.1988
+  },
+  "C00298": {
+   "churn_date": "2026-03-02",
+   "orders_per_month": 0.0559,
+   "satisfaction": -0.2932,
+   "value_multiplier": 0.5346
+  },
+  "C00299": {
+   "churn_date": null,
+   "orders_per_month": 1.361,
+   "satisfaction": 0.4601,
+   "value_multiplier": 1.0703
+  },
+  "C00300": {
+   "churn_date": "2026-04-01",
+   "orders_per_month": 0.7226,
+   "satisfaction": -1.7922,
+   "value_multiplier": 0.7427
+  },
+  "C00301": {
+   "churn_date": null,
+   "orders_per_month": 0.3001,
+   "satisfaction": -0.5443,
+   "value_multiplier": 1.2081
+  },
+  "C00302": {
+   "churn_date": "2025-06-05",
+   "orders_per_month": 0.5293,
+   "satisfaction": -0.8951,
+   "value_multiplier": 0.5436
+  },
+  "C00303": {
+   "churn_date": null,
+   "orders_per_month": 1.0681,
+   "satisfaction": -0.339,
+   "value_multiplier": 0.7729
+  },
+  "C00304": {
+   "churn_date": "2026-09-04",
+   "orders_per_month": 0.4121,
+   "satisfaction": 0.2898,
+   "value_multiplier": 3.1484
+  },
+  "C00305": {
+   "churn_date": null,
+   "orders_per_month": 1.1885,
+   "satisfaction": 1.2226,
+   "value_multiplier": 2.5649
+  },
+  "C00306": {
+   "churn_date": "2026-05-25",
+   "orders_per_month": 0.6759,
+   "satisfaction": 2.0014,
+   "value_multiplier": 0.8822
+  },
+  "C00307": {
+   "churn_date": "2026-09-20",
+   "orders_per_month": 0.3035,
+   "satisfaction": 0.488,
+   "value_multiplier": 0.723
+  },
+  "C00308": {
+   "churn_date": null,
+   "orders_per_month": 1.2221,
+   "satisfaction": 0.3373,
+   "value_multiplier": 0.8531
+  },
+  "C00309": {
+   "churn_date": null,
+   "orders_per_month": 0.2245,
+   "satisfaction": 0.2427,
+   "value_multiplier": 1.0285
+  },
+  "C00310": {
+   "churn_date": null,
+   "orders_per_month": 0.3667,
+   "satisfaction": -0.425,
+   "value_multiplier": 0.9034
+  },
+  "C00311": {
+   "churn_date": null,
+   "orders_per_month": 1.6235,
+   "satisfaction": 0.3706,
+   "value_multiplier": 0.833
+  },
+  "C00312": {
+   "churn_date": "2025-03-09",
+   "orders_per_month": 1.4029,
+   "satisfaction": -1.3497,
+   "value_multiplier": 1.6944
+  },
+  "C00313": {
+   "churn_date": "2025-10-20",
+   "orders_per_month": 0.5901,
+   "satisfaction": -1.5503,
+   "value_multiplier": 0.4982
+  },
+  "C00314": {
+   "churn_date": null,
+   "orders_per_month": 1.3041,
+   "satisfaction": 0.491,
+   "value_multiplier": 0.7744
+  },
+  "C00315": {
+   "churn_date": null,
+   "orders_per_month": 0.5397,
+   "satisfaction": 0.5963,
+   "value_multiplier": 5.6005
+  },
+  "C00316": {
+   "churn_date": null,
+   "orders_per_month": 0.1785,
+   "satisfaction": -1.3457,
+   "value_multiplier": 0.7143
+  },
+  "C00317": {
+   "churn_date": "2026-05-16",
+   "orders_per_month": 1.3849,
+   "satisfaction": -1.3355,
+   "value_multiplier": 1.8371
+  },
+  "C00318": {
+   "churn_date": null,
+   "orders_per_month": 0.4942,
+   "satisfaction": 0.287,
+   "value_multiplier": 5.1183
+  },
+  "C00319": {
+   "churn_date": null,
+   "orders_per_month": 0.1304,
+   "satisfaction": 0.868,
+   "value_multiplier": 2.1827
+  },
+  "C00320": {
+   "churn_date": null,
+   "orders_per_month": 0.5548,
+   "satisfaction": 0.3293,
+   "value_multiplier": 0.8108
+  },
+  "C00321": {
+   "churn_date": null,
+   "orders_per_month": 1.1183,
+   "satisfaction": 0.4902,
+   "value_multiplier": 0.9905
+  },
+  "C00322": {
+   "churn_date": null,
+   "orders_per_month": 0.2198,
+   "satisfaction": -0.4705,
+   "value_multiplier": 0.8057
+  },
+  "C00323": {
+   "churn_date": null,
+   "orders_per_month": 0.9865,
+   "satisfaction": 1.7539,
+   "value_multiplier": 2.2851
+  },
+  "C00324": {
+   "churn_date": "2025-05-20",
+   "orders_per_month": 0.7387,
+   "satisfaction": -1.5204,
+   "value_multiplier": 1.0879
+  },
+  "C00325": {
+   "churn_date": null,
+   "orders_per_month": 0.3936,
+   "satisfaction": 0.0675,
+   "value_multiplier": 2.3343
+  },
+  "C00326": {
+   "churn_date": "2025-07-08",
+   "orders_per_month": 0.0681,
+   "satisfaction": -0.4093,
+   "value_multiplier": 0.5962
+  },
+  "C00327": {
+   "churn_date": null,
+   "orders_per_month": 2.1478,
+   "satisfaction": -0.5931,
+   "value_multiplier": 5.7697
+  },
+  "C00328": {
+   "churn_date": null,
+   "orders_per_month": 0.6082,
+   "satisfaction": 0.766,
+   "value_multiplier": 5.5996
+  },
+  "C00329": {
+   "churn_date": "2025-02-05",
+   "orders_per_month": 0.9707,
+   "satisfaction": -0.1471,
+   "value_multiplier": 2.0846
+  },
+  "C00330": {
+   "churn_date": null,
+   "orders_per_month": 0.3371,
+   "satisfaction": -1.254,
+   "value_multiplier": 2.7329
+  },
+  "C00331": {
+   "churn_date": null,
+   "orders_per_month": 0.5603,
+   "satisfaction": -1.6324,
+   "value_multiplier": 0.5212
+  },
+  "C00332": {
+   "churn_date": "2026-08-12",
+   "orders_per_month": 0.1985,
+   "satisfaction": -1.1936,
+   "value_multiplier": 1.2154
+  },
+  "C00333": {
+   "churn_date": "2025-05-27",
+   "orders_per_month": 0.6751,
+   "satisfaction": -0.9966,
+   "value_multiplier": 0.6734
+  },
+  "C00334": {
+   "churn_date": "2026-02-12",
+   "orders_per_month": 0.2235,
+   "satisfaction": -0.7086,
+   "value_multiplier": 1.1952
+  },
+  "C00335": {
+   "churn_date": null,
+   "orders_per_month": 0.2159,
+   "satisfaction": -0.864,
+   "value_multiplier": 0.6488
+  },
+  "C00336": {
+   "churn_date": null,
+   "orders_per_month": 0.599,
+   "satisfaction": -0.1602,
+   "value_multiplier": 0.4882
+  },
+  "C00337": {
+   "churn_date": null,
+   "orders_per_month": 0.2451,
+   "satisfaction": -0.7817,
+   "value_multiplier": 0.714
+  },
+  "C00338": {
+   "churn_date": null,
+   "orders_per_month": 0.449,
+   "satisfaction": 0.4132,
+   "value_multiplier": 0.9392
+  },
+  "C00339": {
+   "churn_date": null,
+   "orders_per_month": 0.5767,
+   "satisfaction": 0.2336,
+   "value_multiplier": 1.2799
+  },
+  "C00340": {
+   "churn_date": null,
+   "orders_per_month": 2.1107,
+   "satisfaction": -1.2032,
+   "value_multiplier": 4.9242
+  },
+  "C00341": {
+   "churn_date": null,
+   "orders_per_month": 0.2799,
+   "satisfaction": -0.6977,
+   "value_multiplier": 1.2264
+  },
+  "C00342": {
+   "churn_date": "2025-03-24",
+   "orders_per_month": 0.9308,
+   "satisfaction": -1.1778,
+   "value_multiplier": 1.8365
+  },
+  "C00343": {
+   "churn_date": null,
+   "orders_per_month": 0.6695,
+   "satisfaction": 0.8808,
+   "value_multiplier": 1.898
+  },
+  "C00344": {
+   "churn_date": null,
+   "orders_per_month": 0.749,
+   "satisfaction": 0.6648,
+   "value_multiplier": 1.8485
+  },
+  "C00345": {
+   "churn_date": null,
+   "orders_per_month": 1.1008,
+   "satisfaction": -2.4089,
+   "value_multiplier": 1.3857
+  },
+  "C00346": {
+   "churn_date": null,
+   "orders_per_month": 0.206,
+   "satisfaction": -0.0388,
+   "value_multiplier": 1.0392
+  },
+  "C00347": {
+   "churn_date": null,
+   "orders_per_month": 0.611,
+   "satisfaction": -1.3948,
+   "value_multiplier": 2.0021
+  },
+  "C00348": {
+   "churn_date": null,
+   "orders_per_month": 0.0469,
+   "satisfaction": -0.8678,
+   "value_multiplier": 1.1015
+  },
+  "C00349": {
+   "churn_date": "2025-07-21",
+   "orders_per_month": 1.0057,
+   "satisfaction": 1.796,
+   "value_multiplier": 0.6851
+  },
+  "C00350": {
+   "churn_date": null,
+   "orders_per_month": 0.9205,
+   "satisfaction": -0.8679,
+   "value_multiplier": 1.7985
+  },
+  "C00351": {
+   "churn_date": "2026-07-13",
+   "orders_per_month": 0.7348,
+   "satisfaction": 0.564,
+   "value_multiplier": 1.0568
+  },
+  "C00352": {
+   "churn_date": "2026-06-14",
+   "orders_per_month": 0.1926,
+   "satisfaction": 0.6046,
+   "value_multiplier": 1.3457
+  },
+  "C00353": {
+   "churn_date": null,
+   "orders_per_month": 0.8935,
+   "satisfaction": 0.7508,
+   "value_multiplier": 2.0531
+  },
+  "C00354": {
+   "churn_date": "2025-04-14",
+   "orders_per_month": 0.1373,
+   "satisfaction": -1.5811,
+   "value_multiplier": 0.5193
+  },
+  "C00355": {
+   "churn_date": null,
+   "orders_per_month": 0.9829,
+   "satisfaction": 0.9844,
+   "value_multiplier": 1.5493
+  },
+  "C00356": {
+   "churn_date": null,
+   "orders_per_month": 0.643,
+   "satisfaction": 0.4759,
+   "value_multiplier": 0.8859
+  },
+  "C00357": {
+   "churn_date": null,
+   "orders_per_month": 0.0473,
+   "satisfaction": 0.0236,
+   "value_multiplier": 1.2068
+  },
+  "C00358": {
+   "churn_date": null,
+   "orders_per_month": 0.8511,
+   "satisfaction": -0.9408,
+   "value_multiplier": 1.7679
+  },
+  "C00359": {
+   "churn_date": null,
+   "orders_per_month": 0.7628,
+   "satisfaction": 0.5945,
+   "value_multiplier": 2.0539
+  },
+  "C00360": {
+   "churn_date": null,
+   "orders_per_month": 0.4951,
+   "satisfaction": 0.5331,
+   "value_multiplier": 0.5758
+  },
+  "C00361": {
+   "churn_date": "2026-07-28",
+   "orders_per_month": 1.3174,
+   "satisfaction": 0.3502,
+   "value_multiplier": 0.7708
+  },
+  "C00362": {
+   "churn_date": null,
+   "orders_per_month": 0.0314,
+   "satisfaction": -1.7731,
+   "value_multiplier": 1.1299
+  },
+  "C00363": {
+   "churn_date": "2025-03-07",
+   "orders_per_month": 0.7323,
+   "satisfaction": 0.5914,
+   "value_multiplier": 1.7787
+  },
+  "C00364": {
+   "churn_date": "2025-06-20",
+   "orders_per_month": 1.0839,
+   "satisfaction": -1.9708,
+   "value_multiplier": 2.1923
+  },
+  "C00365": {
+   "churn_date": "2025-01-10",
+   "orders_per_month": 0.3981,
+   "satisfaction": -1.327,
+   "value_multiplier": 1.3262
+  },
+  "C00366": {
+   "churn_date": null,
+   "orders_per_month": 0.9597,
+   "satisfaction": 2.409,
+   "value_multiplier": 1.5165
+  },
+  "C00367": {
+   "churn_date": "2025-01-18",
+   "orders_per_month": 0.7576,
+   "satisfaction": -0.0553,
+   "value_multiplier": 1.2855
+  },
+  "C00368": {
+   "churn_date": null,
+   "orders_per_month": 1.7653,
+   "satisfaction": 1.5391,
+   "value_multiplier": 0.9442
+  },
+  "C00369": {
+   "churn_date": null,
+   "orders_per_month": 0.5783,
+   "satisfaction": 0.4811,
+   "value_multiplier": 1.0399
+  },
+  "C00370": {
+   "churn_date": null,
+   "orders_per_month": 1.0654,
+   "satisfaction": 0.4211,
+   "value_multiplier": 0.9546
+  },
+  "C00371": {
+   "churn_date": "2025-09-30",
+   "orders_per_month": 0.6112,
+   "satisfaction": -1.2326,
+   "value_multiplier": 1.7469
+  },
+  "C00372": {
+   "churn_date": null,
+   "orders_per_month": 0.9297,
+   "satisfaction": 1.2662,
+   "value_multiplier": 0.9236
+  },
+  "C00373": {
+   "churn_date": null,
+   "orders_per_month": 0.2215,
+   "satisfaction": 0.2048,
+   "value_multiplier": 0.8439
+  },
+  "C00374": {
+   "churn_date": null,
+   "orders_per_month": 0.6988,
+   "satisfaction": 0.2375,
+   "value_multiplier": 2.3972
+  },
+  "C00375": {
+   "churn_date": "2026-09-03",
+   "orders_per_month": 0.5206,
+   "satisfaction": -0.9595,
+   "value_multiplier": 0.8325
+  },
+  "C00376": {
+   "churn_date": "2025-09-01",
+   "orders_per_month": 0.3433,
+   "satisfaction": -1.2705,
+   "value_multiplier": 1.5775
+  },
+  "C00377": {
+   "churn_date": null,
+   "orders_per_month": 0.8205,
+   "satisfaction": 0.9066,
+   "value_multiplier": 1.0024
+  },
+  "C00378": {
+   "churn_date": "2025-08-10",
+   "orders_per_month": 0.269,
+   "satisfaction": -0.5711,
+   "value_multiplier": 4.0209
+  },
+  "C00379": {
+   "churn_date": null,
+   "orders_per_month": 0.7485,
+   "satisfaction": -0.2054,
+   "value_multiplier": 7.3461
+  },
+  "C00380": {
+   "churn_date": "2026-04-17",
+   "orders_per_month": 0.403,
+   "satisfaction": -1.4424,
+   "value_multiplier": 0.7215
+  },
+  "C00381": {
+   "churn_date": null,
+   "orders_per_month": 1.9347,
+   "satisfaction": 0.0995,
+   "value_multiplier": 1.2513
+  },
+  "C00382": {
+   "churn_date": null,
+   "orders_per_month": 0.8654,
+   "satisfaction": 1.1168,
+   "value_multiplier": 0.6891
+  },
+  "C00383": {
+   "churn_date": "2026-04-07",
+   "orders_per_month": 0.4641,
+   "satisfaction": -0.2278,
+   "value_multiplier": 0.548
+  },
+  "C00384": {
+   "churn_date": "2025-07-25",
+   "orders_per_month": 3.7401,
+   "satisfaction": -0.237,
+   "value_multiplier": 5.6322
+  },
+  "C00385": {
+   "churn_date": null,
+   "orders_per_month": 1.3445,
+   "satisfaction": 0.7593,
+   "value_multiplier": 0.9809
+  },
+  "C00386": {
+   "churn_date": "2025-06-11",
+   "orders_per_month": 0.8766,
+   "satisfaction": 0.5279,
+   "value_multiplier": 1.6261
+  },
+  "C00387": {
+   "churn_date": null,
+   "orders_per_month": 0.4166,
+   "satisfaction": -0.4662,
+   "value_multiplier": 1.8325
+  },
+  "C00388": {
+   "churn_date": null,
+   "orders_per_month": 0.6434,
+   "satisfaction": 1.0895,
+   "value_multiplier": 1.2714
+  },
+  "C00389": {
+   "churn_date": null,
+   "orders_per_month": 0.4358,
+   "satisfaction": 0.0808,
+   "value_multiplier": 1.7452
+  },
+  "C00390": {
+   "churn_date": null,
+   "orders_per_month": 1.2729,
+   "satisfaction": 0.7197,
+   "value_multiplier": 0.5368
+  },
+  "C00391": {
+   "churn_date": "2026-04-16",
+   "orders_per_month": 1.9554,
+   "satisfaction": -1.1084,
+   "value_multiplier": 1.596
+  },
+  "C00392": {
+   "churn_date": null,
+   "orders_per_month": 0.7282,
+   "satisfaction": -1.1405,
+   "value_multiplier": 7.4744
+  },
+  "C00393": {
+   "churn_date": null,
+   "orders_per_month": 0.8606,
+   "satisfaction": 0.3201,
+   "value_multiplier": 3.2907
+  },
+  "C00394": {
+   "churn_date": null,
+   "orders_per_month": 0.3793,
+   "satisfaction": -1.4594,
+   "value_multiplier": 0.4924
+  },
+  "C00395": {
+   "churn_date": null,
+   "orders_per_month": 0.3061,
+   "satisfaction": 1.3609,
+   "value_multiplier": 0.3854
+  },
+  "C00396": {
+   "churn_date": null,
+   "orders_per_month": 0.8254,
+   "satisfaction": 1.2723,
+   "value_multiplier": 3.1908
+  },
+  "C00397": {
+   "churn_date": null,
+   "orders_per_month": 2.2676,
+   "satisfaction": 0.0284,
+   "value_multiplier": 1.7334
+  },
+  "C00398": {
+   "churn_date": null,
+   "orders_per_month": 0.142,
+   "satisfaction": 1.0397,
+   "value_multiplier": 0.849
+  },
+  "C00399": {
+   "churn_date": "2025-05-10",
+   "orders_per_month": 0.3935,
+   "satisfaction": 0.258,
+   "value_multiplier": 1.2124
+  },
+  "C00400": {
+   "churn_date": "2025-04-09",
+   "orders_per_month": 0.1957,
+   "satisfaction": 0.0028,
+   "value_multiplier": 0.7188
+  },
+  "C00401": {
+   "churn_date": null,
+   "orders_per_month": 0.9413,
+   "satisfaction": -0.7047,
+   "value_multiplier": 1.0597
+  },
+  "C00402": {
+   "churn_date": null,
+   "orders_per_month": 0.5046,
+   "satisfaction": 2.1107,
+   "value_multiplier": 2.7045
+  },
+  "C00403": {
+   "churn_date": null,
+   "orders_per_month": 0.32,
+   "satisfaction": 1.0936,
+   "value_multiplier": 1.3474
+  },
+  "C00404": {
+   "churn_date": null,
+   "orders_per_month": 0.1995,
+   "satisfaction": -0.4118,
+   "value_multiplier": 1.4299
+  },
+  "C00405": {
+   "churn_date": null,
+   "orders_per_month": 1.0329,
+   "satisfaction": -1.4641,
+   "value_multiplier": 0.7291
+  },
+  "C00406": {
+   "churn_date": "2025-02-04",
+   "orders_per_month": 0.6737,
+   "satisfaction": -1.4792,
+   "value_multiplier": 0.4461
+  },
+  "C00407": {
+   "churn_date": "2025-11-24",
+   "orders_per_month": 0.2579,
+   "satisfaction": -0.7397,
+   "value_multiplier": 0.7037
+  },
+  "C00408": {
+   "churn_date": null,
+   "orders_per_month": 0.4931,
+   "satisfaction": -0.8888,
+   "value_multiplier": 3.1676
+  },
+  "C00409": {
+   "churn_date": "2025-09-27",
+   "orders_per_month": 0.5949,
+   "satisfaction": -1.5722,
+   "value_multiplier": 0.6124
+  },
+  "C00410": {
+   "churn_date": "2026-09-04",
+   "orders_per_month": 0.1953,
+   "satisfaction": -0.5794,
+   "value_multiplier": 1.7126
+  },
+  "C00411": {
+   "churn_date": null,
+   "orders_per_month": 0.4183,
+   "satisfaction": 0.6234,
+   "value_multiplier": 1.4137
+  },
+  "C00412": {
+   "churn_date": null,
+   "orders_per_month": 0.7125,
+   "satisfaction": 0.0374,
+   "value_multiplier": 1.882
+  },
+  "C00413": {
+   "churn_date": null,
+   "orders_per_month": 0.4664,
+   "satisfaction": -0.1973,
+   "value_multiplier": 0.8901
+  },
+  "C00414": {
+   "churn_date": "2025-02-11",
+   "orders_per_month": 0.4537,
+   "satisfaction": -0.3645,
+   "value_multiplier": 0.5051
+  },
+  "C00415": {
+   "churn_date": null,
+   "orders_per_month": 0.5542,
+   "satisfaction": 0.8989,
+   "value_multiplier": 2.071
+  },
+  "C00416": {
+   "churn_date": "2026-05-30",
+   "orders_per_month": 0.3239,
+   "satisfaction": -0.0502,
+   "value_multiplier": 0.8577
+  },
+  "C00417": {
+   "churn_date": null,
+   "orders_per_month": 0.2937,
+   "satisfaction": 1.4609,
+   "value_multiplier": 1.3313
+  },
+  "C00418": {
+   "churn_date": null,
+   "orders_per_month": 1.3766,
+   "satisfaction": 1.5205,
+   "value_multiplier": 4.9706
+  },
+  "C00419": {
+   "churn_date": null,
+   "orders_per_month": 1.1286,
+   "satisfaction": 1.5185,
+   "value_multiplier": 0.7837
+  },
+  "C00420": {
+   "churn_date": null,
+   "orders_per_month": 0.3973,
+   "satisfaction": -0.8604,
+   "value_multiplier": 3.4452
+  },
+  "C00421": {
+   "churn_date": "2025-07-09",
+   "orders_per_month": 2.1529,
+   "satisfaction": 0.9563,
+   "value_multiplier": 6.8399
+  },
+  "C00422": {
+   "churn_date": "2026-06-05",
+   "orders_per_month": 1.0093,
+   "satisfaction": -1.3736,
+   "value_multiplier": 0.4304
+  },
+  "C00423": {
+   "churn_date": "2026-07-28",
+   "orders_per_month": 0.7974,
+   "satisfaction": -0.6502,
+   "value_multiplier": 0.4732
+  },
+  "C00424": {
+   "churn_date": null,
+   "orders_per_month": 0.4743,
+   "satisfaction": 0.6584,
+   "value_multiplier": 0.5713
+  },
+  "C00425": {
+   "churn_date": "2026-03-04",
+   "orders_per_month": 1.1768,
+   "satisfaction": -0.1341,
+   "value_multiplier": 0.9101
+  },
+  "C00426": {
+   "churn_date": "2025-05-25",
+   "orders_per_month": 0.0722,
+   "satisfaction": -0.369,
+   "value_multiplier": 2.1468
+  },
+  "C00427": {
+   "churn_date": null,
+   "orders_per_month": 0.5408,
+   "satisfaction": -0.4629,
+   "value_multiplier": 0.577
+  },
+  "C00428": {
+   "churn_date": null,
+   "orders_per_month": 0.9082,
+   "satisfaction": 0.0608,
+   "value_multiplier": 0.737
+  },
+  "C00429": {
+   "churn_date": "2026-05-25",
+   "orders_per_month": 0.2498,
+   "satisfaction": -0.8734,
+   "value_multiplier": 0.8089
+  },
+  "C00430": {
+   "churn_date": "2025-03-15",
+   "orders_per_month": 0.1368,
+   "satisfaction": 0.2392,
+   "value_multiplier": 1.2341
+  },
+  "C00431": {
+   "churn_date": null,
+   "orders_per_month": 0.732,
+   "satisfaction": 1.1191,
+   "value_multiplier": 0.6102
+  },
+  "C00432": {
+   "churn_date": null,
+   "orders_per_month": 0.1857,
+   "satisfaction": 0.4211,
+   "value_multiplier": 2.0196
+  },
+  "C00433": {
+   "churn_date": null,
+   "orders_per_month": 0.6138,
+   "satisfaction": 2.1694,
+   "value_multiplier": 0.8245
+  },
+  "C00434": {
+   "churn_date": null,
+   "orders_per_month": 0.5075,
+   "satisfaction": -1.3877,
+   "value_multiplier": 0.5343
+  },
+  "C00435": {
+   "churn_date": null,
+   "orders_per_month": 1.207,
+   "satisfaction": 0.7212,
+   "value_multiplier": 1.228
+  },
+  "C00436": {
+   "churn_date": null,
+   "orders_per_month": 0.5637,
+   "satisfaction": -0.0912,
+   "value_multiplier": 1.0681
+  },
+  "C00437": {
+   "churn_date": "2025-01-19",
+   "orders_per_month": 0.834,
+   "satisfaction": 0.4294,
+   "value_multiplier": 0.5828
+  },
+  "C00438": {
+   "churn_date": null,
+   "orders_per_month": 0.503,
+   "satisfaction": 1.889,
+   "value_multiplier": 1.0919
+  },
+  "C00439": {
+   "churn_date": null,
+   "orders_per_month": 0.7978,
+   "satisfaction": 0.6219,
+   "value_multiplier": 1.1927
+  },
+  "C00440": {
+   "churn_date": "2025-11-29",
+   "orders_per_month": 0.4708,
+   "satisfaction": -0.2728,
+   "value_multiplier": 0.5147
+  },
+  "C00441": {
+   "churn_date": null,
+   "orders_per_month": 0.724,
+   "satisfaction": -0.0657,
+   "value_multiplier": 0.404
+  },
+  "C00442": {
+   "churn_date": null,
+   "orders_per_month": 0.3235,
+   "satisfaction": -0.3453,
+   "value_multiplier": 0.7404
+  },
+  "C00443": {
+   "churn_date": null,
+   "orders_per_month": 1.1249,
+   "satisfaction": -0.3127,
+   "value_multiplier": 1.9742
+  },
+  "C00444": {
+   "churn_date": null,
+   "orders_per_month": 1.4085,
+   "satisfaction": -0.5286,
+   "value_multiplier": 0.8704
+  },
+  "C00445": {
+   "churn_date": null,
+   "orders_per_month": 0.1325,
+   "satisfaction": 2.2234,
+   "value_multiplier": 2.7495
+  },
+  "C00446": {
+   "churn_date": null,
+   "orders_per_month": 0.3761,
+   "satisfaction": 0.6807,
+   "value_multiplier": 0.6882
+  },
+  "C00447": {
+   "churn_date": null,
+   "orders_per_month": 0.4157,
+   "satisfaction": 0.2392,
+   "value_multiplier": 1.7386
+  },
+  "C00448": {
+   "churn_date": null,
+   "orders_per_month": 1.2592,
+   "satisfaction": -0.0246,
+   "value_multiplier": 0.7608
+  },
+  "C00449": {
+   "churn_date": null,
+   "orders_per_month": 0.1671,
+   "satisfaction": 0.2134,
+   "value_multiplier": 1.5632
+  },
+  "C00450": {
+   "churn_date": null,
+   "orders_per_month": 0.3433,
+   "satisfaction": 0.5256,
+   "value_multiplier": 2.8721
+  },
+  "C00451": {
+   "churn_date": "2025-02-19",
+   "orders_per_month": 0.3717,
+   "satisfaction": -1.9593,
+   "value_multiplier": 1.9826
+  },
+  "C00452": {
+   "churn_date": null,
+   "orders_per_month": 1.4738,
+   "satisfaction": 0.308,
+   "value_multiplier": 2.0338
+  },
+  "C00453": {
+   "churn_date": null,
+   "orders_per_month": 0.2277,
+   "satisfaction": -1.237,
+   "value_multiplier": 2.8846
+  },
+  "C00454": {
+   "churn_date": "2025-01-18",
+   "orders_per_month": 0.2971,
+   "satisfaction": -1.9608,
+   "value_multiplier": 0.3393
+  },
+  "C00455": {
+   "churn_date": null,
+   "orders_per_month": 0.161,
+   "satisfaction": -0.5594,
+   "value_multiplier": 1.2241
+  },
+  "C00456": {
+   "churn_date": null,
+   "orders_per_month": 0.4038,
+   "satisfaction": 0.1414,
+   "value_multiplier": 1.016
+  },
+  "C00457": {
+   "churn_date": "2026-06-08",
+   "orders_per_month": 2.0888,
+   "satisfaction": -0.8846,
+   "value_multiplier": 1.0639
+  },
+  "C00458": {
+   "churn_date": null,
+   "orders_per_month": 0.7553,
+   "satisfaction": 0.396,
+   "value_multiplier": 0.9916
+  },
+  "C00459": {
+   "churn_date": null,
+   "orders_per_month": 1.1421,
+   "satisfaction": -1.3746,
+   "value_multiplier": 1.502
+  },
+  "C00460": {
+   "churn_date": null,
+   "orders_per_month": 0.2541,
+   "satisfaction": 1.0418,
+   "value_multiplier": 1.3554
+  },
+  "C00461": {
+   "churn_date": "2025-09-18",
+   "orders_per_month": 0.602,
+   "satisfaction": -2.0192,
+   "value_multiplier": 0.4288
+  },
+  "C00462": {
+   "churn_date": null,
+   "orders_per_month": 1.5899,
+   "satisfaction": 0.8708,
+   "value_multiplier": 0.7382
+  },
+  "C00463": {
+   "churn_date": null,
+   "orders_per_month": 0.4214,
+   "satisfaction": -2.4662,
+   "value_multiplier": 3.6637
+  },
+  "C00464": {
+   "churn_date": null,
+   "orders_per_month": 1.1489,
+   "satisfaction": 0.2441,
+   "value_multiplier": 0.4501
+  },
+  "C00465": {
+   "churn_date": null,
+   "orders_per_month": 0.5503,
+   "satisfaction": -0.918,
+   "value_multiplier": 2.5051
+  },
+  "C00466": {
+   "churn_date": null,
+   "orders_per_month": 0.9627,
+   "satisfaction": -0.1287,
+   "value_multiplier": 0.5444
+  },
+  "C00467": {
+   "churn_date": null,
+   "orders_per_month": 0.3974,
+   "satisfaction": 1.7443,
+   "value_multiplier": 0.9334
+  },
+  "C00468": {
+   "churn_date": null,
+   "orders_per_month": 0.4076,
+   "satisfaction": 0.9538,
+   "value_multiplier": 1.0141
+  },
+  "C00469": {
+   "churn_date": null,
+   "orders_per_month": 0.9163,
+   "satisfaction": 0.1704,
+   "value_multiplier": 4.0199
+  },
+  "C00470": {
+   "churn_date": "2025-03-15",
+   "orders_per_month": 0.2753,
+   "satisfaction": -1.6278,
+   "value_multiplier": 0.3553
+  },
+  "C00471": {
+   "churn_date": "2025-01-18",
+   "orders_per_month": 0.0466,
+   "satisfaction": -2.1292,
+   "value_multiplier": 1.104
+  },
+  "C00472": {
+   "churn_date": null,
+   "orders_per_month": 0.8286,
+   "satisfaction": 0.4145,
+   "value_multiplier": 0.3919
+  },
+  "C00473": {
+   "churn_date": null,
+   "orders_per_month": 0.9057,
+   "satisfaction": 0.5975,
+   "value_multiplier": 0.3497
+  },
+  "C00474": {
+   "churn_date": null,
+   "orders_per_month": 0.6996,
+   "satisfaction": 0.8389,
+   "value_multiplier": 0.2587
+  },
+  "C00475": {
+   "churn_date": "2026-06-04",
+   "orders_per_month": 0.4328,
+   "satisfaction": -1.8106,
+   "value_multiplier": 1.5608
+  },
+  "C00476": {
+   "churn_date": null,
+   "orders_per_month": 0.5288,
+   "satisfaction": 0.1309,
+   "value_multiplier": 0.7128
+  },
+  "C00477": {
+   "churn_date": null,
+   "orders_per_month": 0.135,
+   "satisfaction": -0.2121,
+   "value_multiplier": 1.1219
+  },
+  "C00478": {
+   "churn_date": null,
+   "orders_per_month": 0.4063,
+   "satisfaction": 1.3387,
+   "value_multiplier": 1.2793
+  },
+  "C00479": {
+   "churn_date": null,
+   "orders_per_month": 0.6206,
+   "satisfaction": 2.155,
+   "value_multiplier": 3.272
+  },
+  "C00480": {
+   "churn_date": "2026-02-02",
+   "orders_per_month": 0.6664,
+   "satisfaction": -0.8283,
+   "value_multiplier": 0.6239
+  },
+  "C00481": {
+   "churn_date": null,
+   "orders_per_month": 1.2842,
+   "satisfaction": 1.3777,
+   "value_multiplier": 2.2462
+  },
+  "C00482": {
+   "churn_date": null,
+   "orders_per_month": 2.2613,
+   "satisfaction": -0.3433,
+   "value_multiplier": 1.795
+  },
+  "C00483": {
+   "churn_date": null,
+   "orders_per_month": 1.1898,
+   "satisfaction": 0.1093,
+   "value_multiplier": 1.1725
+  },
+  "C00484": {
+   "churn_date": "2025-03-19",
+   "orders_per_month": 0.1185,
+   "satisfaction": -0.6613,
+   "value_multiplier": 3.6667
+  },
+  "C00485": {
+   "churn_date": null,
+   "orders_per_month": 0.5147,
+   "satisfaction": 0.0202,
+   "value_multiplier": 1.3121
+  },
+  "C00486": {
+   "churn_date": null,
+   "orders_per_month": 0.5882,
+   "satisfaction": -0.2292,
+   "value_multiplier": 0.6672
+  },
+  "C00487": {
+   "churn_date": "2025-06-21",
+   "orders_per_month": 0.3161,
+   "satisfaction": 0.4737,
+   "value_multiplier": 2.3825
+  },
+  "C00488": {
+   "churn_date": null,
+   "orders_per_month": 0.5002,
+   "satisfaction": -0.3286,
+   "value_multiplier": 4.4335
+  },
+  "C00489": {
+   "churn_date": null,
+   "orders_per_month": 1.3558,
+   "satisfaction": 3.0093,
+   "value_multiplier": 4.5824
+  },
+  "C00490": {
+   "churn_date": null,
+   "orders_per_month": 0.2908,
+   "satisfaction": -0.2309,
+   "value_multiplier": 0.9983
+  },
+  "C00491": {
+   "churn_date": null,
+   "orders_per_month": 0.8616,
+   "satisfaction": 0.3299,
+   "value_multiplier": 6.0545
+  },
+  "C00492": {
+   "churn_date": null,
+   "orders_per_month": 0.216,
+   "satisfaction": -0.1477,
+   "value_multiplier": 0.5915
+  },
+  "C00493": {
+   "churn_date": null,
+   "orders_per_month": 0.1587,
+   "satisfaction": 0.5462,
+   "value_multiplier": 4.2013
+  },
+  "C00494": {
+   "churn_date": null,
+   "orders_per_month": 2.4595,
+   "satisfaction": 0.6067,
+   "value_multiplier": 4.4782
+  },
+  "C00495": {
+   "churn_date": null,
+   "orders_per_month": 0.3294,
+   "satisfaction": -0.6366,
+   "value_multiplier": 0.6552
+  },
+  "C00496": {
+   "churn_date": "2026-09-06",
+   "orders_per_month": 0.7786,
+   "satisfaction": 0.8375,
+   "value_multiplier": 0.9099
+  },
+  "C00497": {
+   "churn_date": "2025-08-26",
+   "orders_per_month": 0.2384,
+   "satisfaction": -1.2597,
+   "value_multiplier": 0.6311
+  },
+  "C00498": {
+   "churn_date": null,
+   "orders_per_month": 1.1134,
+   "satisfaction": -0.4448,
+   "value_multiplier": 0.2277
+  },
+  "C00499": {
+   "churn_date": null,
+   "orders_per_month": 0.2433,
+   "satisfaction": -0.1327,
+   "value_multiplier": 0.569
+  },
+  "C00500": {
+   "churn_date": null,
+   "orders_per_month": 0.3495,
+   "satisfaction": 0.8689,
+   "value_multiplier": 3.1754
+  },
+  "C00501": {
+   "churn_date": null,
+   "orders_per_month": 0.449,
+   "satisfaction": -0.1042,
+   "value_multiplier": 1.1004
+  },
+  "C00502": {
+   "churn_date": null,
+   "orders_per_month": 0.7004,
+   "satisfaction": 1.1118,
+   "value_multiplier": 0.8665
+  },
+  "C00503": {
+   "churn_date": "2025-12-15",
+   "orders_per_month": 0.883,
+   "satisfaction": 1.0824,
+   "value_multiplier": 1.2088
+  },
+  "C00504": {
+   "churn_date": null,
+   "orders_per_month": 1.7141,
+   "satisfaction": 0.5253,
+   "value_multiplier": 2.2542
+  },
+  "C00505": {
+   "churn_date": null,
+   "orders_per_month": 0.1579,
+   "satisfaction": -1.3443,
+   "value_multiplier": 0.784
+  },
+  "C00506": {
+   "churn_date": "2025-04-22",
+   "orders_per_month": 0.5095,
+   "satisfaction": -1.1523,
+   "value_multiplier": 3.6176
+  },
+  "C00507": {
+   "churn_date": null,
+   "orders_per_month": 0.3001,
+   "satisfaction": 0.4834,
+   "value_multiplier": 1.0651
+  },
+  "C00508": {
+   "churn_date": null,
+   "orders_per_month": 1.9663,
+   "satisfaction": 0.9799,
+   "value_multiplier": 1.5153
+  },
+  "C00509": {
+   "churn_date": null,
+   "orders_per_month": 1.0772,
+   "satisfaction": 1.4437,
+   "value_multiplier": 0.9192
+  },
+  "C00510": {
+   "churn_date": null,
+   "orders_per_month": 0.8428,
+   "satisfaction": 0.6745,
+   "value_multiplier": 3.4836
+  },
+  "C00511": {
+   "churn_date": "2025-09-05",
+   "orders_per_month": 0.4073,
+   "satisfaction": -0.9912,
+   "value_multiplier": 0.4471
+  },
+  "C00512": {
+   "churn_date": null,
+   "orders_per_month": 0.3884,
+   "satisfaction": 0.9231,
+   "value_multiplier": 1.3995
+  },
+  "C00513": {
+   "churn_date": null,
+   "orders_per_month": 0.7912,
+   "satisfaction": 0.7013,
+   "value_multiplier": 0.5489
+  },
+  "C00514": {
+   "churn_date": "2025-12-11",
+   "orders_per_month": 1.7309,
+   "satisfaction": -0.805,
+   "value_multiplier": 0.7341
+  },
+  "C00515": {
+   "churn_date": null,
+   "orders_per_month": 0.3053,
+   "satisfaction": -0.2824,
+   "value_multiplier": 0.6466
+  },
+  "C00516": {
+   "churn_date": null,
+   "orders_per_month": 0.576,
+   "satisfaction": 0.4041,
+   "value_multiplier": 0.3996
+  },
+  "C00517": {
+   "churn_date": null,
+   "orders_per_month": 0.4481,
+   "satisfaction": -0.493,
+   "value_multiplier": 1.598
+  },
+  "C00518": {
+   "churn_date": null,
+   "orders_per_month": 0.4971,
+   "satisfaction": 1.1314,
+   "value_multiplier": 0.5194
+  },
+  "C00519": {
+   "churn_date": null,
+   "orders_per_month": 1.5685,
+   "satisfaction": -0.2029,
+   "value_multiplier": 2.1934
+  },
+  "C00520": {
+   "churn_date": null,
+   "orders_per_month": 0.7628,
+   "satisfaction": 0.2862,
+   "value_multiplier": 0.5887
+  },
+  "C00521": {
+   "churn_date": null,
+   "orders_per_month": 0.3387,
+   "satisfaction": 0.2734,
+   "value_multiplier": 1.1645
+  },
+  "C00522": {
+   "churn_date": null,
+   "orders_per_month": 1.4814,
+   "satisfaction": 0.6892,
+   "value_multiplier": 0.5561
+  },
+  "C00523": {
+   "churn_date": null,
+   "orders_per_month": 1.1688,
+   "satisfaction": 0.8426,
+   "value_multiplier": 0.6293
+  },
+  "C00524": {
+   "churn_date": "2026-09-10",
+   "orders_per_month": 0.4994,
+   "satisfaction": -1.56,
+   "value_multiplier": 0.4904
+  },
+  "C00525": {
+   "churn_date": null,
+   "orders_per_month": 0.3807,
+   "satisfaction": -0.4722,
+   "value_multiplier": 4.9124
+  },
+  "C00526": {
+   "churn_date": null,
+   "orders_per_month": 0.409,
+   "satisfaction": 1.2421,
+   "value_multiplier": 1.7068
+  },
+  "C00527": {
+   "churn_date": null,
+   "orders_per_month": 0.2989,
+   "satisfaction": 1.3891,
+   "value_multiplier": 1.8984
+  },
+  "C00528": {
+   "churn_date": null,
+   "orders_per_month": 0.2567,
+   "satisfaction": 0.0442,
+   "value_multiplier": 0.556
+  },
+  "C00529": {
+   "churn_date": null,
+   "orders_per_month": 0.6493,
+   "satisfaction": 1.9182,
+   "value_multiplier": 1.6584
+  },
+  "C00530": {
+   "churn_date": null,
+   "orders_per_month": 1.3031,
+   "satisfaction": 0.6857,
+   "value_multiplier": 2.112
+  },
+  "C00531": {
+   "churn_date": null,
+   "orders_per_month": 1.3175,
+   "satisfaction": -0.7862,
+   "value_multiplier": 1.3994
+  },
+  "C00532": {
+   "churn_date": "2025-09-15",
+   "orders_per_month": 0.9776,
+   "satisfaction": -0.632,
+   "value_multiplier": 2.6333
+  },
+  "C00533": {
+   "churn_date": null,
+   "orders_per_month": 0.6591,
+   "satisfaction": -0.1605,
+   "value_multiplier": 0.358
+  },
+  "C00534": {
+   "churn_date": null,
+   "orders_per_month": 0.6917,
+   "satisfaction": 1.3798,
+   "value_multiplier": 0.6502
+  },
+  "C00535": {
+   "churn_date": null,
+   "orders_per_month": 2.1626,
+   "satisfaction": -0.3439,
+   "value_multiplier": 4.2144
+  },
+  "C00536": {
+   "churn_date": "2026-10-21",
+   "orders_per_month": 0.7251,
+   "satisfaction": 0.1611,
+   "value_multiplier": 3.0014
+  },
+  "C00537": {
+   "churn_date": "2025-03-24",
+   "orders_per_month": 0.4294,
+   "satisfaction": -1.4361,
+   "value_multiplier": 0.7619
+  },
+  "C00538": {
+   "churn_date": "2026-10-16",
+   "orders_per_month": 0.5698,
+   "satisfaction": -0.509,
+   "value_multiplier": 1.9193
+  },
+  "C00539": {
+   "churn_date": null,
+   "orders_per_month": 0.4096,
+   "satisfaction": 0.9302,
+   "value_multiplier": 0.617
+  },
+  "C00540": {
+   "churn_date": null,
+   "orders_per_month": 0.8365,
+   "satisfaction": -0.6217,
+   "value_multiplier": 2.0237
+  },
+  "C00541": {
+   "churn_date": null,
+   "orders_per_month": 0.2115,
+   "satisfaction": -1.7346,
+   "value_multiplier": 1.3157
+  },
+  "C00542": {
+   "churn_date": null,
+   "orders_per_month": 1.1861,
+   "satisfaction": 2.4078,
+   "value_multiplier": 2.4003
+  },
+  "C00543": {
+   "churn_date": null,
+   "orders_per_month": 0.2661,
+   "satisfaction": 0.4949,
+   "value_multiplier": 0.7147
+  },
+  "C00544": {
+   "churn_date": null,
+   "orders_per_month": 1.2247,
+   "satisfaction": 0.1864,
+   "value_multiplier": 4.0247
+  },
+  "C00545": {
+   "churn_date": null,
+   "orders_per_month": 0.3822,
+   "satisfaction": -0.2673,
+   "value_multiplier": 6.9346
+  },
+  "C00546": {
+   "churn_date": "2025-11-23",
+   "orders_per_month": 0.7275,
+   "satisfaction": 0.2516,
+   "value_multiplier": 1.291
+  },
+  "C00547": {
+   "churn_date": null,
+   "orders_per_month": 0.7072,
+   "satisfaction": 0.297,
+   "value_multiplier": 0.8195
+  },
+  "C00548": {
+   "churn_date": "2025-06-23",
+   "orders_per_month": 0.5803,
+   "satisfaction": -0.7849,
+   "value_multiplier": 0.4256
+  },
+  "C00549": {
+   "churn_date": null,
+   "orders_per_month": 0.5488,
+   "satisfaction": 1.6404,
+   "value_multiplier": 0.6267
+  },
+  "C00550": {
+   "churn_date": "2025-01-10",
+   "orders_per_month": 2.3886,
+   "satisfaction": -0.6592,
+   "value_multiplier": 1.3056
+  },
+  "C00551": {
+   "churn_date": null,
+   "orders_per_month": 0.641,
+   "satisfaction": -0.2515,
+   "value_multiplier": 2.2988
+  },
+  "C00552": {
+   "churn_date": null,
+   "orders_per_month": 1.1602,
+   "satisfaction": 0.2753,
+   "value_multiplier": 1.7781
+  },
+  "C00553": {
+   "churn_date": "2026-09-11",
+   "orders_per_month": 0.4031,
+   "satisfaction": -1.2867,
+   "value_multiplier": 0.793
+  },
+  "C00554": {
+   "churn_date": null,
+   "orders_per_month": 0.569,
+   "satisfaction": 1.831,
+   "value_multiplier": 1.5381
+  },
+  "C00555": {
+   "churn_date": null,
+   "orders_per_month": 0.9228,
+   "satisfaction": -0.7534,
+   "value_multiplier": 3.7742
+  },
+  "C00556": {
+   "churn_date": null,
+   "orders_per_month": 0.217,
+   "satisfaction": 0.3073,
+   "value_multiplier": 5.4698
+  },
+  "C00557": {
+   "churn_date": "2026-01-12",
+   "orders_per_month": 1.8491,
+   "satisfaction": -0.2273,
+   "value_multiplier": 0.525
+  },
+  "C00558": {
+   "churn_date": null,
+   "orders_per_month": 0.4459,
+   "satisfaction": 0.3353,
+   "value_multiplier": 0.8984
+  },
+  "C00559": {
+   "churn_date": null,
+   "orders_per_month": 0.5446,
+   "satisfaction": 1.3175,
+   "value_multiplier": 1.4227
+  },
+  "C00560": {
+   "churn_date": "2025-02-13",
+   "orders_per_month": 0.619,
+   "satisfaction": -1.1178,
+   "value_multiplier": 1.1962
+  },
+  "C00561": {
+   "churn_date": null,
+   "orders_per_month": 0.5706,
+   "satisfaction": -0.6219,
+   "value_multiplier": 2.2447
+  },
+  "C00562": {
+   "churn_date": null,
+   "orders_per_month": 0.6294,
+   "satisfaction": 1.3995,
+   "value_multiplier": 4.9791
+  },
+  "C00563": {
+   "churn_date": null,
+   "orders_per_month": 0.2976,
+   "satisfaction": 0.2822,
+   "value_multiplier": 2.6216
+  },
+  "C00564": {
+   "churn_date": "2025-11-26",
+   "orders_per_month": 0.4108,
+   "satisfaction": -1.2046,
+   "value_multiplier": 1.1961
+  },
+  "C00565": {
+   "churn_date": null,
+   "orders_per_month": 1.9153,
+   "satisfaction": 1.2574,
+   "value_multiplier": 0.8892
+  },
+  "C00566": {
+   "churn_date": "2026-05-23",
+   "orders_per_month": 1.355,
+   "satisfaction": 0.9268,
+   "value_multiplier": 1.0141
+  },
+  "C00567": {
+   "churn_date": null,
+   "orders_per_month": 0.2385,
+   "satisfaction": 0.7896,
+   "value_multiplier": 3.0489
+  },
+  "C00568": {
+   "churn_date": null,
+   "orders_per_month": 0.462,
+   "satisfaction": -0.4227,
+   "value_multiplier": 0.9952
+  },
+  "C00569": {
+   "churn_date": null,
+   "orders_per_month": 0.2325,
+   "satisfaction": 0.7808,
+   "value_multiplier": 3.3791
+  },
+  "C00570": {
+   "churn_date": "2025-12-18",
+   "orders_per_month": 1.3616,
+   "satisfaction": 0.4351,
+   "value_multiplier": 2.6057
+  },
+  "C00571": {
+   "churn_date": null,
+   "orders_per_month": 0.3754,
+   "satisfaction": 1.4482,
+   "value_multiplier": 2.055
+  },
+  "C00572": {
+   "churn_date": "2026-05-17",
+   "orders_per_month": 0.2621,
+   "satisfaction": -1.5795,
+   "value_multiplier": 1.1842
+  },
+  "C00573": {
+   "churn_date": null,
+   "orders_per_month": 0.4165,
+   "satisfaction": 0.9635,
+   "value_multiplier": 1.0032
+  },
+  "C00574": {
+   "churn_date": null,
+   "orders_per_month": 1.5136,
+   "satisfaction": -0.2157,
+   "value_multiplier": 2.5206
+  },
+  "C00575": {
+   "churn_date": "2026-04-26",
+   "orders_per_month": 1.0964,
+   "satisfaction": -1.7996,
+   "value_multiplier": 1.7099
+  },
+  "C00576": {
+   "churn_date": "2025-07-04",
+   "orders_per_month": 0.4274,
+   "satisfaction": 0.1234,
+   "value_multiplier": 0.8171
+  },
+  "C00577": {
+   "churn_date": null,
+   "orders_per_month": 0.5861,
+   "satisfaction": 0.8944,
+   "value_multiplier": 2.9467
+  },
+  "C00578": {
+   "churn_date": null,
+   "orders_per_month": 0.2913,
+   "satisfaction": 1.072,
+   "value_multiplier": 4.8679
+  },
+  "C00579": {
+   "churn_date": null,
+   "orders_per_month": 0.2985,
+   "satisfaction": 0.2332,
+   "value_multiplier": 1.2403
+  },
+  "C00580": {
+   "churn_date": "2025-05-13",
+   "orders_per_month": 1.2518,
+   "satisfaction": -1.9171,
+   "value_multiplier": 1.2722
+  },
+  "C00581": {
+   "churn_date": null,
+   "orders_per_month": 0.6996,
+   "satisfaction": -0.3794,
+   "value_multiplier": 3.3596
+  },
+  "C00582": {
+   "churn_date": null,
+   "orders_per_month": 0.3416,
+   "satisfaction": 0.9265,
+   "value_multiplier": 0.7422
+  },
+  "C00583": {
+   "churn_date": null,
+   "orders_per_month": 1.0434,
+   "satisfaction": 0.2254,
+   "value_multiplier": 5.6787
+  },
+  "C00584": {
+   "churn_date": null,
+   "orders_per_month": 0.6826,
+   "satisfaction": 0.4648,
+   "value_multiplier": 1.6421
+  },
+  "C00585": {
+   "churn_date": "2026-10-13",
+   "orders_per_month": 0.1938,
+   "satisfaction": 0.1491,
+   "value_multiplier": 2.6477
+  },
+  "C00586": {
+   "churn_date": null,
+   "orders_per_month": 1.7881,
+   "satisfaction": -0.3175,
+   "value_multiplier": 2.1899
+  },
+  "C00587": {
+   "churn_date": "2025-01-07",
+   "orders_per_month": 1.1954,
+   "satisfaction": 0.5784,
+   "value_multiplier": 0.3447
+  },
+  "C00588": {
+   "churn_date": "2025-09-01",
+   "orders_per_month": 0.0695,
+   "satisfaction": 0.5747,
+   "value_multiplier": 0.4687
+  },
+  "C00589": {
+   "churn_date": "2025-04-22",
+   "orders_per_month": 0.1629,
+   "satisfaction": -1.0028,
+   "value_multiplier": 1.4146
+  },
+  "C00590": {
+   "churn_date": null,
+   "orders_per_month": 2.0294,
+   "satisfaction": -0.9056,
+   "value_multiplier": 0.3203
+  },
+  "C00591": {
+   "churn_date": "2024-12-20",
+   "orders_per_month": 0.8636,
+   "satisfaction": 1.0273,
+   "value_multiplier": 1.4331
+  },
+  "C00592": {
+   "churn_date": null,
+   "orders_per_month": 1.0099,
+   "satisfaction": 0.2712,
+   "value_multiplier": 1.9116
+  },
+  "C00593": {
+   "churn_date": null,
+   "orders_per_month": 0.3512,
+   "satisfaction": 0.5168,
+   "value_multiplier": 0.6234
+  },
+  "C00594": {
+   "churn_date": null,
+   "orders_per_month": 1.1528,
+   "satisfaction": 1.187,
+   "value_multiplier": 1.0862
+  },
+  "C00595": {
+   "churn_date": null,
+   "orders_per_month": 1.0069,
+   "satisfaction": -0.4955,
+   "value_multiplier": 1.0529
+  },
+  "C00596": {
+   "churn_date": null,
+   "orders_per_month": 0.2882,
+   "satisfaction": -0.1454,
+   "value_multiplier": 0.5453
+  },
+  "C00597": {
+   "churn_date": null,
+   "orders_per_month": 0.2362,
+   "satisfaction": 0.6032,
+   "value_multiplier": 1.3924
+  },
+  "C00598": {
+   "churn_date": null,
+   "orders_per_month": 0.1734,
+   "satisfaction": 2.2219,
+   "value_multiplier": 1.1551
+  },
+  "C00599": {
+   "churn_date": null,
+   "orders_per_month": 0.6131,
+   "satisfaction": 0.9817,
+   "value_multiplier": 0.5454
+  },
+  "C00600": {
+   "churn_date": "2025-09-05",
+   "orders_per_month": 0.2963,
+   "satisfaction": -2.8447,
+   "value_multiplier": 0.4926
+  },
+  "C00601": {
+   "churn_date": null,
+   "orders_per_month": 0.2806,
+   "satisfaction": 0.2645,
+   "value_multiplier": 1.9503
+  },
+  "C00602": {
+   "churn_date": null,
+   "orders_per_month": 0.2798,
+   "satisfaction": -0.0653,
+   "value_multiplier": 0.5631
+  },
+  "C00603": {
+   "churn_date": null,
+   "orders_per_month": 0.103,
+   "satisfaction": 1.0991,
+   "value_multiplier": 7.0648
+  },
+  "C00604": {
+   "churn_date": null,
+   "orders_per_month": 0.1151,
+   "satisfaction": 0.0447,
+   "value_multiplier": 2.525
+  },
+  "C00605": {
+   "churn_date": "2026-06-10",
+   "orders_per_month": 0.275,
+   "satisfaction": 0.1833,
+   "value_multiplier": 1.2832
+  },
+  "C00606": {
+   "churn_date": null,
+   "orders_per_month": 0.8337,
+   "satisfaction": -0.5802,
+   "value_multiplier": 0.5526
+  },
+  "C00607": {
+   "churn_date": null,
+   "orders_per_month": 0.4901,
+   "satisfaction": 0.6198,
+   "value_multiplier": 1.2199
+  },
+  "C00608": {
+   "churn_date": "2026-09-28",
+   "orders_per_month": 0.9483,
+   "satisfaction": -0.9836,
+   "value_multiplier": 0.5701
+  },
+  "C00609": {
+   "churn_date": null,
+   "orders_per_month": 0.2413,
+   "satisfaction": 0.5099,
+   "value_multiplier": 0.3132
+  },
+  "C00610": {
+   "churn_date": null,
+   "orders_per_month": 0.0839,
+   "satisfaction": -0.7738,
+   "value_multiplier": 2.1476
+  },
+  "C00611": {
+   "churn_date": null,
+   "orders_per_month": 0.2986,
+   "satisfaction": -0.1296,
+   "value_multiplier": 0.8632
+  },
+  "C00612": {
+   "churn_date": "2026-02-01",
+   "orders_per_month": 0.3701,
+   "satisfaction": -1.3643,
+   "value_multiplier": 1.5927
+  },
+  "C00613": {
+   "churn_date": null,
+   "orders_per_month": 0.3396,
+   "satisfaction": 0.6441,
+   "value_multiplier": 3.9127
+  },
+  "C00614": {
+   "churn_date": null,
+   "orders_per_month": 0.9302,
+   "satisfaction": 0.7259,
+   "value_multiplier": 2.6636
+  },
+  "C00615": {
+   "churn_date": null,
+   "orders_per_month": 1.2373,
+   "satisfaction": -0.7226,
+   "value_multiplier": 0.7199
+  },
+  "C00616": {
+   "churn_date": null,
+   "orders_per_month": 0.7394,
+   "satisfaction": 0.8638,
+   "value_multiplier": 2.882
+  },
+  "C00617": {
+   "churn_date": "2025-06-17",
+   "orders_per_month": 0.3663,
+   "satisfaction": -1.5595,
+   "value_multiplier": 1.85
+  },
+  "C00618": {
+   "churn_date": "2026-05-06",
+   "orders_per_month": 0.2258,
+   "satisfaction": -0.5618,
+   "value_multiplier": 1.0418
+  },
+  "C00619": {
+   "churn_date": null,
+   "orders_per_month": 1.72,
+   "satisfaction": 0.3573,
+   "value_multiplier": 1.6855
+  },
+  "C00620": {
+   "churn_date": null,
+   "orders_per_month": 0.8743,
+   "satisfaction": -0.863,
+   "value_multiplier": 0.9069
+  },
+  "C00621": {
+   "churn_date": null,
+   "orders_per_month": 0.2922,
+   "satisfaction": 1.6681,
+   "value_multiplier": 1.0197
+  },
+  "C00622": {
+   "churn_date": null,
+   "orders_per_month": 0.2837,
+   "satisfaction": -0.57,
+   "value_multiplier": 6.2073
+  },
+  "C00623": {
+   "churn_date": null,
+   "orders_per_month": 1.7113,
+   "satisfaction": 0.1233,
+   "value_multiplier": 4.1713
+  },
+  "C00624": {
+   "churn_date": null,
+   "orders_per_month": 1.3677,
+   "satisfaction": -0.2283,
+   "value_multiplier": 3.225
+  },
+  "C00625": {
+   "churn_date": null,
+   "orders_per_month": 0.8885,
+   "satisfaction": -0.7141,
+   "value_multiplier": 0.4981
+  },
+  "C00626": {
+   "churn_date": "2025-09-16",
+   "orders_per_month": 1.3818,
+   "satisfaction": 0.3799,
+   "value_multiplier": 2.8675
+  },
+  "C00627": {
+   "churn_date": null,
+   "orders_per_month": 0.0602,
+   "satisfaction": 2.083,
+   "value_multiplier": 0.4115
+  },
+  "C00628": {
+   "churn_date": "2025-12-09",
+   "orders_per_month": 1.048,
+   "satisfaction": -0.3936,
+   "value_multiplier": 0.4922
+  },
+  "C00629": {
+   "churn_date": null,
+   "orders_per_month": 0.4415,
+   "satisfaction": 0.1796,
+   "value_multiplier": 0.3509
+  },
+  "C00630": {
+   "churn_date": null,
+   "orders_per_month": 0.9029,
+   "satisfaction": 2.6574,
+   "value_multiplier": 3.833
+  },
+  "C00631": {
+   "churn_date": "2025-08-23",
+   "orders_per_month": 0.5273,
+   "satisfaction": -0.5266,
+   "value_multiplier": 1.6557
+  },
+  "C00632": {
+   "churn_date": "2025-06-06",
+   "orders_per_month": 0.3258,
+   "satisfaction": 0.0453,
+   "value_multiplier": 0.3505
+  },
+  "C00633": {
+   "churn_date": "2026-08-12",
+   "orders_per_month": 0.2957,
+   "satisfaction": -2.3504,
+   "value_multiplier": 1.0038
+  },
+  "C00634": {
+   "churn_date": "2025-11-18",
+   "orders_per_month": 0.167,
+   "satisfaction": -0.5636,
+   "value_multiplier": 0.7304
+  },
+  "C00635": {
+   "churn_date": null,
+   "orders_per_month": 0.4309,
+   "satisfaction": 0.1378,
+   "value_multiplier": 5.7235
+  },
+  "C00636": {
+   "churn_date": null,
+   "orders_per_month": 1.0535,
+   "satisfaction": -2.0411,
+   "value_multiplier": 18.1289
+  },
+  "C00637": {
+   "churn_date": null,
+   "orders_per_month": 0.462,
+   "satisfaction": -2.2014,
+   "value_multiplier": 8.9217
+  },
+  "C00638": {
+   "churn_date": "2025-07-20",
+   "orders_per_month": 1.1409,
+   "satisfaction": -0.7653,
+   "value_multiplier": 1.1066
+  },
+  "C00639": {
+   "churn_date": null,
+   "orders_per_month": 0.0107,
+   "satisfaction": 0.5319,
+   "value_multiplier": 1.6378
+  },
+  "C00640": {
+   "churn_date": "2025-07-25",
+   "orders_per_month": 1.2736,
+   "satisfaction": -0.2656,
+   "value_multiplier": 1.1674
+  },
+  "C00641": {
+   "churn_date": null,
+   "orders_per_month": 1.3084,
+   "satisfaction": -1.3104,
+   "value_multiplier": 2.7995
+  },
+  "C00642": {
+   "churn_date": null,
+   "orders_per_month": 0.9094,
+   "satisfaction": 0.899,
+   "value_multiplier": 1.6019
+  },
+  "C00643": {
+   "churn_date": null,
+   "orders_per_month": 0.5208,
+   "satisfaction": 0.4888,
+   "value_multiplier": 2.479
+  },
+  "C00644": {
+   "churn_date": null,
+   "orders_per_month": 2.554,
+   "satisfaction": 0.6644,
+   "value_multiplier": 1.3281
+  },
+  "C00645": {
+   "churn_date": null,
+   "orders_per_month": 0.9617,
+   "satisfaction": 0.803,
+   "value_multiplier": 6.671
+  },
+  "C00646": {
+   "churn_date": null,
+   "orders_per_month": 0.7402,
+   "satisfaction": 0.3979,
+   "value_multiplier": 0.3863
+  },
+  "C00647": {
+   "churn_date": null,
+   "orders_per_month": 0.7589,
+   "satisfaction": 2.1166,
+   "value_multiplier": 1.2248
+  },
+  "C00648": {
+   "churn_date": null,
+   "orders_per_month": 1.8917,
+   "satisfaction": -0.1668,
+   "value_multiplier": 2.2049
+  },
+  "C00649": {
+   "churn_date": "2025-06-06",
+   "orders_per_month": 0.2329,
+   "satisfaction": -1.9429,
+   "value_multiplier": 0.3956
+  },
+  "C00650": {
+   "churn_date": null,
+   "orders_per_month": 0.4022,
+   "satisfaction": -0.2406,
+   "value_multiplier": 1.7879
+  },
+  "C00651": {
+   "churn_date": null,
+   "orders_per_month": 0.6314,
+   "satisfaction": -0.6128,
+   "value_multiplier": 0.5468
+  },
+  "C00652": {
+   "churn_date": "2025-07-09",
+   "orders_per_month": 1.0264,
+   "satisfaction": -0.909,
+   "value_multiplier": 5.4241
+  },
+  "C00653": {
+   "churn_date": null,
+   "orders_per_month": 0.7719,
+   "satisfaction": -0.4724,
+   "value_multiplier": 7.3597
+  },
+  "C00654": {
+   "churn_date": "2025-09-03",
+   "orders_per_month": 0.4602,
+   "satisfaction": -0.2453,
+   "value_multiplier": 13.6722
+  },
+  "C00655": {
+   "churn_date": null,
+   "orders_per_month": 0.6854,
+   "satisfaction": 0.0245,
+   "value_multiplier": 0.6423
+  },
+  "C00656": {
+   "churn_date": null,
+   "orders_per_month": 0.1892,
+   "satisfaction": 0.1528,
+   "value_multiplier": 0.9491
+  },
+  "C00657": {
+   "churn_date": "2025-12-05",
+   "orders_per_month": 0.7809,
+   "satisfaction": -0.2254,
+   "value_multiplier": 1.2432
+  },
+  "C00658": {
+   "churn_date": "2025-01-22",
+   "orders_per_month": 0.1308,
+   "satisfaction": -0.5931,
+   "value_multiplier": 0.7767
+  },
+  "C00659": {
+   "churn_date": null,
+   "orders_per_month": 0.3916,
+   "satisfaction": -0.8542,
+   "value_multiplier": 0.7583
+  },
+  "C00660": {
+   "churn_date": null,
+   "orders_per_month": 0.0553,
+   "satisfaction": 1.2594,
+   "value_multiplier": 1.315
+  },
+  "C00661": {
+   "churn_date": null,
+   "orders_per_month": 0.5482,
+   "satisfaction": 0.6716,
+   "value_multiplier": 0.6474
+  },
+  "C00662": {
+   "churn_date": "2025-10-21",
+   "orders_per_month": 0.4172,
+   "satisfaction": -0.7903,
+   "value_multiplier": 8.3462
+  },
+  "C00663": {
+   "churn_date": null,
+   "orders_per_month": 1.5035,
+   "satisfaction": -0.2851,
+   "value_multiplier": 3.8817
+  },
+  "C00664": {
+   "churn_date": "2026-04-03",
+   "orders_per_month": 0.5511,
+   "satisfaction": -0.3581,
+   "value_multiplier": 1.1585
+  },
+  "C00665": {
+   "churn_date": null,
+   "orders_per_month": 0.8133,
+   "satisfaction": 1.9418,
+   "value_multiplier": 1.1206
+  },
+  "C00666": {
+   "churn_date": "2026-10-20",
+   "orders_per_month": 1.0146,
+   "satisfaction": 0.675,
+   "value_multiplier": 6.8645
+  },
+  "C00667": {
+   "churn_date": null,
+   "orders_per_month": 0.481,
+   "satisfaction": 0.3137,
+   "value_multiplier": 3.9089
+  },
+  "C00668": {
+   "churn_date": null,
+   "orders_per_month": 0.5821,
+   "satisfaction": -0.6011,
+   "value_multiplier": 1.2464
+  },
+  "C00669": {
+   "churn_date": null,
+   "orders_per_month": 1.1665,
+   "satisfaction": 1.7046,
+   "value_multiplier": 4.3162
+  },
+  "C00670": {
+   "churn_date": null,
+   "orders_per_month": 0.5315,
+   "satisfaction": 0.2454,
+   "value_multiplier": 1.4639
+  },
+  "C00671": {
+   "churn_date": null,
+   "orders_per_month": 0.9233,
+   "satisfaction": 0.6847,
+   "value_multiplier": 0.5879
+  },
+  "C00672": {
+   "churn_date": null,
+   "orders_per_month": 0.0368,
+   "satisfaction": 1.8552,
+   "value_multiplier": 3.8588
+  },
+  "C00673": {
+   "churn_date": null,
+   "orders_per_month": 0.2512,
+   "satisfaction": 1.3848,
+   "value_multiplier": 0.6849
+  },
+  "C00674": {
+   "churn_date": null,
+   "orders_per_month": 1.0633,
+   "satisfaction": 0.8692,
+   "value_multiplier": 2.4613
+  },
+  "C00675": {
+   "churn_date": "2026-01-18",
+   "orders_per_month": 0.3991,
+   "satisfaction": -1.6019,
+   "value_multiplier": 2.7553
+  },
+  "C00676": {
+   "churn_date": null,
+   "orders_per_month": 0.292,
+   "satisfaction": -0.043,
+   "value_multiplier": 2.0809
+  },
+  "C00677": {
+   "churn_date": null,
+   "orders_per_month": 0.9703,
+   "satisfaction": 1.0675,
+   "value_multiplier": 5.7083
+  },
+  "C00678": {
+   "churn_date": "2025-09-17",
+   "orders_per_month": 0.287,
+   "satisfaction": -1.2451,
+   "value_multiplier": 1.2331
+  },
+  "C00679": {
+   "churn_date": null,
+   "orders_per_month": 1.3624,
+   "satisfaction": 1.4354,
+   "value_multiplier": 1.2615
+  },
+  "C00680": {
+   "churn_date": null,
+   "orders_per_month": 0.5441,
+   "satisfaction": -0.6071,
+   "value_multiplier": 0.8514
+  },
+  "C00681": {
+   "churn_date": null,
+   "orders_per_month": 0.2797,
+   "satisfaction": 0.6161,
+   "value_multiplier": 0.8522
+  },
+  "C00682": {
+   "churn_date": null,
+   "orders_per_month": 0.3254,
+   "satisfaction": -1.7485,
+   "value_multiplier": 1.1807
+  },
+  "C00683": {
+   "churn_date": null,
+   "orders_per_month": 0.6585,
+   "satisfaction": 0.536,
+   "value_multiplier": 0.7617
+  },
+  "C00684": {
+   "churn_date": null,
+   "orders_per_month": 0.4322,
+   "satisfaction": -0.1963,
+   "value_multiplier": 0.6557
+  },
+  "C00685": {
+   "churn_date": "2025-02-12",
+   "orders_per_month": 0.5312,
+   "satisfaction": -0.738,
+   "value_multiplier": 10.5621
+  },
+  "C00686": {
+   "churn_date": null,
+   "orders_per_month": 0.4177,
+   "satisfaction": -1.1565,
+   "value_multiplier": 1.8818
+  },
+  "C00687": {
+   "churn_date": null,
+   "orders_per_month": 0.9237,
+   "satisfaction": 1.0643,
+   "value_multiplier": 0.7159
+  },
+  "C00688": {
+   "churn_date": null,
+   "orders_per_month": 2.0622,
+   "satisfaction": -1.8847,
+   "value_multiplier": 1.1795
+  },
+  "C00689": {
+   "churn_date": null,
+   "orders_per_month": 0.1648,
+   "satisfaction": 0.3922,
+   "value_multiplier": 4.1861
+  },
+  "C00690": {
+   "churn_date": "2026-07-21",
+   "orders_per_month": 2.5761,
+   "satisfaction": -0.7772,
+   "value_multiplier": 2.0126
+  },
+  "C00691": {
+   "churn_date": null,
+   "orders_per_month": 1.77,
+   "satisfaction": -0.7411,
+   "value_multiplier": 1.6754
+  },
+  "C00692": {
+   "churn_date": "2026-01-22",
+   "orders_per_month": 0.0702,
+   "satisfaction": -0.8697,
+   "value_multiplier": 0.477
+  },
+  "C00693": {
+   "churn_date": "2026-05-29",
+   "orders_per_month": 0.4723,
+   "satisfaction": -0.0368,
+   "value_multiplier": 6.6905
+  },
+  "C00694": {
+   "churn_date": "2025-05-08",
+   "orders_per_month": 0.9998,
+   "satisfaction": -0.063,
+   "value_multiplier": 1.7105
+  },
+  "C00695": {
+   "churn_date": null,
+   "orders_per_month": 0.5081,
+   "satisfaction": 1.2546,
+   "value_multiplier": 0.8236
+  },
+  "C00696": {
+   "churn_date": null,
+   "orders_per_month": 2.0336,
+   "satisfaction": 0.293,
+   "value_multiplier": 0.3047
+  },
+  "C00697": {
+   "churn_date": null,
+   "orders_per_month": 1.1144,
+   "satisfaction": -0.078,
+   "value_multiplier": 0.9482
+  },
+  "C00698": {
+   "churn_date": null,
+   "orders_per_month": 0.0264,
+   "satisfaction": -0.5497,
+   "value_multiplier": 1.2311
+  },
+  "C00699": {
+   "churn_date": null,
+   "orders_per_month": 0.9044,
+   "satisfaction": -0.1283,
+   "value_multiplier": 0.6059
+  },
+  "C00700": {
+   "churn_date": "2025-09-07",
+   "orders_per_month": 0.3536,
+   "satisfaction": -0.6765,
+   "value_multiplier": 0.8874
+  },
+  "C00701": {
+   "churn_date": null,
+   "orders_per_month": 0.8847,
+   "satisfaction": 0.8989,
+   "value_multiplier": 0.7603
+  },
+  "C00702": {
+   "churn_date": null,
+   "orders_per_month": 0.6667,
+   "satisfaction": 0.4098,
+   "value_multiplier": 2.9777
+  },
+  "C00703": {
+   "churn_date": "2025-11-06",
+   "orders_per_month": 0.1868,
+   "satisfaction": -1.7533,
+   "value_multiplier": 1.0736
+  },
+  "C00704": {
+   "churn_date": null,
+   "orders_per_month": 0.5955,
+   "satisfaction": -1.1572,
+   "value_multiplier": 4.2236
+  },
+  "C00705": {
+   "churn_date": "2025-03-28",
+   "orders_per_month": 1.1425,
+   "satisfaction": 0.586,
+   "value_multiplier": 0.8214
+  },
+  "C00706": {
+   "churn_date": null,
+   "orders_per_month": 0.2462,
+   "satisfaction": 1.5134,
+   "value_multiplier": 0.5223
+  },
+  "C00707": {
+   "churn_date": null,
+   "orders_per_month": 0.5416,
+   "satisfaction": 0.159,
+   "value_multiplier": 2.6332
+  },
+  "C00708": {
+   "churn_date": "2026-05-15",
+   "orders_per_month": 0.4507,
+   "satisfaction": 0.985,
+   "value_multiplier": 9.0515
+  },
+  "C00709": {
+   "churn_date": null,
+   "orders_per_month": 1.0623,
+   "satisfaction": -0.4298,
+   "value_multiplier": 0.4074
+  },
+  "C00710": {
+   "churn_date": null,
+   "orders_per_month": 0.1599,
+   "satisfaction": -0.8838,
+   "value_multiplier": 3.1347
+  },
+  "C00711": {
+   "churn_date": null,
+   "orders_per_month": 1.7104,
+   "satisfaction": 1.5154,
+   "value_multiplier": 8.966
+  },
+  "C00712": {
+   "churn_date": null,
+   "orders_per_month": 0.5004,
+   "satisfaction": -0.056,
+   "value_multiplier": 0.9681
+  },
+  "C00713": {
+   "churn_date": "2026-04-25",
+   "orders_per_month": 0.1269,
+   "satisfaction": -0.597,
+   "value_multiplier": 0.5906
+  },
+  "C00714": {
+   "churn_date": "2026-08-12",
+   "orders_per_month": 1.4268,
+   "satisfaction": -1.7442,
+   "value_multiplier": 0.604
+  },
+  "C00715": {
+   "churn_date": null,
+   "orders_per_month": 0.8076,
+   "satisfaction": 2.2469,
+   "value_multiplier": 0.7931
+  },
+  "C00716": {
+   "churn_date": null,
+   "orders_per_month": 0.5561,
+   "satisfaction": 1.2116,
+   "value_multiplier": 3.8378
+  },
+  "C00717": {
+   "churn_date": null,
+   "orders_per_month": 0.6248,
+   "satisfaction": -0.9923,
+   "value_multiplier": 1.0201
+  },
+  "C00718": {
+   "churn_date": null,
+   "orders_per_month": 0.9616,
+   "satisfaction": 3.8075,
+   "value_multiplier": 2.2513
+  },
+  "C00719": {
+   "churn_date": null,
+   "orders_per_month": 0.3487,
+   "satisfaction": 0.3818,
+   "value_multiplier": 1.3298
+  },
+  "C00720": {
+   "churn_date": null,
+   "orders_per_month": 0.4847,
+   "satisfaction": -0.9911,
+   "value_multiplier": 3.5534
+  },
+  "C00721": {
+   "churn_date": null,
+   "orders_per_month": 0.1096,
+   "satisfaction": -1.0849,
+   "value_multiplier": 0.4528
+  },
+  "C00722": {
+   "churn_date": null,
+   "orders_per_month": 0.5132,
+   "satisfaction": 0.2428,
+   "value_multiplier": 0.8657
+  },
+  "C00723": {
+   "churn_date": null,
+   "orders_per_month": 1.0212,
+   "satisfaction": -0.478,
+   "value_multiplier": 1.0478
+  },
+  "C00724": {
+   "churn_date": null,
+   "orders_per_month": 0.3495,
+   "satisfaction": 0.6197,
+   "value_multiplier": 3.707
+  },
+  "C00725": {
+   "churn_date": null,
+   "orders_per_month": 0.2848,
+   "satisfaction": 0.3354,
+   "value_multiplier": 0.7649
+  },
+  "C00726": {
+   "churn_date": null,
+   "orders_per_month": 0.5276,
+   "satisfaction": 0.6935,
+   "value_multiplier": 1.1254
+  },
+  "C00727": {
+   "churn_date": null,
+   "orders_per_month": 0.6056,
+   "satisfaction": 1.448,
+   "value_multiplier": 2.5239
+  },
+  "C00728": {
+   "churn_date": null,
+   "orders_per_month": 0.8971,
+   "satisfaction": -0.1787,
+   "value_multiplier": 0.6321
+  },
+  "C00729": {
+   "churn_date": null,
+   "orders_per_month": 0.2226,
+   "satisfaction": 0.0723,
+   "value_multiplier": 0.6559
+  },
+  "C00730": {
+   "churn_date": null,
+   "orders_per_month": 0.9475,
+   "satisfaction": -0.5796,
+   "value_multiplier": 0.3251
+  },
+  "C00731": {
+   "churn_date": "2026-09-05",
+   "orders_per_month": 0.6434,
+   "satisfaction": -0.8435,
+   "value_multiplier": 4.5696
+  },
+  "C00732": {
+   "churn_date": null,
+   "orders_per_month": 1.3481,
+   "satisfaction": -0.2496,
+   "value_multiplier": 1.4388
+  },
+  "C00733": {
+   "churn_date": null,
+   "orders_per_month": 0.7912,
+   "satisfaction": 1.3833,
+   "value_multiplier": 0.5227
+  },
+  "C00734": {
+   "churn_date": null,
+   "orders_per_month": 0.6389,
+   "satisfaction": 0.032,
+   "value_multiplier": 7.3194
+  },
+  "C00735": {
+   "churn_date": null,
+   "orders_per_month": 0.9915,
+   "satisfaction": 0.6036,
+   "value_multiplier": 1.5638
+  },
+  "C00736": {
+   "churn_date": "2026-03-11",
+   "orders_per_month": 0.4354,
+   "satisfaction": -1.6547,
+   "value_multiplier": 7.3005
+  },
+  "C00737": {
+   "churn_date": null,
+   "orders_per_month": 0.8195,
+   "satisfaction": 0.6182,
+   "value_multiplier": 1.6973
+  },
+  "C00738": {
+   "churn_date": null,
+   "orders_per_month": 0.9363,
+   "satisfaction": 2.519,
+   "value_multiplier": 1.7518
+  },
+  "C00739": {
+   "churn_date": "2025-08-25",
+   "orders_per_month": 0.6094,
+   "satisfaction": 0.0806,
+   "value_multiplier": 4.2629
+  },
+  "C00740": {
+   "churn_date": null,
+   "orders_per_month": 0.385,
+   "satisfaction": 0.7393,
+   "value_multiplier": 0.3076
+  },
+  "C00741": {
+   "churn_date": null,
+   "orders_per_month": 0.4933,
+   "satisfaction": -0.3192,
+   "value_multiplier": 3.7276
+  },
+  "C00742": {
+   "churn_date": null,
+   "orders_per_month": 0.6699,
+   "satisfaction": 0.1478,
+   "value_multiplier": 3.9017
+  },
+  "C00743": {
+   "churn_date": null,
+   "orders_per_month": 0.823,
+   "satisfaction": -0.5328,
+   "value_multiplier": 0.7408
+  },
+  "C00744": {
+   "churn_date": null,
+   "orders_per_month": 0.7728,
+   "satisfaction": 0.3752,
+   "value_multiplier": 1.4289
+  },
+  "C00745": {
+   "churn_date": null,
+   "orders_per_month": 0.124,
+   "satisfaction": 0.1962,
+   "value_multiplier": 3.0558
+  },
+  "C00746": {
+   "churn_date": "2026-02-13",
+   "orders_per_month": 0.7802,
+   "satisfaction": -0.0135,
+   "value_multiplier": 1.8837
+  },
+  "C00747": {
+   "churn_date": null,
+   "orders_per_month": 1.5331,
+   "satisfaction": 0.9839,
+   "value_multiplier": 0.8297
+  },
+  "C00748": {
+   "churn_date": null,
+   "orders_per_month": 0.6495,
+   "satisfaction": -0.1604,
+   "value_multiplier": 2.1833
+  },
+  "C00749": {
+   "churn_date": null,
+   "orders_per_month": 0.5763,
+   "satisfaction": 1.402,
+   "value_multiplier": 2.186
+  },
+  "C00750": {
+   "churn_date": null,
+   "orders_per_month": 0.5533,
+   "satisfaction": 0.5896,
+   "value_multiplier": 0.9081
+  },
+  "C00751": {
+   "churn_date": null,
+   "orders_per_month": 0.3458,
+   "satisfaction": -0.3036,
+   "value_multiplier": 0.3652
+  },
+  "C00752": {
+   "churn_date": null,
+   "orders_per_month": 0.4095,
+   "satisfaction": 0.6778,
+   "value_multiplier": 2.1777
+  },
+  "C00753": {
+   "churn_date": null,
+   "orders_per_month": 0.1868,
+   "satisfaction": 0.8473,
+   "value_multiplier": 0.8964
+  },
+  "C00754": {
+   "churn_date": null,
+   "orders_per_month": 0.3762,
+   "satisfaction": 0.2111,
+   "value_multiplier": 3.6635
+  },
+  "C00755": {
+   "churn_date": null,
+   "orders_per_month": 0.4397,
+   "satisfaction": -1.6472,
+   "value_multiplier": 1.8865
+  },
+  "C00756": {
+   "churn_date": null,
+   "orders_per_month": 0.2937,
+   "satisfaction": 1.0653,
+   "value_multiplier": 4.8018
+  },
+  "C00757": {
+   "churn_date": "2025-06-27",
+   "orders_per_month": 0.842,
+   "satisfaction": -0.9049,
+   "value_multiplier": 0.2975
+  },
+  "C00758": {
+   "churn_date": null,
+   "orders_per_month": 0.0786,
+   "satisfaction": 0.2624,
+   "value_multiplier": 0.6276
+  },
+  "C00759": {
+   "churn_date": null,
+   "orders_per_month": 0.3338,
+   "satisfaction": 0.6706,
+   "value_multiplier": 0.3425
+  },
+  "C00760": {
+   "churn_date": null,
+   "orders_per_month": 1.036,
+   "satisfaction": -1.0093,
+   "value_multiplier": 0.6067
+  },
+  "C00761": {
+   "churn_date": null,
+   "orders_per_month": 0.7992,
+   "satisfaction": 0.3233,
+   "value_multiplier": 0.8785
+  },
+  "C00762": {
+   "churn_date": null,
+   "orders_per_month": 0.998,
+   "satisfaction": 0.2223,
+   "value_multiplier": 0.6182
+  },
+  "C00763": {
+   "churn_date": "2026-02-17",
+   "orders_per_month": 0.8228,
+   "satisfaction": -0.0957,
+   "value_multiplier": 2.9151
+  },
+  "C00764": {
+   "churn_date": null,
+   "orders_per_month": 0.8461,
+   "satisfaction": 0.3772,
+   "value_multiplier": 0.9698
+  },
+  "C00765": {
+   "churn_date": null,
+   "orders_per_month": 1.0954,
+   "satisfaction": 0.7193,
+   "value_multiplier": 0.6335
+  },
+  "C00766": {
+   "churn_date": "2025-04-07",
+   "orders_per_month": 0.2935,
+   "satisfaction": -1.4398,
+   "value_multiplier": 1.1606
+  },
+  "C00767": {
+   "churn_date": null,
+   "orders_per_month": 0.4975,
+   "satisfaction": 0.5011,
+   "value_multiplier": 1.8414
+  },
+  "C00768": {
+   "churn_date": null,
+   "orders_per_month": 0.9895,
+   "satisfaction": 0.9477,
+   "value_multiplier": 0.8291
+  },
+  "C00769": {
+   "churn_date": null,
+   "orders_per_month": 0.3982,
+   "satisfaction": 0.1069,
+   "value_multiplier": 1.8894
+  },
+  "C00770": {
+   "churn_date": null,
+   "orders_per_month": 0.9813,
+   "satisfaction": 1.1133,
+   "value_multiplier": 1.1739
+  },
+  "C00771": {
+   "churn_date": null,
+   "orders_per_month": 0.4043,
+   "satisfaction": 0.3843,
+   "value_multiplier": 3.1536
+  },
+  "C00772": {
+   "churn_date": null,
+   "orders_per_month": 0.588,
+   "satisfaction": -0.7756,
+   "value_multiplier": 0.5185
+  },
+  "C00773": {
+   "churn_date": null,
+   "orders_per_month": 0.8031,
+   "satisfaction": -0.1159,
+   "value_multiplier": 0.5885
+  },
+  "C00774": {
+   "churn_date": null,
+   "orders_per_month": 0.092,
+   "satisfaction": 1.4833,
+   "value_multiplier": 0.7791
+  },
+  "C00775": {
+   "churn_date": null,
+   "orders_per_month": 0.5876,
+   "satisfaction": 0.7716,
+   "value_multiplier": 1.0191
+  },
+  "C00776": {
+   "churn_date": null,
+   "orders_per_month": 1.2388,
+   "satisfaction": 0.0442,
+   "value_multiplier": 3.3897
+  },
+  "C00777": {
+   "churn_date": null,
+   "orders_per_month": 1.272,
+   "satisfaction": 0.4712,
+   "value_multiplier": 0.7958
+  },
+  "C00778": {
+   "churn_date": null,
+   "orders_per_month": 0.716,
+   "satisfaction": 0.1207,
+   "value_multiplier": 1.2248
+  },
+  "C00779": {
+   "churn_date": null,
+   "orders_per_month": 0.754,
+   "satisfaction": 0.8859,
+   "value_multiplier": 1.8386
+  },
+  "C00780": {
+   "churn_date": null,
+   "orders_per_month": 0.4475,
+   "satisfaction": 0.396,
+   "value_multiplier": 0.569
+  },
+  "C00781": {
+   "churn_date": null,
+   "orders_per_month": 1.5173,
+   "satisfaction": 0.2723,
+   "value_multiplier": 2.5856
+  },
+  "C00782": {
+   "churn_date": null,
+   "orders_per_month": 1.8327,
+   "satisfaction": -1.2842,
+   "value_multiplier": 5.9112
+  },
+  "C00783": {
+   "churn_date": null,
+   "orders_per_month": 0.2348,
+   "satisfaction": -0.6752,
+   "value_multiplier": 0.6786
+  },
+  "C00784": {
+   "churn_date": null,
+   "orders_per_month": 0.9353,
+   "satisfaction": -0.9333,
+   "value_multiplier": 0.4545
+  },
+  "C00785": {
+   "churn_date": "2025-05-30",
+   "orders_per_month": 0.6523,
+   "satisfaction": -0.289,
+   "value_multiplier": 7.1789
+  },
+  "C00786": {
+   "churn_date": null,
+   "orders_per_month": 0.3591,
+   "satisfaction": 0.3866,
+   "value_multiplier": 3.2094
+  },
+  "C00787": {
+   "churn_date": null,
+   "orders_per_month": 1.1924,
+   "satisfaction": 2.7659,
+   "value_multiplier": 1.6433
+  },
+  "C00788": {
+   "churn_date": null,
+   "orders_per_month": 0.4301,
+   "satisfaction": -0.7389,
+   "value_multiplier": 2.5787
+  },
+  "C00789": {
+   "churn_date": null,
+   "orders_per_month": 0.0857,
+   "satisfaction": 1.3181,
+   "value_multiplier": 1.5837
+  },
+  "C00790": {
+   "churn_date": null,
+   "orders_per_month": 0.9502,
+   "satisfaction": 0.5393,
+   "value_multiplier": 0.7972
+  },
+  "C00791": {
+   "churn_date": null,
+   "orders_per_month": 0.4356,
+   "satisfaction": 1.3629,
+   "value_multiplier": 5.1939
+  },
+  "C00792": {
+   "churn_date": null,
+   "orders_per_month": 0.1575,
+   "satisfaction": -0.9623,
+   "value_multiplier": 0.902
+  },
+  "C00793": {
+   "churn_date": null,
+   "orders_per_month": 0.694,
+   "satisfaction": -0.7651,
+   "value_multiplier": 2.8214
+  },
+  "C00794": {
+   "churn_date": null,
+   "orders_per_month": 1.0175,
+   "satisfaction": 0.271,
+   "value_multiplier": 2.0222
+  },
+  "C00795": {
+   "churn_date": null,
+   "orders_per_month": 0.7023,
+   "satisfaction": 0.6948,
+   "value_multiplier": 4.6268
+  },
+  "C00796": {
+   "churn_date": "2026-06-10",
+   "orders_per_month": 0.4838,
+   "satisfaction": -0.758,
+   "value_multiplier": 0.3756
+  },
+  "C00797": {
+   "churn_date": null,
+   "orders_per_month": 0.5092,
+   "satisfaction": 0.6244,
+   "value_multiplier": 2.22
+  },
+  "C00798": {
+   "churn_date": null,
+   "orders_per_month": 0.1704,
+   "satisfaction": -0.6021,
+   "value_multiplier": 2.039
+  },
+  "C00799": {
+   "churn_date": "2026-03-05",
+   "orders_per_month": 0.3619,
+   "satisfaction": -0.5733,
+   "value_multiplier": 1.0775
+  },
+  "C00800": {
+   "churn_date": null,
+   "orders_per_month": 0.5691,
+   "satisfaction": 0.3791,
+   "value_multiplier": 0.522
+  }
+ },
+ "duplicate_pairs": [
+  [
+   "PRD-0035",
+   "PRD-0059",
+   "compact"
+  ],
+  [
+   "PRD-0021",
+   "PRD-0060",
+   "compact"
+  ],
+  [
+   "PRD-0007",
+   "PRD-0061",
+   "unit"
+  ],
+  [
+   "PRD-0015",
+   "PRD-0062",
+   "legacy"
+  ],
+  [
+   "PRD-0020",
+   "PRD-0063",
+   "legacy"
+  ],
+  [
+   "PRD-0047",
+   "PRD-0064",
+   "legacy"
+  ],
+  [
+   "PRD-0058",
+   "PRD-0065",
+   "spaced"
+  ],
+  [
+   "PRD-0041",
+   "PRD-0066",
+   "compact"
+  ],
+  [
+   "PRD-0017",
+   "PRD-0067",
+   "spaced"
+  ],
+  [
+   "PRD-0039",
+   "PRD-0068",
+   "spaced"
+  ],
+  [
+   "PRD-0029",
+   "PRD-0069",
+   "compact"
+  ],
+  [
+   "PRD-0014",
+   "PRD-0070",
+   "spaced"
+  ],
+  [
+   "PRD-0001",
+   "PRD-0071",
+   "unit"
+  ],
+  [
+   "PRD-0016",
+   "PRD-0072",
+   "spaced"
+  ],
+  [
+   "PRD-0025",
+   "PRD-0073",
+   "compact"
+  ],
+  [
+   "PRD-0013",
+   "PRD-0074",
+   "legacy"
+  ],
+  [
+   "PRD-0050",
+   "PRD-0075",
+   "unit"
+  ],
+  [
+   "PRD-0024",
+   "PRD-0076",
+   "compact"
+  ],
+  [
+   "PRD-0049",
+   "PRD-0077",
+   "spaced"
+  ],
+  [
+   "PRD-0011",
+   "PRD-0078",
+   "compact"
+  ]
+ ],
+ "note": "Hidden truth for evaluation only (never a model input): churn_date, latent satisfaction, order rate and value multiplier per customer. duplicate_pairs [canonical, duplicate, sku_style] are the SAME product listed twice; variant_families are DIFFERENT products (pack sizes) of one brand and name.",
+ "variant_families": [
+  [
+   "PRD-0001",
+   "PRD-0002"
+  ],
+  [
+   "PRD-0004",
+   "PRD-0005"
+  ],
+  [
+   "PRD-0008",
+   "PRD-0009"
+  ],
+  [
+   "PRD-0010",
+   "PRD-0011"
+  ],
+  [
+   "PRD-0013",
+   "PRD-0014"
+  ],
+  [
+   "PRD-0016",
+   "PRD-0017"
+  ],
+  [
+   "PRD-0018",
+   "PRD-0019"
+  ],
+  [
+   "PRD-0048",
+   "PRD-0049"
+  ],
+  [
+   "PRD-0051",
+   "PRD-0052"
+  ],
+  [
+   "PRD-0053",
+   "PRD-0054"
+  ]
+ ]
+}

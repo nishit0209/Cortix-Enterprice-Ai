@@ -150,3 +150,131 @@ def test_adversarial_files():
     finally:
         csv.field_size_limit(old_limit)
     assert big > 1024 * 1024
+
+
+# ------------------------------------------------------------------------------------------- W3 commerce world
+SEED_DEMO_FILES = ("sales.csv", "customers.csv", "products.csv", "orders.csv", "support_tickets.csv")
+
+
+def _meta() -> dict:
+    return json.loads((GEN_DIR / "commerce_meta.json").read_text(encoding="utf-8"))
+
+
+def test_seed_demo_csvs_exist_and_are_in_the_manifest():
+    for name in SEED_DEMO_FILES:
+        assert name in MANIFEST["files"], name
+        assert (GEN_DIR / name).stat().st_size > 1000, name
+    stats = MANIFEST["stats"]["commerce"]
+    assert stats["customers"] == 800
+    assert stats["orders"] == len(_rows("orders.csv"))
+    assert stats["tickets"] == len(_rows("support_tickets.csv"))
+
+
+def test_commerce_referential_integrity():
+    customers = {r["customer_id"]: r for r in _rows("customers.csv")}
+    products = {r["product_id"]: r for r in _rows("products.csv")}
+    assert len(customers) == 800 and set(customers) == {f"C{i:05d}" for i in range(1, 801)}
+    assert len({r["sku"] for r in products.values()}) == len(products), "SKUs are unique per listing"
+    orders = _rows("orders.csv")
+    assert len({o["order_id"] for o in orders}) == len(orders)
+    anchor = MANIFEST["anchor"]
+    for o in orders:
+        assert o["customer_id"] in customers, o["order_id"]
+        assert products[o["product_id"]]["sku"] == o["sku"], o["order_id"]
+        assert customers[o["customer_id"]]["signup_date"] <= o["order_date"] <= anchor, o["order_id"]
+        expected = round(int(o["quantity"]) * float(o["unit_price"]) * (1 - float(o["discount"])), 2)
+        assert abs(expected - float(o["amount"])) < 0.011, o["order_id"]
+    for t in _rows("support_tickets.csv"):
+        assert t["customer_id"] in customers, t["ticket_id"]
+        assert t["opened_on"] <= anchor
+        if t["status"] == "open":
+            assert t["closed_on"] == "" and t["csat"] == ""
+        else:
+            assert t["opened_on"] <= t["closed_on"] <= anchor, t["ticket_id"]
+        assert t["csat"] in ("", "1", "2", "3", "4", "5")
+
+
+def test_customers_are_the_sales_customers():
+    """customers.csv extends sales.csv: the same ids carry the same names (C360 joins both)."""
+    names = {r["customer_id"]: r["customer_name"] for r in _rows("customers.csv")}
+    seen = 0
+    for r in _rows("sales.csv"):
+        if r["customer_name"]:
+            assert names[r["customer_id"]] == r["customer_name"], r["order_id"]
+            seen += 1
+    assert seen > 4900
+
+
+def test_churn_signal_is_learnable_from_behaviour():
+    """Churned customers (label in customers.csv) have more tickets, lower CSAT and older last orders."""
+    customers = _rows("customers.csv")
+    churned = {c["customer_id"] for c in customers if c["churned"] == "1"}
+    assert 0.15 < len(churned) / len(customers) < 0.40
+    tickets = Counter(t["customer_id"] for t in _rows("support_tickets.csv"))
+    csat: dict[str, list[int]] = {}
+    for t in _rows("support_tickets.csv"):
+        if t["csat"]:
+            csat.setdefault(t["customer_id"], []).append(int(t["csat"]))
+    last: dict[str, str] = {}
+    for o in _rows("orders.csv"):
+        last[o["customer_id"]] = max(last.get(o["customer_id"], ""), o["order_date"])
+
+    def mean(xs):
+        xs = list(xs)
+        return sum(xs) / len(xs)
+
+    ids = [c["customer_id"] for c in customers]
+    active = [i for i in ids if i not in churned]
+    assert mean(tickets[i] for i in churned) > 1.4 * mean(tickets[i] for i in active)
+    assert mean(x for i in churned for x in csat.get(i, [])) < mean(x for i in active for x in csat.get(i, [])) - 0.3
+    recent = (dt.date.fromisoformat(MANIFEST["anchor"]) - dt.timedelta(days=90)).isoformat()
+    churned_recent = mean(1 if last.get(i, "") >= recent else 0 for i in churned)
+    active_recent = mean(1 if last.get(i, "") >= recent else 0 for i in active)
+    assert active_recent > churned_recent + 0.4
+    truth = _meta()["customers"]
+    assert {i for i, t in truth.items() if t["churn_date"]} == churned, "label == hidden churn truth"
+
+
+def test_clv_signal_is_heterogeneous_and_segment_driven():
+    customers = {c["customer_id"]: c for c in _rows("customers.csv")}
+    spend: Counter = Counter()
+    for o in _rows("orders.csv"):
+        if o["status"] == "completed":
+            spend[o["customer_id"]] += float(o["amount"])
+    values = sorted(spend.values(), reverse=True)
+    assert sum(values[: len(customers) // 5]) / sum(values) > 0.45, "top 20% of customers drive most revenue"
+    by_segment: dict[str, list[float]] = {}
+    for cid, c in customers.items():
+        by_segment.setdefault(c["segment"], []).append(spend.get(cid, 0.0))
+    avg = {k: sum(v) / len(v) for k, v in by_segment.items()}
+    assert set(avg) == {"Consumer", "SMB", "Enterprise"}
+    assert avg["Enterprise"] > avg["Consumer"] and avg["SMB"] > avg["Consumer"]
+    tiers = Counter(c["loyalty_tier"] for c in customers.values())
+    assert set(tiers) == {"Bronze", "Silver", "Gold", "Platinum"}
+
+
+def test_products_have_duplicate_and_variant_listings_for_entity_resolution():
+    products = {p["product_id"]: p for p in _rows("products.csv")}
+    meta = _meta()
+    pairs = meta["duplicate_pairs"]
+    assert len(pairs) >= 15
+    assert {style for _a, _b, style in pairs} >= {"spaced", "compact", "legacy"}
+    base = {"kg": ("g", 1000), "l": ("ml", 1000), "g": ("g", 1), "ml": ("ml", 1)}
+    for a, b, _style in pairs:
+        pa, pb = products[a], products[b]
+        assert pa["sku"] != pb["sku"] and pa["brand"] == pb["brand"] and pa["category"] == pb["category"]
+        if pa["unit"] in base:  # same physical quantity, possibly written in another unit
+            ua, fa = base[pa["unit"]]
+            ub, fb = base[pb["unit"]]
+            assert ua == ub and abs(float(pa["pack_size"]) * fa - float(pb["pack_size"]) * fb) < 1e-6
+        else:
+            assert (pa["unit"], pa["pack_size"]) == (pb["unit"], pb["pack_size"])
+        assert abs(float(pa["list_price_inr"]) - float(pb["list_price_inr"])) <= 0.05 * float(pa["list_price_inr"])
+    families = meta["variant_families"]
+    assert len(families) >= 5
+    for ids in families:  # variants: same brand/category, DIFFERENT pack size => distinct products
+        packs = {(products[i]["unit"], products[i]["pack_size"]) for i in ids}
+        assert len(packs) == len(ids) and len({products[i]["brand"] for i in ids}) == 1
+    dup_ids = {b for _a, b, _s in pairs}
+    sold = {o["product_id"] for o in _rows("orders.csv")}
+    assert sold & dup_ids, "duplicate listings are sold too (so ER changes product KPIs)"
