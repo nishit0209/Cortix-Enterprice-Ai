@@ -38,6 +38,7 @@ test.describe("accessibility: authenticated pages", () => {
       ["overview", `/o/${slug}/dashboard`],
       ["datasets", `/o/${slug}/data/datasets`],
       ["ask", `/o/${slug}/ask`],
+      ["dashboards", `/o/${slug}/dashboards`],
       ["ai-policy", `/o/${slug}/settings/ai-policy`],
       ["settings", `/o/${slug}/settings`],
     ] as const) {

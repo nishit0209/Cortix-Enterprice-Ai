@@ -1,4 +1,4 @@
-import { apiSignup, expect, makeUser, SALES_CSV, test, uiSignup } from "./fixtures";
+import { apiSignup, askIsPlanned, askQuestion, expect, expectSqlAndRegions, makeUser, SALES_CSV, test, uiSignup } from "./fixtures";
 
 /**
  * Primary smoke flow (TESTING_STRATEGY §6, flows 1-2), aligned with the merged frontend (frontend/src on main):
@@ -8,7 +8,6 @@ import { apiSignup, expect, makeUser, SALES_CSV, test, uiSignup } from "./fixtur
  *   -> sidebar "Ask AI" -> ask "total revenue by region" (or record that the module is still a Planned placeholder).
  * Selectors are accessible roles/labels (plus the Dropzone's documented data-testid for the hidden file input).
  */
-const REGIONS = ["North", "South", "East", "West", "Central"];
 
 test.describe("P2/P3 smoke: signup -> dashboard -> upload -> dataset -> Ask AI", () => {
   test("a new user can create a workspace, load a CSV dataset and reach Ask AI", async ({ page, user }) => {
@@ -65,23 +64,19 @@ test.describe("P2/P3 smoke: signup -> dashboard -> upload -> dataset -> Ask AI",
     await nav.getByRole("link", { name: "Ask AI" }).click();
     await expect(page).toHaveURL(new RegExp(`/o/${slug}/ask$`));
     await expect(page.getByRole("heading", { level: 1, name: "Ask AI" })).toBeVisible();
-    if (await page.getByText("Ask AI is on the roadmap").isVisible()) {
-      // The merged frontend still renders the honest PlannedModule placeholder (nav status "planned", Wave 3).
-      // Nothing is simulated there, so there is no question box to drive yet: record it instead of faking a pass.
+    if (await askIsPlanned(page)) {
+      // An honest PlannedModule placeholder: nothing is simulated there, so there is no composer to drive yet.
+      // Record it instead of faking a pass.
       test.info().annotations.push({
         type: "not-exercised",
-        description: "Ask AI question step: /o/<slug>/ask is still the Planned placeholder in frontend/src on main",
+        description: "Ask AI question step: /o/<slug>/ask is still the Planned placeholder",
       });
       return;
     }
-    const box = page.getByRole("textbox", { name: /ask|question|message/i }).first();
-    await box.fill("total revenue by region");
-    await box.press("Enter");
-    // Deterministic builder path: the answer shows its SQL and the 5 regions of sales.csv.
-    await expect(page.getByText(/\bselect\b/i).first()).toBeVisible({ timeout: 90_000 });
-    for (const region of REGIONS) {
-      await expect(page.getByText(region, { exact: true }).first()).toBeVisible();
-    }
+    // The composer is the labelled textarea (aria-label "Ask a question"); Enter submits.
+    await askQuestion(page, "total revenue by region");
+    // Deterministic builder path: the answer shows its SQL and a result table with the 5 regions of sales.csv.
+    await expectSqlAndRegions(page);
   });
 
   test("another org's workspace is 'not found' in the UI, 404 for non-members and 401 anonymously", async ({

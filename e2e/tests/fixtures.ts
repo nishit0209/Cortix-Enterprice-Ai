@@ -70,3 +70,92 @@ export const test = base.extend<{ user: TestUser; stackUp: void }>({
 });
 
 export { expect };
+
+/** The csrftoken cookie of a request context (page.request shares the page's cookies). */
+export async function csrfToken(request: APIRequestContext): Promise<string> {
+  let token = (await request.storageState()).cookies.find((c) => c.name === "csrftoken")?.value ?? "";
+  if (!token) {
+    await request.get("/api/v1/auth/csrf");
+    token = (await request.storageState()).cookies.find((c) => c.name === "csrftoken")?.value ?? "";
+  }
+  return token;
+}
+
+/** List payload of a JSON response: the `items` envelope or a bare array. */
+export function itemsOf<T = Record<string, unknown>>(body: unknown): T[] {
+  if (Array.isArray(body)) return body as T[];
+  const env = body as { items?: T[] } | null;
+  return env?.items ?? [];
+}
+
+/**
+ * Upload a synthetic CSV and ingest it through the PUBLIC API (POST /uploads multipart, POST /datasets with
+ * classification "synthetic" + attestation), then wait until the dataset is ready. Returns the dataset id.
+ */
+export async function apiIngestCsv(
+  request: APIRequestContext,
+  slug: string,
+  file: string,
+  name: string,
+  timeoutMs = 180_000,
+): Promise<string> {
+  const base = `/api/v1/orgs/${slug}`;
+  const headers = { "X-CSRFToken": await csrfToken(request) };
+  const fs = await import("node:fs");
+  const up = await request.post(`${base}/uploads`, {
+    headers,
+    multipart: { file: { name: path.basename(file), mimeType: "text/csv", buffer: fs.readFileSync(file) } },
+  });
+  expect(up.status(), await up.text()).toBe(201);
+  const created = await request.post(`${base}/datasets`, {
+    headers,
+    data: { name, upload_id: (await up.json()).id, classification: "synthetic", attest: true },
+  });
+  expect(created.status(), await created.text()).toBe(202);
+  const datasetId = (await created.json()).dataset.id as string;
+  await expect
+    .poll(async () => (await (await request.get(`${base}/datasets/${datasetId}`)).json()).status, {
+      timeout: timeoutMs,
+      intervals: [1_000, 2_000, 5_000],
+    })
+    .toBe("ready");
+  return datasetId;
+}
+
+/** Unread notification count from the API (`GET /notifications?unread=1`); null when the route is absent. */
+export async function apiUnreadCount(request: APIRequestContext, slug: string): Promise<number | null> {
+  const res = await request.get(`/api/v1/orgs/${slug}/notifications?unread=1`);
+  if (res.status() === 404) return null;
+  expect(res.status(), await res.text()).toBe(200);
+  const body = await res.json();
+  if (typeof body?.unread_count === "number") return body.unread_count as number;
+  return itemsOf(body).length;
+}
+
+export const REGIONS = ["North", "South", "East", "West", "Central"];
+
+/**
+ * Ask AI through the labelled composer (frontend W3: `<textarea aria-label="Ask a question">`), submitting with
+ * Enter like a user. The composer is located by its accessible name, never by CSS.
+ */
+export async function askQuestion(page: Page, question: string): Promise<void> {
+  const box = page.getByRole("textbox", { name: "Ask a question", exact: true });
+  await expect(box).toBeVisible({ timeout: 30_000 });
+  await box.fill(question);
+  await box.press("Enter");
+}
+
+/** The answer renders its SQL and a result containing the 5 sales regions (deterministic builder path). */
+export async function expectSqlAndRegions(page: Page): Promise<void> {
+  await expect(page.getByText(/\bselect\b[\s\S]*\bfrom\b/i).first()).toBeVisible({ timeout: 90_000 });
+  const table = page.getByRole("table").last();
+  await expect(table).toBeVisible({ timeout: 30_000 });
+  for (const region of REGIONS) {
+    await expect(table.getByRole("cell", { name: region, exact: true }).first()).toBeVisible();
+  }
+}
+
+/** True when /o/<slug>/ask still renders the honest Planned placeholder (nothing to drive yet). */
+export async function askIsPlanned(page: Page): Promise<boolean> {
+  return page.getByText("Ask AI is on the roadmap").isVisible();
+}
