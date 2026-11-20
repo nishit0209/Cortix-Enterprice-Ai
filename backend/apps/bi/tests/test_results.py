@@ -157,3 +157,23 @@ def test_xlsx_export_has_no_formulas():
     assert values[1][1] == -12.5 and values[2][1] == 3
     assert values[1][2].date() == date(2026, 1, 5)
     assert math.isclose(values[4][1], 1.5)
+
+
+@pytest.mark.parametrize("chart", [
+    {"type": ["bar"]}, {"type": {"bar": 1}}, {"type": None}, {"type": 3}, {"type": "radar"}, {}, ["bar"], "bar",
+])
+def test_clean_chart_rejects_bad_types_with_a_validation_error(chart):
+    from rest_framework.exceptions import ValidationError
+
+    from apps.bi.dashboards import clean_chart
+
+    with pytest.raises(ValidationError):  # never a TypeError (unhashable list/dict) -> HTTP 500
+        clean_chart(chart)
+
+
+def test_clean_chart_normalises_a_valid_chart():
+    from apps.bi.dashboards import clean_chart
+
+    assert clean_chart(None) is None
+    assert clean_chart({"type": "bar", "x": "region", "y": "revenue"}) == {
+        "type": "bar", "x": "region", "y": ["revenue"], "series": None}

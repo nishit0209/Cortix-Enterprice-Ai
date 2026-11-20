@@ -323,12 +323,12 @@ def query_response(outcome: ExecOutcome, *, question: str = "", chart_hint=None)
 
 
 def run_query(*, org_id: UUID, user_id: UUID, api_key_id: UUID | None, dataset_id: UUID, sql: str,
-              purpose: str = "manual", question: str = "", chart_hint=None) -> dict:
-    """Manual (or saved) SQL through the same guard + execute + audit path as chat (source `manual`).
-    Raises QueryRejected (audited) on a rejection/failure. Inside the request's tenant context."""
+              purpose: str = "manual", question: str = "", chart_hint=None, source: str = "manual") -> dict:
+    """Manual / saved / dashboard SQL through the same guard + execute + audit path as chat (`source` manual or
+    dashboard). Raises QueryRejected (audited) on a rejection/failure. Inside the request's tenant context."""
     scope = resolve_dataset(user_id, dataset_id, privilege="query")
     info = AuditInfo(org_id=org_id, user_id=user_id, api_key_id=api_key_id, dataset_id=scope.dataset_id,
-                     dataset_name=scope.semantics.dataset_name, purpose=purpose, question=question, source="manual")
+                     dataset_name=scope.semantics.dataset_name, purpose=purpose, question=question, source=source)
     outcome = run_guarded(sql, scope, info)
     if not outcome.ok:
         raise QueryRejected(outcome.code, outcome.message or None, status=outcome.status,
@@ -369,6 +369,30 @@ class Turn:
     @property
     def actor(self) -> tuple[str, UUID | None]:
         return ("api_key", self.api_key_id) if self.api_key_id else ("user", self.user_id)
+
+
+def create_conversation(*, user_id: UUID, dataset_id: UUID, title: str = "", request=None) -> Conversation:
+    """A new conversation about a dataset the user can query (404 otherwise). Inside a tenant context."""
+    semantics = ensure_dataset_visible(user_id, dataset_id, privilege="query")
+    conv = Conversation.objects.create(user_id=user_id, dataset_id=dataset_id, title=(title or "")[:200] or DEFAULT_TITLE)
+    core_audit.record("bi.conversation.create", target=conv, request=request,
+                      metadata={"dataset_id": str(dataset_id), "dataset_name": semantics.dataset_name})
+    return conv
+
+
+def get_conversation(user_id: UUID, conversation_id) -> Conversation | None:
+    """The user's own conversation (others' conversations do not exist for them)."""
+    return Conversation.objects.filter(id=conversation_id, user_id=user_id).first()
+
+
+def delete_conversation(*, user_id: UUID, conversation_id, request=None) -> bool:
+    conv = get_conversation(user_id, conversation_id)
+    if conv is None:
+        return False
+    core_audit.record("bi.conversation.delete", target=conv, request=request,
+                      metadata={"dataset_id": str(conv.dataset_id)})
+    conv.delete()
+    return True
 
 
 def start_turn(conversation: Conversation, question: str, *, user_id: UUID, api_key_id: UUID | None = None,
@@ -436,13 +460,15 @@ class _Chat:
         self.finished = True
 
     def fail(self, code: str, detail: str | None, *, status: str = "error", audit_id: UUID | None = None,
-             extra_fields: dict | None = None) -> tuple[str, dict]:
+             extra_fields: dict | None = None, extra_data: dict | None = None) -> tuple[str, dict]:
         detail = detail or GENERIC_ERRORS.get(code) or "The question could not be answered."
         self.finish(status=status, error_code=code[:64], content=detail, query_audit_id=audit_id,
                     **(extra_fields or {}))
         data = {"code": code, "detail": detail, "message_id": str(self.turn.message_id)}
         if audit_id is not None:
             data["query_audit_id"] = str(audit_id)
+        if extra_data:
+            data.update(extra_data)
         return ("error", data)
 
     def info(self, source: str) -> AuditInfo:
@@ -477,7 +503,7 @@ class _Chat:
 
         yield ("status", {"stage": "generating"})
         with _step(turn):
-            proposal = ports.propose(turn.question, self.ctx, dataset_version_id=self.scope.semantics.dataset_version_id)
+            proposal = ports.propose(turn.question, self.ctx, semantics=self.scope.semantics)
         self.ai_ids.extend(proposal.ai_request_ids)
         if proposal.sql is None or not str(proposal.sql).strip():
             yield from self._no_sql(proposal)
@@ -568,11 +594,14 @@ class _Chat:
         code = proposal.blocked_reason or "no_sql"
         detail = proposal.explanation or ports.blocked_message(code) or GENERIC_ERRORS["no_sql"]
         status = "blocked" if code in POLICY_BLOCK_CODES else "error"
+        extra: dict[str, Any] = {}
         with _step(turn):
             audit_id = uuid7()
             write_audit(audit_id, self.info("none"), raw_sql="", verdict="blocked" if status == "blocked" else "error",
                         policy=self.scope.policy, code=code, message=detail)
-        yield self.fail(code, detail, status=status, audit_id=audit_id)
+            if code == "ai_quota_exhausted":  # CONTRACT "AI quota UX": the client shows when it resets
+                extra["resets_at"] = getattr(proposal, "resets_at", None) or ports.ai_quota_resets_at(turn.user_id)
+        yield self.fail(code, detail, status=status, audit_id=audit_id, extra_data=extra)
 
     def _insights(self, rs: ResultSet) -> list[dict]:
         try:
@@ -595,7 +624,7 @@ class _Chat:
             with _step(self.turn):  # its own (savepoint) transaction: a cache failure rolls back alone
                 ports.remember(self.turn.question, sql, self.ctx, source=source, explanation=explanation or None,
                                assumptions=tuple(assumptions), chart_hint=chart_hint,
-                               dataset_version_id=self.scope.semantics.dataset_version_id)
+                               semantics=self.scope.semantics)
         except Exception:  # noqa: BLE001 - caching never fails an answer
             log.warning("bi: nl2sql.remember failed", exc_info=True)
 
@@ -658,7 +687,7 @@ def apply_feedback(message: Message, value: str, *, user_id: UUID) -> dict:
                                      explanation=message.explanation or None,
                                      assumptions=tuple(message.assumptions or ()),
                                      chart_hint=chart_hint_from_dict(message.chart_hint),
-                                     dataset_version_id=message.dataset_version_id)
+                                     semantics=scope.semantics)
             verified = True
         except (ValueError, NexoraError) as exc:
             reason = "outside_policy" if isinstance(exc, ValueError) else _code_of(exc)[0]
@@ -788,8 +817,39 @@ def dashboard_insights(user_id: UUID, *, limit: int = 12, days: int = 30) -> lis
     return out
 
 
+# Dashboards (CONTRACT "W3 additions"): implemented in apps.bi.dashboards, public through this module.
+from .dashboards import (  # noqa: E402
+    add_widget,
+    create_dashboard,
+    dashboard_payload,
+    delete_dashboard,
+    delete_widget,
+    get_owned,
+    get_visible,
+    pin_message,
+    update_dashboard,
+    update_widget,
+    visible_dashboards,
+    widget_data,
+)
+
 __all__ = [
     "GUARD_REJECT_CODES",
+    "add_widget",
+    "create_conversation",
+    "create_dashboard",
+    "delete_conversation",
+    "get_conversation",
+    "get_owned",
+    "get_visible",
+    "visible_dashboards",
+    "dashboard_payload",
+    "delete_dashboard",
+    "delete_widget",
+    "pin_message",
+    "update_dashboard",
+    "update_widget",
+    "widget_data",
     "STAGES",
     "DatasetNotFound",
     "DatasetScope",

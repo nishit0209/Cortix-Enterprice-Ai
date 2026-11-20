@@ -98,7 +98,10 @@ def test_happy_path_event_order_and_payloads(env):
     # access history + cache
     assert ("access" in fake.names())
     assert fake.remembered and fake.remembered[0][1] == GOOD_SQL
-    assert fake.remembered[0][2]["dataset_version_id"] == DATASET_VERSION_ID
+    # the nl2sql cache is scoped to the dataset VERSION through the DatasetSemantics (AI/ML W2 request)
+    assert fake.remembered[0][2]["semantics"].dataset_version_id == DATASET_VERSION_ID
+    assert "dataset_version_id" not in fake.remembered[0][2]
+    assert fake.propose_semantics[0] is fake.semantics[DATASET_ID]
 
 
 def test_context_is_policy_filtered_and_value_free(env):
@@ -216,6 +219,39 @@ def test_policy_block_is_an_error_event_with_a_friendly_detail(env, reason):
     assert rec.finished[-1]["status"] == "blocked" and rec.finished[-1]["error_code"] == reason
     assert rec.audits[-1]["verdict"] == "blocked" and rec.audits[-1]["info"].source == "none"
     assert not any(c[0] in ("validate", "execute") for c in fake.calls)
+    # CONTRACT "AI quota UX": only the quota error carries when the quota resets
+    if reason == "ai_quota_exhausted":
+        assert data["resets_at"] == fake.quota_resets_at
+    else:
+        assert "resets_at" not in data
+
+
+def test_quota_error_without_a_known_reset_time_still_reports_the_error(env, monkeypatch):
+    from apps.bi import ports
+
+    fake, _rec = env
+    monkeypatch.setattr(ports, "ai_quota_resets_at", lambda user_id=None: None)
+    fake.proposals.append(SqlProposal(sql=None, source="none", blocked_reason="ai_quota_exhausted"))
+    data = events_of()[-1][1]
+    assert data["code"] == "ai_quota_exhausted" and data["resets_at"] is None
+
+
+def test_quota_reset_time_comes_from_the_ai_status(monkeypatch):
+    from apps.ai import services as ai_services
+    from apps.bi import ports
+
+    monkeypatch.setattr("django.db.transaction.atomic", lambda *a, **k: nullcontext())
+    monkeypatch.setattr(ai_services, "ai_status", lambda user_id=None: {
+        "quota": {"state": "exhausted", "resets_at": "2026-11-21T08:00:00+00:00"}, "resets_at": "x"})
+    assert ports.ai_quota_resets_at(USER) == "2026-11-21T08:00:00+00:00"
+    monkeypatch.setattr(ai_services, "ai_status", lambda user_id=None: {"resets_at": "2026-11-22T08:00:00+00:00"})
+    assert ports.ai_quota_resets_at(USER) == "2026-11-22T08:00:00+00:00"
+
+    def broken(user_id=None):
+        raise RuntimeError("limiter down")
+
+    monkeypatch.setattr(ai_services, "ai_status", broken)
+    assert ports.ai_quota_resets_at(USER) is None
 
 
 def test_clarification_is_returned_without_executing(env):

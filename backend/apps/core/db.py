@@ -9,11 +9,30 @@ from __future__ import annotations
 
 import logging
 
-from django.db import connections
+from django.db import DEFAULT_DB_ALIAS, connections
 
 from .tenancy.operations import APPEND_ONLY_COMMENT
 
 log = logging.getLogger(__name__)
+
+DURABLE_ALIAS = "durable"
+
+
+def durable_alias() -> str:
+    """DB alias for rows that must be visible/committed independently of the caller's transaction (job events,
+    logs): "durable" (a separate connection, same RLS-bound app role) in production.
+
+    Falls back to "default" when the alias is not configured, or when "durable" is a test MIRROR of "default"
+    while "default" is held open by a django TestCase transaction (the mirror connection could not see the
+    uncommitted org rows the new row references)."""
+    if DURABLE_ALIAS not in connections.databases:
+        return DEFAULT_DB_ALIAS
+    mirror = (connections[DURABLE_ALIAS].settings_dict.get("TEST") or {}).get("MIRROR")
+    if mirror == DEFAULT_DB_ALIAS and any(
+        getattr(block, "_from_testcase", False) for block in connections[DEFAULT_DB_ALIAS].atomic_blocks
+    ):
+        return DEFAULT_DB_ALIAS
+    return DURABLE_ALIAS
 
 
 def apply_grants(using: str = "default") -> bool:

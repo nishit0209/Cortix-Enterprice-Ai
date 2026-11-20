@@ -66,30 +66,45 @@ class EnableTenantRLS(Operation):
 
 class MakeAppendOnly(Operation):
     """Mark a table append-only: trigger forbids UPDATE/DELETE (except nexora_ops sealing) and the
-    post-migrate grant step revokes UPDATE/DELETE from nexora_app."""
+    post-migrate grant step revokes UPDATE/DELETE from nexora_app.
+
+    `ops_may_delete=True` additionally lets the nexora_ops role DELETE rows (retention purges of short-lived
+    append-only data such as core.JobEvent). The application role can still never update or delete."""
 
     reversible = True
     reduces_to_sql = True
 
-    def __init__(self, table: str, allow_update_columns: tuple[str, ...] = ()):
+    def __init__(self, table: str, allow_update_columns: tuple[str, ...] = (), ops_may_delete: bool = False):
         self.table = table
         self.allow_update_columns = tuple(allow_update_columns)
+        self.ops_may_delete = bool(ops_may_delete)
 
     def state_forwards(self, app_label, state):
         pass
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
         t = self.table
+        if self.ops_may_delete:
+            function = "nexora_forbid_mutation_ops_purge"
+            ops_clause = (
+                "IF current_user = 'nexora_ops' THEN\n"
+                "                IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;\n"
+                "                RETURN NEW;\n"
+                "              END IF;"
+            )
+        else:
+            function = "nexora_forbid_mutation"
+            ops_clause = "IF TG_OP = 'UPDATE' AND current_user = 'nexora_ops' THEN RETURN NEW; END IF;"
         schema_editor.execute(
             f"""
-            CREATE OR REPLACE FUNCTION nexora_forbid_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+            CREATE OR REPLACE FUNCTION {function}() RETURNS trigger LANGUAGE plpgsql AS $$
             BEGIN
-              IF TG_OP = 'UPDATE' AND current_user = 'nexora_ops' THEN RETURN NEW; END IF;
+              {ops_clause}
               RAISE EXCEPTION 'table % is append-only', TG_TABLE_NAME USING ERRCODE = '42501';
             END $$;
             DROP TRIGGER IF EXISTS append_only ON "{t}";
             CREATE TRIGGER append_only BEFORE UPDATE OR DELETE ON "{t}"
-              FOR EACH ROW EXECUTE FUNCTION nexora_forbid_mutation();
+              FOR EACH ROW EXECUTE FUNCTION {function}();
             COMMENT ON TABLE "{t}" IS '{APPEND_ONLY_COMMENT}';
             """,
             # Verbatim: the plpgsql body contains a literal '%' (RAISE placeholder). With the default
@@ -107,4 +122,7 @@ class MakeAppendOnly(Operation):
         return f"Make {self.table} append-only"
 
     def deconstruct(self):
-        return (self.__class__.__qualname__, [], {"table": self.table})
+        kwargs = {"table": self.table}
+        if self.ops_may_delete:
+            kwargs["ops_may_delete"] = True
+        return (self.__class__.__qualname__, [], kwargs)

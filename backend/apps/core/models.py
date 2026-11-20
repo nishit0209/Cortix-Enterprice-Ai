@@ -50,3 +50,41 @@ class Job(TenantModel):
             models.UniqueConstraint(fields=["org", "idempotency_key"], name="job_org_idem_uniq"),
         ]
         indexes = [models.Index(fields=["org", "-created_at"], name="job_org_time_idx")]
+
+
+class JobEvent(TenantModel):
+    """APPEND-ONLY job event (JOB_EVENTS_BACKEND="db"): the SSE endpoint polls these rows; `seq` is the per-job,
+    strictly increasing SSE event id (`Last-Event-ID`). Purged after JOB_EVENT_RETENTION_DAYS by nexora_ops.
+
+    `job_id` is deliberately not a FK: events are written on the durable alias, possibly before the job row's
+    creating transaction has committed."""
+
+    job_id = models.UUIDField()
+    seq = models.BigIntegerField()
+    event = models.CharField(max_length=32)
+    data = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["org", "job_id", "seq"], name="core_jobevent_seq_uniq")]
+        indexes = [models.Index(fields=["created_at"], name="core_jobevent_created_idx")]
+
+
+NOTIFICATION_KIND_MAX = 60
+
+
+class Notification(TenantModel):
+    """An in-app notification for one user of one org (CONTRACT "W3 additions / Notifications")."""
+
+    user_id = models.UUIDField()
+    kind = models.CharField(max_length=NOTIFICATION_KIND_MAX)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, default="")
+    link = models.CharField(max_length=500, blank=True, default="")
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["org", "user_id", "-created_at"], name="core_notif_user_time_idx"),
+            models.Index(fields=["org", "user_id"], condition=models.Q(read_at__isnull=True),
+                         name="core_notif_unread_idx"),
+        ]

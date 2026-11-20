@@ -32,6 +32,7 @@ PERMISSIONS: dict[str, str] = {
     "bi.sql": "Run manual (guarded) SQL",
     "dashboards.view": "View dashboards",
     "dashboards.create": "Create/edit dashboards and saved queries",
+    "dashboards.manage": "Create, edit, share and delete dashboards and their widgets",
     "exports.create": "Export results and reports",
     # governance
     "governance.policy.edit": "Edit dataset ACLs, column and row policies, PII tags",
@@ -62,7 +63,7 @@ PERMISSIONS: dict[str, str] = {
 _ALL = set(PERMISSIONS)
 _ANALYST = {
     "org.view", "members.view", "roles.view", "sources.view", "datasets.view", "pipelines.view",
-    "bi.chat", "bi.sql", "dashboards.view", "dashboards.create", "exports.create",
+    "bi.chat", "bi.sql", "dashboards.view", "dashboards.create", "dashboards.manage", "exports.create",
     "documents.view", "documents.ask", "ml.view", "customers.view", "products.view", "automation.view",
 }
 

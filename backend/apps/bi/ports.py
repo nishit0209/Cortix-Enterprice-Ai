@@ -57,10 +57,11 @@ def executing_role(org_id: UUID) -> str:
 
 
 # --- NL -> SQL --------------------------------------------------------------------------------------------------
-def propose(question: str, ctx: QuestionContext, *, dataset_version_id: UUID | None = None) -> SqlProposal:
+def propose(question: str, ctx: QuestionContext, *, semantics: DatasetSemantics | None = None) -> SqlProposal:
+    """`semantics` scopes the nl2sql cache to the dataset VERSION it describes (AI/ML W2 request)."""
     from apps.nl2sql import services
 
-    return services.propose(question, ctx, dataset_version_id=dataset_version_id)
+    return services.propose(question, ctx, semantics=semantics)
 
 
 def repair(question: str, bad_sql: str, reject_code: str, ctx: QuestionContext, *, reject_message: str = "") -> SqlProposal:
@@ -85,6 +86,27 @@ def compute_insights(columns, rows) -> list[dict]:
     from apps.nl2sql import services
 
     return services.compute_insights(columns, rows)
+
+
+def ai_quota_resets_at(user_id: UUID | None = None) -> str | None:
+    """When the exhausted AI quota resets (ISO-8601) according to the AI status: `quota.resets_at` when the AI app
+    reports it, else `resets_at` (breaker or daily budget), else `budget_resets_at`. Best effort: None if unknown."""
+    from django.db import transaction
+
+    try:
+        from apps.ai import services
+
+        with transaction.atomic():  # a savepoint: a failing status query never poisons the turn's transaction
+            status = services.ai_status(user_id)
+    except Exception:  # noqa: BLE001 - the error event is still sent, just without the reset time
+        log.warning("bi: could not read the AI quota status", exc_info=True)
+        return None
+    if not isinstance(status, dict):
+        return None
+    quota = status.get("quota")
+    value = quota.get("resets_at") if isinstance(quota, dict) else None
+    value = value or status.get("resets_at") or status.get("budget_resets_at")
+    return str(value) if value else None
 
 
 def narrate(question: str, insights: list[dict], *, row_count: int | None = None) -> str:
