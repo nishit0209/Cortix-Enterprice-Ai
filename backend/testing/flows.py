@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import PurePosixPath
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 
@@ -48,3 +51,31 @@ def items(resp) -> list:
     """List payload of a response: the `items` envelope or a bare array."""
     body = resp.json()
     return body["items"] if isinstance(body, dict) and "items" in body else body
+
+
+def normalised_name(text: str) -> str:
+    """Lower-case alphanumerics only ("Support tickets" -> "supporttickets")."""
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
+def find_seeded_dataset(datasets: list[dict], filename: str) -> dict:
+    """The ONE dataset `manage.py seed_demo` created from `filename` (e.g. "customers.csv").
+
+    A dataset matches when its normalised name EQUALS the file stem ("Customers" for customers.csv) or its
+    description names the exact file ("Synthetic demo data (customers.csv, ...)"). Never a substring of the name:
+    seed_demo also ingests customers_crm.csv / customers_web.csv / products_supplier_a.csv ... whose names
+    ("Customers (CRM)", "Products (supplier B)") contain the shorter stems, and the list is newest-first.
+    Fails the test unless exactly one dataset matches.
+    """
+    import pytest
+
+    stem = normalised_name(PurePosixPath(filename).stem)
+    names_file = re.compile(rf"(?<![\w.-]){re.escape(filename)}(?![\w-]|\.\w)", re.IGNORECASE)
+    found: dict[str, dict] = {}
+    for ds in datasets:
+        if normalised_name(ds.get("name", "")) == stem or names_file.search(ds.get("description") or ""):
+            found[str(ds["id"])] = ds
+    if len(found) != 1:
+        listing = sorted((d.get("name", ""), (d.get("description") or "")[:60]) for d in datasets)
+        pytest.fail(f"{filename}: expected exactly one seeded dataset, found {len(found)} in {listing}")
+    return next(iter(found.values()))

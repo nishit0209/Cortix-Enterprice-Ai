@@ -11,6 +11,11 @@ After `seed_demo` the demo login must show REAL database content on every screen
   * running the command twice creates no duplicates (users, orgs, datasets, versions, dashboards, widgets,
     conversations) and the second run leaves every row count unchanged.
 
+Each seeded file is matched to EXACTLY one dataset (exact normalised name or the file named in the description,
+`testing.flows.find_seeded_dataset`): seed_demo also ingests customers_crm.csv, products_supplier_b.csv ... whose
+names contain the shorter stems. The second run re-sets `--password` (a new salted hash), which invalidates
+existing sessions by design (Django session auth hash), so the client logs in again before the idempotency check.
+
 Transactional DB test (the command runs in autocommit like in production). Gemini is the gated fake (never
 live), outbound network is blocked, storage is the filesystem backend in a temp dir.
 """
@@ -20,14 +25,13 @@ from __future__ import annotations
 import csv
 import io
 import math
-import re
 from pathlib import Path
 
 import pytest
 from django.core.management import call_command, get_commands
 
 from testing.client import api_client_for
-from testing.flows import items
+from testing.flows import find_seeded_dataset, items
 from testing.golden import compare, expected_result
 
 REPO = Path(__file__).resolve().parents[3]
@@ -49,10 +53,6 @@ pytestmark = [
 def _csv_rows(name: str) -> int:
     with (GEN / name).open(encoding="utf-8", newline="") as fh:
         return sum(1 for _ in csv.DictReader(fh))
-
-
-def _norm(text: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
 def _org_option() -> str:
@@ -91,11 +91,16 @@ def runtime(settings, tmp_path, fake_embedder, gated_fake_gemini, network_spy):
     return gated_fake_gemini
 
 
+def _ok(resp):
+    assert resp.status_code == 200, (resp.status_code, resp.content[:300])
+    return resp
+
+
 def _snapshot(client, base: str) -> dict:
-    datasets = items(client.get(f"{base}/datasets"))
-    boards = items(client.get(f"{base}/dashboards"))
-    widgets = sum(len(client.get(f"{base}/dashboards/{b['id']}").json()["widgets"]) for b in boards)
-    conversations = items(client.get(f"{base}/bi/conversations"))
+    datasets = items(_ok(client.get(f"{base}/datasets")))
+    boards = items(_ok(client.get(f"{base}/dashboards")))
+    widgets = sum(len(_ok(client.get(f"{base}/dashboards/{b['id']}")).json()["widgets"]) for b in boards)
+    conversations = items(_ok(client.get(f"{base}/bi/conversations")))
     versions = {}
     for ds in datasets:
         resp = client.get(f"{base}/datasets/{ds['id']}/versions")
@@ -130,14 +135,10 @@ def test_seed_demo_produces_a_real_working_org_and_is_idempotent(runtime, networ
     )
 
     # ---------------------------------------------------------------- datasets: ready, profiled, scored
-    datasets = items(client.get(f"{base}/datasets"))
-    by_norm = {_norm(d["name"]): d for d in datasets}
+    datasets = items(_ok(client.get(f"{base}/datasets")))
     seeded = {}
     for name in SEED_FILES:
-        stem = _norm(Path(name).stem)
-        match = [d for key, d in by_norm.items() if stem in key or key in stem]
-        assert match, f"{name}: no dataset named like it in {sorted(by_norm)}"
-        ds = match[0]
+        ds = find_seeded_dataset(datasets, name)
         seeded[name] = ds
         assert ds["status"] == "ready", (name, ds.get("last_error"))
         assert ds["classification"] == "synthetic", name
@@ -206,7 +207,11 @@ def test_seed_demo_produces_a_real_working_org_and_is_idempotent(runtime, networ
     before = _snapshot(client, base)
     assert before["conversations"] >= 1, "seed_demo creates one sample conversation"
     _seed()
+    assert User.objects.filter(email=DEMO_EMAIL).count() == 1
+    user = User.objects.get(email=DEMO_EMAIL)
+    assert user.check_password(DEMO_PASSWORD), "--password must still be the demo login after a re-run"
+    # The re-run re-hashed the password (new salt): the old session is invalid by design, so log in again.
+    client = api_client_for(user)
     after = _snapshot(client, base)
     assert after == before, f"second run changed the demo org:\nbefore={before}\nafter={after}"
-    assert User.objects.filter(email=DEMO_EMAIL).count() == 1
-    assert len(client.get("/api/v1/me").json()["orgs"]) == 1
+    assert len(_ok(client.get("/api/v1/me")).json()["orgs"]) == 1
