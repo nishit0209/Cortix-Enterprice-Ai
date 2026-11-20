@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { PageHeader } from "@/components/ui/page-header";
 import { FeatureStatusBadge } from "@/components/ui/status";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
+import { pickHomeDashboard } from "@/lib/dashboards/home";
 import { canManageDashboards } from "@/lib/permissions";
 import { useDashboards, useDeleteDashboard, useUpdateDashboard } from "@/lib/queries/dashboards";
 import type { DashboardSummary } from "@/lib/types";
@@ -33,6 +34,7 @@ export function DashboardsView() {
   const [deleting, setDeleting] = React.useState<DashboardSummary | null>(null);
   const list = q.data ?? [];
   const mine = (d: DashboardSummary) => !d.owner_id || d.owner_id === me.user.id;
+  const home = pickHomeDashboard(list, me.user.id);
 
   const setDefault = async (d: DashboardSummary) => {
     try {
@@ -129,7 +131,7 @@ export function DashboardsView() {
                         <DropdownMenuItem onSelect={() => setForm({ open: true, dashboard: d })}>
                           <Pencil /> Rename
                         </DropdownMenuItem>
-                        {!d.is_default && (
+                        {!(d.is_default && mine(d)) && (
                           <DropdownMenuItem onSelect={() => void setDefault(d)}>
                             <Star /> Show on home
                           </DropdownMenuItem>
@@ -146,8 +148,8 @@ export function DashboardsView() {
                   )}
                 </div>
                 <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-fg-muted">
-                  {d.is_default && (
-                    <Badge tone="accent">
+                  {home?.id === d.id && (
+                    <Badge tone="accent" title="Shown on your organization home page">
                       <Star /> Home
                     </Badge>
                   )}

@@ -38,7 +38,8 @@ import { formatBytes, formatNumber, formatRelative, toPercentScore } from "@/lib
 import { scoreTone } from "@/components/ui/score-ring";
 import { aiHealth } from "@/components/shell/ai-status-pill";
 import { HomeDashboardSection } from "@/components/dashboards/dashboard-view";
-import { pickDefault, useDashboards } from "@/lib/queries/dashboards";
+import { useDashboards } from "@/lib/queries/dashboards";
+import { pickHomeDashboard } from "@/lib/dashboards/home";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -70,7 +71,7 @@ export default function DashboardPage() {
   const usage = useAiUsage(slug, 14, canUsage);
   const history = useQueryHistory(slug, { limit: 6 }, can("bi.chat"));
   const dashboards = useDashboards(slug, can("dashboards.view"));
-  const homeDashboard = pickDefault(dashboards.data ?? []);
+  const homeDashboard = pickHomeDashboard(dashboards.data, me.user.id);
   const [hello, setHello] = React.useState("Welcome");
   React.useEffect(() => setHello(greeting()), []);
 

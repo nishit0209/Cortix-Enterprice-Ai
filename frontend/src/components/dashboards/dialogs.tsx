@@ -11,6 +11,7 @@ import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useOptionalOrgContext } from "@/components/shell/org-context";
 import { isApiError } from "@/lib/api";
 import { defaultSize, placeNew } from "@/lib/dashboards/layout";
 import { WIDGET_KINDS } from "@/lib/dashboards/widgets";
@@ -330,7 +331,12 @@ export function PinDialog({
   const [kind, setKind] = React.useState<WidgetKind>(chart?.type === "kpi" ? "kpi" : chart?.type === "table" ? "table" : "chart");
   const [error, setError] = React.useState<string | null>(null);
   const [done, setDone] = React.useState<string | null>(null);
-  const list = React.useMemo(() => dashboards.data ?? [], [dashboards.data]);
+  const userId = useOptionalOrgContext()?.me.user.id;
+  // Only the owner may add widgets (shared dashboards of teammates answer 403), so only own dashboards are offered.
+  const list = React.useMemo(
+    () => (dashboards.data ?? []).filter((d) => !userId || !d.owner_id || d.owner_id === userId),
+    [dashboards.data, userId],
+  );
   const targetDash = useDashboard(org, target && target !== NEW ? target : null);
 
   React.useEffect(() => {

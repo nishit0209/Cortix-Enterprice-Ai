@@ -89,7 +89,7 @@ export function DashboardView() {
         description={d.description || undefined}
         badge={
           <span className="flex gap-1.5">
-            {d.is_default && (
+            {d.is_default && owner && (
               <Badge tone="accent">
                 <Star /> Home
               </Badge>

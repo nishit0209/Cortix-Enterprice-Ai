@@ -57,12 +57,37 @@ export function badgeLabel(count: number): string | null {
 }
 
 /**
+ * Producer paths that name a backend resource rather than a UI route, mapped to the page that shows it
+ * (`apps.ai` links the quota notice to `/settings/ai`; `apps.core.notifications` documents
+ * `/pipelines/<id>/runs/<run_id>`). Matched on whole path segments.
+ */
+const LINK_ALIASES: Array<{ from: string; to: string; keepSubpath: boolean }> = [
+  { from: "/settings/ai", to: "/settings/ai-policy", keepSubpath: true },
+  { from: "/pipelines", to: "/data/pipelines", keepSubpath: true },
+  { from: "/datasets", to: "/data/datasets", keepSubpath: true },
+  // No per-item page: a single run (without its pipeline id) or source opens the list.
+  { from: "/pipeline-runs", to: "/data/pipelines", keepSubpath: false },
+  { from: "/data-sources", to: "/data/sources", keepSubpath: false },
+  { from: "/sources", to: "/data/sources", keepSubpath: false },
+];
+
+function routeFor(path: string): string {
+  const cut = path.search(/[?#]/);
+  const [p, rest] = cut < 0 ? [path, ""] : [path.slice(0, cut), path.slice(cut)];
+  for (const { from, to, keepSubpath } of LINK_ALIASES) {
+    if (p === from || p.startsWith(`${from}/`)) return `${to}${keepSubpath ? p.slice(from.length) : ""}${rest}`;
+  }
+  return path;
+}
+
+/**
  * Notification links are app-relative paths (the backend drops anything else). Org-scoped paths such as
- * `/data/pipelines/<id>/runs` are resolved under the current org; `/o/...` links are used as they are.
+ * `/data/pipelines/<id>/runs` are resolved under the current org; `/o/<org>/...` links keep their org.
  */
 export function notificationHref(link: string | null | undefined, slug: string): string | null {
   const l = (link ?? "").trim();
-  if (!l.startsWith("/") || l.startsWith("//")) return null;
-  if (l.startsWith("/o/")) return l;
-  return `/o/${slug}${l}`;
+  if (!l.startsWith("/") || l.startsWith("//") || l.startsWith("/\\")) return null;
+  const scoped = /^\/o\/([^/?#]+)(.*)$/.exec(l);
+  if (scoped) return `/o/${scoped[1]}${routeFor(scoped[2] || "/dashboard")}`;
+  return `/o/${slug}${routeFor(l)}`;
 }

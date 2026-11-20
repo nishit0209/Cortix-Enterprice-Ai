@@ -113,6 +113,13 @@ export function AiStatusPill() {
                 />
               )}
             </div>
+            {quota?.user && quota.user.limit > 0 && (
+              <Row label="Your requests today">
+                <span className="tabular font-medium text-fg">
+                  {formatNumber(quota.user.used)} / {formatNumber(quota.user.limit)}
+                </span>
+              </Row>
+            )}
             {quota?.resets_at && (
               <Row label={quota.state === "ok" ? "Quota resets" : "Resets in"}>
                 <span className="tabular text-fg" title={formatDateTime(quota.resets_at)}>

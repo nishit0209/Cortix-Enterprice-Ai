@@ -74,7 +74,7 @@ export function AnswerCard({
   onFollowUp: (q: string) => void;
   onRetry?: () => void;
   canExport: boolean;
-  /** Show "Pin to dashboard" (dashboards.create / dashboards.manage). */
+  /** Show "Pin to dashboard" (dashboards.manage). */
   canPin?: boolean;
 }) {
   const [pinOpen, setPinOpen] = React.useState(false);

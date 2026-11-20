@@ -25,6 +25,11 @@ export function useOrgContext(): OrgContextValue {
   return v;
 }
 
+/** Like `useOrgContext`, but null outside an org route (for components that also render standalone). */
+export function useOptionalOrgContext(): OrgContextValue | null {
+  return React.useContext(Ctx);
+}
+
 /* ---------------- breadcrumb override (e.g. dataset name instead of its id) ---------------- */
 
 const CrumbCtx = React.createContext<{

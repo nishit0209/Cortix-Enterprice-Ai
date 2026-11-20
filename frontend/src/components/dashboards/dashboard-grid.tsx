@@ -3,10 +3,9 @@
 import * as React from "react";
 import {
   cellsFromPixels,
-  clampItem,
-  compact,
   GRID_COLS,
   GRID_GAP,
+  gridItemsFromWidgets,
   keyboardChange,
   moveItem,
   readingOrder,
@@ -91,7 +90,7 @@ export function DashboardGrid({
   const [announce, setAnnounce] = React.useState("");
   const gesture = React.useRef<Gesture | null>(null);
 
-  const stored = React.useMemo(() => compact(widgets.map((w) => clampItem({ id: w.id, ...w.layout }))), [widgets]);
+  const stored = React.useMemo(() => gridItemsFromWidgets(widgets), [widgets]);
   const items = preview ?? stored;
   const pos = React.useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
   const byId = React.useMemo(() => new Map(widgets.map((w) => [w.id, w])), [widgets]);

@@ -12,11 +12,14 @@ export const LOW_QUOTA_RATIO = 0.8;
 export function quotaOf(s: AiStatus | null | undefined): AiQuota | null {
   if (!s) return null;
   if (s.quota && typeof s.quota === "object" && s.quota.state) {
+    const user = s.quota.user;
     return {
       state: s.quota.state,
       resets_at: s.quota.resets_at ?? s.budget_resets_at ?? s.resets_at ?? null,
       used_today: Number(s.quota.used_today ?? 0),
       limit_today: Number(s.quota.limit_today ?? 0),
+      rate_limited: !!s.quota.rate_limited,
+      user: user && typeof user === "object" ? { used: Number(user.used ?? 0), limit: Number(user.limit ?? 0) } : null,
     };
   }
   const limit = Number(s.org_budget?.limit ?? 0);
@@ -36,7 +39,7 @@ export function aiHealthOf(s: AiStatus | null | undefined): { tone: AiHealthTone
   if (!s.configured) return { tone: "neutral", label: "Not configured" };
   const q = quotaOf(s);
   if (q?.state === "exhausted") return { tone: "danger", label: s.breaker === "open_day" ? "Paused for today" : "Quota used up" };
-  if (s.breaker === "open_minute") return { tone: "warning", label: "Cooling down" };
+  if (s.breaker === "open_minute" || q?.rate_limited) return { tone: "warning", label: "Cooling down" };
   if (q?.state === "low") return { tone: "warning", label: "Quota low" };
   return { tone: "success", label: "Available" };
 }

@@ -23,11 +23,6 @@ export const dashKeys = {
   savedQueries: (org: string) => ["org", org, "saved-queries"] as const,
 };
 
-/** The org home shows the caller's default dashboard (or the first one they can see). */
-export function pickDefault(list: DashboardSummary[]): DashboardSummary | null {
-  return list.find((d) => d.is_default) ?? null;
-}
-
 export function useDashboards(org: string, enabled = true) {
   return useQuery({
     queryKey: dashKeys.list(org),

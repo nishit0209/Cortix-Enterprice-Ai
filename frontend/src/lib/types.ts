@@ -333,6 +333,10 @@ export interface AiStatus {
   models?: Record<string, { model: string; breaker: string; resets_at: ISODate | null }>;
   /* W3 AI quota UX. */
   quota?: AiQuota | null;
+  /** Where usage is counted: the Redis limiter, or the database (local runtime without Redis). */
+  limiter_backend?: "redis" | "db";
+  /** Local embedding model (documents search); never downloaded by the status call. */
+  embeddings?: { available: boolean; model: string | null; cached?: boolean | null; loaded?: boolean | null } | null;
 }
 
 export type AiQuotaState = "ok" | "low" | "exhausted";
@@ -342,6 +346,11 @@ export interface AiQuota {
   resets_at: ISODate | null;
   used_today: number;
   limit_today: number;
+  remaining_today?: number;
+  /** The per-minute breaker is open (requests resume within a minute). */
+  rate_limited?: boolean;
+  /** The caller's own share of the daily budget, when a per-user limit applies. */
+  user?: { used: number; limit: number } | null;
 }
 
 export interface Insight {

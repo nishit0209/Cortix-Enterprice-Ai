@@ -6,7 +6,7 @@
 
 const ANALYST = [
   "org.view", "members.view", "roles.view", "sources.view", "datasets.view", "pipelines.view",
-  "bi.chat", "bi.sql", "dashboards.view", "dashboards.create", "exports.create",
+  "bi.chat", "bi.sql", "dashboards.view", "dashboards.create", "dashboards.manage", "exports.create",
   "documents.view", "documents.ask", "ml.view", "customers.view", "products.view", "automation.view",
 ];
 
@@ -59,9 +59,10 @@ export function permissionsAllow(permissions: string[] | undefined, role: string
 }
 
 /**
- * Creating/editing dashboards. The catalog codename is `dashboards.create`; the W3 contract names it
- * `dashboards.manage`. Either one grants it, so the UI works whichever the backend ships.
+ * Creating, editing, sharing and deleting dashboards and their widgets (including "Pin to dashboard"). The
+ * backend gates every dashboard write on `dashboards.manage` (CONTRACT "W3 additions"); `dashboards.create`
+ * only covers saved queries, so it must not unlock dashboard actions the server would refuse.
  */
 export function canManageDashboards(can: (perm: string) => boolean): boolean {
-  return can("dashboards.manage") || can("dashboards.create");
+  return can("dashboards.manage");
 }

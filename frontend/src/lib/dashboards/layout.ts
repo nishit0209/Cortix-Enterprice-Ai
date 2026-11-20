@@ -56,6 +56,14 @@ export function compact<T extends GridItem>(items: T[], priority?: string): T[] 
   return placed;
 }
 
+/**
+ * Widgets as returned by `GET /dashboards/{id}` -> grid items: clamped to the backend's bounds (a missing or
+ * malformed layout falls back to the backend default 6x4) and compacted, so stored positions never overlap.
+ */
+export function gridItemsFromWidgets(widgets: ReadonlyArray<{ id: string; layout?: Partial<WidgetLayout> | null }>): GridItem[] {
+  return compact(widgets.map((w) => clampItem({ x: 0, y: 0, w: 6, h: 4, ...(w.layout ?? {}), id: w.id })));
+}
+
 /** Place `id` at `to` (clamped), push the others out of the way, and compact. Returns a new list in input order. */
 export function moveItem<T extends GridItem>(items: T[], id: string, to: Partial<WidgetLayout>): T[] {
   const target = items.find((i) => i.id === id);
