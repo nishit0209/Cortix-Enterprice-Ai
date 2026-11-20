@@ -582,9 +582,16 @@ def stats() -> dict[str, Any]:
     `runs_7d.total` counts runs created in the window (any status); succeeded/failed count runs that finished in it.
     """
     since = timezone.now() - dt.timedelta(days=7)
+    before = since - dt.timedelta(days=7)
     agg = PipelineRun.objects.filter(finished_at__gte=since).aggregate(
         succeeded=Count("id", filter=Q(status="succeeded")), failed=Count("id", filter=Q(status="failed")))
+    prev = PipelineRun.objects.filter(finished_at__gte=before, finished_at__lt=since).aggregate(
+        succeeded=Count("id", filter=Q(status="succeeded")), failed=Count("id", filter=Q(status="failed")))
     return {
+        # the 7 days before the current window (dashboard KPI deltas)
+        "runs_7d_prev": {"succeeded": int(prev["succeeded"] or 0), "failed": int(prev["failed"] or 0),
+                         "total": PipelineRun.objects.filter(created_at__gte=before, created_at__lt=since).count()},
+        "pipelines_total_prev": Pipeline.objects.filter(created_at__lt=since).exclude(status="archived").count(),
         "pipelines_active": Pipeline.objects.filter(status="active").count(),
         "pipelines_total": Pipeline.objects.exclude(status="archived").count(),
         "runs_7d": {"succeeded": int(agg["succeeded"] or 0), "failed": int(agg["failed"] or 0),

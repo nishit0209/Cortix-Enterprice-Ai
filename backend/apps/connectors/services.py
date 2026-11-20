@@ -115,11 +115,19 @@ def get_source(source_id) -> DataSource:
         raise NotFound() from exc
 
 
+def _stats_cutoff():
+    from apps.datasets.services import stats_cutoff
+
+    return stats_cutoff()
+
+
 def stats() -> dict[str, Any]:
     """data-stats contribution (registered with datasets.register_stats_provider): data sources from the DB."""
     return {
         "sources": DataSource.objects.count(),
         "sources_active": DataSource.objects.filter(status="active").count(),
+        # sources that existed at the previous-period cutoff and still exist (deleted sources leave no trace)
+        "sources_prev": DataSource.objects.filter(created_at__lte=_stats_cutoff()).count(),
     }
 
 

@@ -140,8 +140,8 @@ def test_a_dag_written_by_the_builder_is_accepted_and_runs(env, django_capture_o
     assert client.get(url(a, f"datasets/{run['output_dataset_id']}")).json()["name"] == "orders_builder"
     cols = [c["name"] for c in client.get(url(a, f"datasets/{run['output_dataset_id']}/columns")).json()]
     assert "amount_with_tax" in cols
-    append = {**dag_body, "nodes": [*nodes[:-1], {**nodes[-1], "config": {"dataset_name": "x", "mode": "append"}}]}
-    errors = client.post(url(a, "pipelines/validate"), {"dag": append}, format="json").json()["errors"]
+    upsert = {**dag_body, "nodes": [*nodes[:-1], {**nodes[-1], "config": {"dataset_name": "x", "mode": "upsert"}}]}
+    errors = client.post(url(a, "pipelines/validate"), {"dag": upsert}, format="json").json()["errors"]
     assert [e["code"] for e in errors if e["node_id"] == "out_1"] == ["unsupported_mode"]
 
 

@@ -124,9 +124,13 @@ def _derive(cfg: dict[str, Any], problems: list[Problem]) -> None:
 def _destination(cfg: dict[str, Any], problems: list[Problem]) -> None:
     _rename(cfg, "dataset_name", "name")
     mode = cfg.pop("mode", None)
-    if mode not in (None, "", "new_version"):
+    mode = {"overwrite": "new_version", "replace": "new_version"}.get(mode, mode)
+    if mode in ("new_version", "append"):
+        cfg["mode"] = mode
+    elif mode not in (None, ""):
         problems.append(("config.mode", "unsupported_mode",
-                         "Append mode is not supported: every run writes a new version of the output dataset."))
+                         "Write mode must be \"new_version\" (the run's rows become the new version) or \"append\" "
+                         "(the new version adds the run's rows to the current version)."))
 
 
 def normalize_node(node_type: str, config: Any) -> tuple[str, Any, list[Problem]]:

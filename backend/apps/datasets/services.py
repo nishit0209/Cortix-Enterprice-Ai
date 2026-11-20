@@ -176,9 +176,22 @@ def _enqueue_ingest(dataset: Dataset, upload: Upload, job, *, options: dict | No
     org_id = str(require_org_id())
     kwargs = {
         "org_id": org_id, "dataset_id": str(dataset.id), "upload_id": str(upload.id), "job_id": str(job.id),
-        "options": options or {}, "actor_id": str(user_id) if user_id else None,
+        "options": dict(options or {}), "actor_id": str(user_id) if user_id else None,
     }
     transaction.on_commit(lambda: ingest_dataset.delay(**kwargs))
+
+
+def _reserve_version(dataset: Dataset, upload: Upload, job) -> DatasetVersion:
+    """Create the `loading` row of the next version up front (publish_frame returns it before ingestion runs).
+
+    The dataset row is locked while the number is chosen, so concurrent publishes get distinct numbers;
+    run_ingest(options={"reserved_version_id": ...}) fills this row instead of creating a new one."""
+    Dataset.objects.select_for_update().filter(id=dataset.id).values_list("id", flat=True).first()
+    number = (DatasetVersion.objects.filter(dataset_id=dataset.id).aggregate(m=Max("version"))["m"] or 0) + 1
+    return DatasetVersion.objects.create(
+        dataset_id=dataset.id, version=number, upload_id=upload.id, job_id=job.id, status="loading",
+        wh_table=wh_naming.dataset_table_name(dataset.id, number),
+    )
 
 
 def create_dataset(
@@ -221,6 +234,122 @@ def add_version(dataset: Dataset, *, upload_id, options: dict | None = None, use
                  metadata={"upload_id": str(upload.id), "job_id": str(job.id)})
     _enqueue_ingest(dataset, upload, job, options=options, user_id=user_id)
     return job
+
+
+PUBLISH_SOURCE_KINDS = ("ml", "customers", "products", "pipelines", "system")
+
+
+def parse_publish_source(source) -> tuple[str, str | None, UUID | None]:
+    """`source` of publish_frame -> (kind, lineage node type | None, node id | None).
+
+    Accepted forms: a kind ("ml"), a lineage node "<node_type>:<uuid>" (e.g. "ml_model_version:0190..."), or a
+    (node_type, id) tuple. The kind of a node is derived from its type (ml_* -> "ml", customer_* -> "customers",
+    product_* -> "products", pipeline* -> "pipelines")."""
+    from apps.lineage.models import NODE_TYPES
+
+    node_types = {t for t, _ in NODE_TYPES}
+    node_type, node_id = None, None
+    if isinstance(source, tuple | list) and len(source) == 2:
+        node_type, node_id = str(source[0]), source[1]
+    elif isinstance(source, str) and ":" in source:
+        node_type, node_id = source.split(":", 1)
+    if node_type is not None:
+        if node_type not in node_types:
+            raise ValidationError({"source": [f"Unknown lineage node type {node_type!r}."]})
+        try:
+            node_uuid = node_id if isinstance(node_id, UUID) else UUID(str(node_id))
+        except ValueError as exc:
+            raise ValidationError({"source": ["The lineage node id must be a UUID."]}) from exc
+        prefix = node_type.split("_", 1)[0]
+        kind = {"ml": "ml", "customer": "customers", "product": "products", "pipeline": "pipelines"}.get(prefix, "system")
+        return kind, node_type, node_uuid
+    kind = str(source or "").strip().lower()
+    if kind not in PUBLISH_SOURCE_KINDS:
+        raise ValidationError({"source": [f"Must be one of {', '.join(PUBLISH_SOURCE_KINDS)} or '<node_type>:<uuid>'."]})
+    return kind, None, None
+
+
+def publish_frame(*, name: str, frame: pl.DataFrame, user_id, classification: str = "internal", attest: bool = False,
+                  dataset_id=None, description: str = "", source="ml") -> DatasetVersion:
+    """CONTRACT "W4 additions": write a polars frame as a dataset (version) through the normal upload/ingest path.
+
+    The frame is serialised to CSV in the formats ingestion reads back losslessly, stored as an Upload
+    (`create_upload`: size/type checks, sha256, org-prefixed storage key) and ingested by the standard task, so
+    profiling, PII detection, quality, the warehouse load, the semantic layer and the notifications all run.
+
+    - `dataset_id=None` creates a dataset (`source_kind="derived"`, tags `derived` + `source:<kind>`) with the given
+      classification (`synthetic`/`public` need `attest=True`, as for uploads); with `dataset_id` a new version is
+      added (the user needs the dataset ACL `admin`; classification/attest are ignored).
+    - Lineage: `upload -> dataset_version` ("published", transform {source}) and, when `source` names a lineage
+      node ("ml_model_version:<uuid>" / ("customer_segment", id)), `node -> dataset` and `node -> dataset_version`.
+    - Returns the DatasetVersion. Its row is reserved before ingestion is enqueued, so it always exists and carries
+      `job_id`. With TASK_RUNNER="eager" and no enclosing transaction the ingestion has already run and the version
+      is returned `ready` (or `failed`); otherwise it is `loading` and the job reports progress.
+    Must be called inside the org's tenant context.
+    """
+    from django.core.files import File
+
+    from apps.connectors.services import write_frame_csv
+    from apps.governance.services import check_dataset_access
+    from apps.lineage import services as lineage
+
+    if not isinstance(frame, pl.DataFrame):
+        raise TypeError("publish_frame expects a polars.DataFrame")
+    if frame.width == 0:
+        raise ValidationError({"frame": ["The frame has no columns."]})
+    name = str(name or "").strip()
+    if dataset_id is None and not name:
+        raise ValidationError({"name": ["A name is required."]})
+    kind, node_type, node_id = parse_publish_source(source)
+    workdir = tempfile.mkdtemp(prefix="nexora_publish_")
+    try:
+        filename = f"{(slugify(name) or 'dataset')[:80]}.csv"
+        path = os.path.join(workdir, filename)
+        size = write_frame_csv(frame, path)
+        if size > max_upload_bytes():
+            raise UploadTooLarge(f"The frame is {size} bytes as CSV; the limit is {max_upload_bytes()} bytes.")
+        with transaction.atomic():
+            if dataset_id is not None:
+                dataset = get_dataset(dataset_id)
+                if user_id is None or not check_dataset_access(user_id, dataset.id, "admin"):
+                    raise NotFound()
+            with open(path, "rb") as fh:
+                upload = create_upload(File(fh, name=filename), user_id=user_id)
+            job = jobs.create_job("dataset_ingest", user_id=user_id, message="Queued")
+            if dataset_id is None:
+                dataset = Dataset(
+                    name=name[:200], slug=unique_slug(name), description=description or "", source_kind="derived",
+                    owner_id=user_id, status="processing", tags=["derived", f"source:{kind}"],
+                )
+                _apply_classification(dataset, classification or "internal", attest=attest, user_id=user_id)
+                dataset.last_job_id = job.id
+                dataset.save()
+                audit.record("dataset.create", target=dataset, metadata={
+                    "name": dataset.name, "upload_id": str(upload.id), "classification": dataset.classification,
+                    "attested": dataset.classification in ATTESTED_CLASSIFICATIONS, "job_id": str(job.id),
+                    "source": kind,
+                })
+            else:
+                dataset.last_job_id = job.id
+                if dataset.current_version_id is None:
+                    dataset.status = "processing"
+                dataset.save(update_fields=["last_job_id", "status", "updated_at"])
+                audit.record("dataset.version.create", target=dataset,
+                             metadata={"upload_id": str(upload.id), "job_id": str(job.id), "source": kind})
+            version = _reserve_version(dataset, upload, job)
+            publish = {"kind": kind, "node_type": node_type, "node_id": str(node_id) if node_id else None}
+            if node_type:
+                lineage.record(node_type, node_id, "dataset", dataset.id, label="publishes", transform={"source": kind})
+            audit.record("dataset.publish_frame", target=dataset, metadata={
+                "version_id": str(version.id), "version": version.version, "rows": frame.height,
+                "columns": frame.width, "source": publish, "job_id": str(job.id),
+            })
+            _enqueue_ingest(dataset, upload, job, user_id=user_id,
+                            options={"reserved_version_id": str(version.id), "publish_source": publish})
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+    version.refresh_from_db()
+    return version
 
 
 def update_dataset(dataset: Dataset, data: dict, *, request=None) -> Dataset:
@@ -403,6 +532,49 @@ def register_stats_provider(fn: Callable[[], dict]) -> None:
     _stats_providers.append(fn)
 
 
+STATS_PERIOD_DAYS = 7
+
+
+def stats_cutoff():
+    """The "previous period" reference point of /data-stats: the state as of STATS_PERIOD_DAYS ago."""
+    from datetime import timedelta
+
+    return timezone.now() - timedelta(days=STATS_PERIOD_DAYS)
+
+
+def _previous_period_stats() -> dict:
+    """`*_prev` KPIs as of `stats_cutoff()`, reconstructed from timestamps already in the DB (no history tables).
+
+    datasets_prev: datasets created before the cutoff and not deleted by then; rows_total_prev / avg_quality_prev /
+    storage_bytes_prev: over each such dataset's newest version that was ready by the cutoff (its row count, its
+    quality report, its warehouse bytes) plus uploads stored by then. Values that cannot be reconstructed are not
+    invented (pipelines_active has no status history, so it has no `_prev`).
+    """
+    from django.db.models import Q
+
+    cutoff = stats_cutoff()
+    then = Dataset.objects.filter(created_at__lte=cutoff).filter(Q(deleted_at__isnull=True) | Q(deleted_at__gt=cutoff))
+    versions = list(
+        DatasetVersion.objects.filter(dataset__in=then, ready_at__isnull=False, ready_at__lte=cutoff)
+        .exclude(status="failed").order_by("dataset_id", "-version").distinct("dataset_id")
+        .values("id", "row_count", "byte_size")
+    )
+    scores = []
+    if versions:
+        from apps.quality.models import QualityReport
+
+        scores = [float(s) for s in QualityReport.objects.filter(
+            dataset_version_id__in=[v["id"] for v in versions]).values_list("score", flat=True)]
+    upload_bytes = Upload.objects.filter(status="ready", created_at__lte=cutoff).aggregate(b=Sum("size_bytes"))["b"] or 0
+    return {
+        "previous_period": {"days": STATS_PERIOD_DAYS, "as_of": cutoff.isoformat()},
+        "datasets_prev": then.count(),
+        "rows_total_prev": int(sum(v["row_count"] or 0 for v in versions)),
+        "avg_quality_prev": round(sum(scores) / len(scores), 2) if scores else None,
+        "storage_bytes_prev": int(sum(v["byte_size"] or 0 for v in versions)) + int(upload_bytes),
+    }
+
+
 def data_stats() -> dict:
     """Dashboard KPIs, every number computed from the DB (CONTRACT `/data-stats`, additive fields).
 
@@ -431,6 +603,7 @@ def data_stats() -> dict:
         "sources_active": 0,
         "storage_bytes": int(wh_bytes) + int(upload_bytes),
     }
+    out.update(_previous_period_stats())
     for provider in _stats_providers:
         try:
             with transaction.atomic():  # savepoint: a failing provider must not poison the request transaction
@@ -480,7 +653,9 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
 
     org = UUID(str(org_id))
     workdir = tempfile.mkdtemp(prefix="nexora_ingest_")
-    version_id = None
+    opts = options or {}
+    reserved_id = opts.get("reserved_version_id")  # publish_frame: the version row already exists
+    version_id = UUID(str(reserved_id)) if reserved_id else None
     try:
         with tenant_step(org):
             _stage(job_id, "download")
@@ -501,7 +676,6 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
 
         with tenant_step(org):
             _stage(job_id, "parse", format=kind)
-        opts = options or {}
         parsed = parsing.parse_file(local, kind, parsing.ParseOptions(
             sheet=opts.get("sheet"), delimiter=opts.get("delimiter"), has_header=opts.get("has_header"),
             encoding=opts.get("encoding"),
@@ -513,20 +687,30 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
         columns = _column_rows(analyzed)
 
         with tenant_step(org):
+            reserved = DatasetVersion.objects.filter(id=version_id).first() if reserved_id else None
             previous = (
-                DatasetVersion.objects.filter(dataset_id=dataset.id, status="ready").order_by("-version").first()
+                DatasetVersion.objects.filter(dataset_id=dataset.id, status="ready")
+                .exclude(id=version_id if reserved is not None else None).order_by("-version").first()
             )
-            number = (DatasetVersion.objects.filter(dataset_id=dataset.id).aggregate(m=Max("version"))["m"] or 0) + 1
+            if reserved is not None:
+                number = reserved.version
+            else:
+                number = (DatasetVersion.objects.filter(dataset_id=dataset.id).aggregate(m=Max("version"))["m"] or 0) + 1
             profile = dict(analyzed.profile)
             profile["version"] = number
             if previous is not None:
                 prev_cols = [(c["name"], c["data_type"]) for c in version_columns(previous)]
                 profile["drift"] = schema_drift(prev_cols, analyzed.schema)
-            version = DatasetVersion.objects.create(
-                dataset_id=dataset.id, version=number, upload_id=upload.id, job_id=job_id, status="loading",
-                schema_hash=analyzed.schema_hash, profile=profile,
-                wh_table=wh_naming.dataset_table_name(dataset.id, number),
-            )
+            if reserved is not None:
+                reserved.schema_hash, reserved.profile, reserved.status = analyzed.schema_hash, profile, "loading"
+                reserved.save(update_fields=["schema_hash", "profile", "status", "updated_at"])
+                version = reserved
+            else:
+                version = DatasetVersion.objects.create(
+                    dataset_id=dataset.id, version=number, upload_id=upload.id, job_id=job_id, status="loading",
+                    schema_hash=analyzed.schema_hash, profile=profile,
+                    wh_table=wh_naming.dataset_table_name(dataset.id, number),
+                )
             version_id = version.id
             DatasetColumn.objects.bulk_create([
                 DatasetColumn(
@@ -537,8 +721,16 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
                 )
                 for c in columns
             ])
-            lineage.record("upload", upload.id, "dataset_version", version.id, label="ingested",
-                           transform={"format": kind, "rows": analyzed.frame.height})
+            publish = opts.get("publish_source") or None
+            if publish:
+                lineage.record("upload", upload.id, "dataset_version", version.id, label="published",
+                               transform={"format": kind, "rows": analyzed.frame.height, "source": publish.get("kind")})
+                if publish.get("node_type") and publish.get("node_id"):
+                    lineage.record(publish["node_type"], publish["node_id"], "dataset_version", version.id,
+                                   label="published", transform={"source": publish.get("kind")})
+            else:
+                lineage.record("upload", upload.id, "dataset_version", version.id, label="ingested",
+                               transform={"format": kind, "rows": analyzed.frame.height})
             _stage(job_id, "load", table=version.wh_table)
 
         with tenant_step(org):

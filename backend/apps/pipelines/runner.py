@@ -236,9 +236,12 @@ def _write_output(org: UUID, run_id, dest: Node, result: engine.ExecutionResult,
             steps=[m.as_dict() for m in metrics], rows_in=result.rows_in, rows_out=result.rows_out,
             rows_rejected=result.rows_rejected, heartbeat_at=timezone.now())
         run_log(run, f"Writing {result.rows_out} rows to the destination", step=dest.id)
+    frame = result.frame
+    if getattr(cfg, "mode", "new_version") == "append":
+        frame = _appended_output(org, run, pipeline, cfg, frame, dest)
     filename = f"pipeline-{_slug(pipeline.name)}-run-{run.number}.csv"
     path = os.path.join(workdir, filename)
-    size = connectors.write_frame_csv(result.frame, path)
+    size = connectors.write_frame_csv(frame, path)
     if size > int(settings.MAX_UPLOAD_BYTES):
         raise RunFailure("output_too_large", "The pipeline output is larger than the upload limit.",
                          node=dest.id, retryable=False)
@@ -281,6 +284,64 @@ def _write_output(org: UUID, run_id, dest: Node, result: engine.ExecutionResult,
         # registered AFTER create_dataset/add_version's own on_commit, so in eager mode ingestion runs first.
         # Every runner also finalizes from the ingest-finished signal (signals.finalize_on_ingest).
         enqueue_later(finalize_pipeline_run, kwargs, FINALIZE_POLL_S)
+
+
+def append_frames(previous: pl.DataFrame, new: pl.DataFrame, *, node: str | None = None,
+                  limit: int | None = None) -> pl.DataFrame:
+    """Destination mode "append": the new version = the previous version's rows followed by the run's rows.
+
+    The run output must have exactly the previous version's columns (any order); its values are cast to the
+    previous version's types (strictly: a value that does not fit fails the run instead of becoming NULL).
+    Raises RunFailure append_schema_mismatch / append_type_mismatch / output_too_large (never retried)."""
+    prev_cols, new_cols = list(previous.columns), list(new.columns)
+    missing = [c for c in prev_cols if c not in new_cols]
+    extra = [c for c in new_cols if c not in prev_cols]
+    if missing or extra:
+        parts = []
+        if missing:
+            parts.append(f"missing {', '.join(missing[:10])}")
+        if extra:
+            parts.append(f"unexpected {', '.join(extra[:10])}")
+        raise RunFailure("append_schema_mismatch",
+                         "Append needs the same columns as the current version of the output dataset ("
+                         + "; ".join(parts) + "). Use mode \"new_version\" to change the schema.",
+                         node=node, retryable=False)
+    if limit is not None and previous.height + new.height > limit:
+        raise RunFailure("output_too_large", f"Appending would exceed the {limit:,}-row limit.", node=node,
+                         retryable=False)
+    try:
+        aligned = new.select([
+            pl.col(c) if new.schema[c] == previous.schema[c] or previous.schema[c] == pl.Null
+            else pl.col(c).cast(previous.schema[c], strict=True)
+            for c in prev_cols
+        ])
+    except (pl.exceptions.InvalidOperationError, pl.exceptions.ComputeError) as exc:
+        raise RunFailure("append_type_mismatch",
+                         "The run output has values that do not fit the column types of the current version.",
+                         node=node, retryable=False) from exc
+    return pl.concat([previous, aligned], how="vertical_relaxed")
+
+
+def _appended_output(org: UUID, run: PipelineRun, pipeline: Pipeline, cfg, frame: pl.DataFrame, dest: Node):
+    """previous rows + `frame` when the destination dataset already has a ready version, else `frame`."""
+    from apps.datasets import services as datasets
+
+    target_id = cfg.dataset_id or pipeline.output_dataset_id
+    if not target_id:
+        return frame  # first run: there is nothing to append to yet
+    with tenant_step(org):
+        try:
+            target = datasets.get_dataset(target_id)
+            version = datasets.require_ready_version(target)
+        except Exception:  # noqa: BLE001 - deleted / not ready: the run writes its own rows (or fails below)
+            if cfg.dataset_id:
+                raise RunFailure("dataset_not_ready", "The destination dataset has no ready version to append to.",
+                                 node=dest.id, retryable=False) from None
+            return frame
+        previous = datasets.load_version_frame(version)
+        run_log(run, f"Appending {frame.height} rows to version {version.version} ({previous.height} rows)",
+                step=dest.id, context={"dataset_id": str(target.id), "previous_version": version.version})
+    return append_frames(previous, frame, node=dest.id, limit=max_rows())
 
 
 def _slug(name: str) -> str:

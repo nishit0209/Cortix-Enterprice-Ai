@@ -140,5 +140,5 @@ def test_large_text_column_still_infers_text_and_numbers_still_infer_numbers():
     n = 20_000
     text = pl.Series("v", [f"SKU-{i}" for i in range(n)], dtype=pl.String)
     assert I.infer_plan(text).pg_type == "text"
-    money = pl.Series("v", [f"â‚¹{i * 1000 + 50:,}.50" for i in range(1, n)], dtype=pl.String)
+    money = pl.Series("v", [f"₹{i * 1000 + 50:,}.50" for i in range(1, n)], dtype=pl.String)
     assert I.infer_plan(money).pg_type == "numeric"
