@@ -24,6 +24,8 @@ import type { ChatMessage, Dataset } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AnswerCard, UserBubble } from "./answer-card";
 import { Composer, type ComposerHandle } from "./composer";
+import { QuotaBanner } from "./quota-banner";
+import { canManageDashboards } from "@/lib/permissions";
 import { ConversationRail } from "./conversation-rail";
 import { AiContextChip } from "./ai-context";
 import { isReadyDataset } from "./dataset-picker";
@@ -288,6 +290,7 @@ export function AskWorkspace() {
                     datasetColumns={columns.data ?? []}
                     onFollowUp={(q) => void send(q)}
                     canExport={can("exports.create")}
+                    canPin={canManageDashboards(can)}
                   />
                 )}
               </div>
@@ -309,6 +312,7 @@ export function AskWorkspace() {
                       : undefined
                   }
                   canExport={can("exports.create")}
+                    canPin={canManageDashboards(can)}
                 />
               </div>
             )}
@@ -331,6 +335,7 @@ export function AskWorkspace() {
         {/* Composer */}
         <div className="border-t border-border bg-bg/80 px-4 pb-3 pt-3 backdrop-blur-sm sm:px-6">
           <div className="mx-auto w-full max-w-3xl">
+            {can("bi.chat") && <QuotaBanner status={ai.data} onReset={() => void ai.refetch()} />}
             {!can("bi.chat") ? (
               <p className="py-3 text-center text-sm text-fg-muted">Your role doesn&apos;t include asking questions (bi.chat).</p>
             ) : (

@@ -81,11 +81,9 @@ export const Composer = React.forwardRef<
           disabled && "opacity-70",
         )}
       >
-        <label htmlFor="ask-composer" className="sr-only">
-          Ask a question about your data
-        </label>
         <textarea
           id="ask-composer"
+          aria-label="Ask a question"
           ref={taRef}
           rows={1}
           value={value}

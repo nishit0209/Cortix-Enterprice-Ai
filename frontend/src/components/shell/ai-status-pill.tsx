@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { cn, formatDateTime, formatNumber } from "@/lib/utils";
 import { useAiStatus } from "@/lib/queries/org";
+import { aiHealthOf, quotaOf } from "@/lib/ai/quota";
+import { formatDuration, useCountdown } from "@/hooks/use-countdown";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/overlays";
 import { Progress } from "@/components/ui/feedback";
 import { POLICY_LABELS } from "@/components/ui/status";
@@ -12,14 +14,9 @@ import { Skeleton } from "@/components/ui/feedback";
 import type { AiStatus } from "@/lib/types";
 import { useOrgContext } from "./org-context";
 
+/** Pill health from the W3 `/ai/status` fields (`configured`, `quota.state`, `breaker`). */
 export function aiHealth(s: AiStatus | undefined): { tone: "success" | "warning" | "danger" | "neutral"; label: string } {
-  if (!s) return { tone: "neutral", label: "Unknown" };
-  if (!s.configured) return { tone: "neutral", label: "Not configured" };
-  if (s.breaker !== "closed") return { tone: "danger", label: s.breaker === "open_day" ? "Paused for today" : "Cooling down" };
-  const { limit, used } = s.org_budget ?? { limit: 0, used: 0 };
-  if (limit > 0 && used >= limit) return { tone: "danger", label: "Budget used up" };
-  if (limit > 0 && used / limit >= 0.8) return { tone: "warning", label: "Near budget" };
-  return { tone: "success", label: "Available" };
+  return aiHealthOf(s);
 }
 
 const DOT = {
@@ -34,8 +31,10 @@ export function AiStatusPill() {
   const q = useAiStatus(slug);
   const s = q.data;
   const health = aiHealth(s);
-  const limit = s?.org_budget?.limit ?? 0;
-  const used = s?.org_budget?.used ?? 0;
+  const quota = quotaOf(s);
+  const limit = quota?.limit_today ?? s?.org_budget?.limit ?? 0;
+  const used = quota?.used_today ?? s?.org_budget?.used ?? 0;
+  const remaining = useCountdown(quota && quota.state !== "ok" ? quota.resets_at : null);
 
   return (
     <Popover>
@@ -91,9 +90,14 @@ export function AiStatusPill() {
                 {POLICY_LABELS[s.policy] ?? s.policy}
               </span>
             </Row>
-            <Row label="Tier">
+            <Row label="Gemini tier">
               <span className="font-medium capitalize text-fg">{s.tier}</span>
             </Row>
+            {s.models?.fast?.model && (
+              <Row label="Model">
+                <span className="truncate font-mono text-xs text-fg">{s.models.fast.model}</span>
+              </Row>
+            )}
             <div className="space-y-1.5">
               <Row label="Daily requests">
                 <span className="tabular font-medium text-fg">
@@ -109,10 +113,20 @@ export function AiStatusPill() {
                 />
               )}
             </div>
-            {s.resets_at && (
-              <Row label="Resets">
-                <span className="text-fg">{formatDateTime(s.resets_at)}</span>
+            {quota?.resets_at && (
+              <Row label={quota.state === "ok" ? "Quota resets" : "Resets in"}>
+                <span className="tabular text-fg" title={formatDateTime(quota.resets_at)}>
+                  {quota.state !== "ok" && remaining !== null ? formatDuration(remaining) : formatDateTime(quota.resets_at)}
+                </span>
               </Row>
+            )}
+            {s.policy_downgrade_reason && (
+              <p className="rounded-control bg-warning-soft px-3 py-2 text-xs text-warning">
+                The stored policy ({POLICY_LABELS[s.stored_policy ?? ""] ?? s.stored_policy}) is not in effect: {s.policy_downgrade_reason.replace(/_/g, " ")}.
+              </p>
+            )}
+            {s.limiter_available === false && (
+              <p className="rounded-control bg-surface-2 px-3 py-2 text-xs text-fg-muted">Usage is counted from the database log (the fast limiter is not running).</p>
             )}
             {!s.configured && (
               <p className="rounded-control bg-surface-2 px-3 py-2 text-xs text-fg-muted">
