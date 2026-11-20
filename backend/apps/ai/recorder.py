@@ -11,7 +11,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass, field
 from typing import Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from django.db import DEFAULT_DB_ALIAS, DatabaseError, IntegrityError, connections, transaction
 from django.db.models import F
@@ -66,6 +66,19 @@ class Recorder(Protocol):
 def emit_log_line(rec: RequestRecord) -> None:
     level = logging.INFO if rec.status == RequestStatus.OK else logging.WARNING
     log.log(level, "ai_request %s", json.dumps(rec.log_dict(), default=str, sort_keys=True))
+
+
+class InMemoryRecorder:
+    """Keeps request records in memory (plus the structured log line): developer tools that run without a
+    database, e.g. `manage.py record_cassettes`. Never used by the request path."""
+
+    def __init__(self):
+        self.records: list[RequestRecord] = []
+
+    def record(self, rec: RequestRecord) -> UUID:
+        emit_log_line(rec)
+        self.records.append(rec)
+        return uuid4()
 
 
 def _is_test_mirror_of_default(alias: str) -> bool:

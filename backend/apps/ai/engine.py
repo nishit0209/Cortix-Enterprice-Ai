@@ -46,6 +46,7 @@ from .constants import (
     RequestStatus,
 )
 from .exceptions import AIInvalidOutput
+from .notify import notify_quota_exhausted
 from .policy import PolicyDecision, check_policy
 from .prompts import data_block, find_prompt
 from .quota import Denial, LimiterUnavailable, QuotaDenied, QuotaLimiter, Reservation
@@ -131,9 +132,16 @@ class _CallFailed(Exception):
 
 
 def _default_limiter() -> QuotaLimiter:
-    from apps.core.jobs import redis_client
+    """Redis when REDIS_URL is set; otherwise the PostgreSQL counter store (local runtime without Redis)."""
+    from django.conf import settings
 
-    return QuotaLimiter(redis_client)
+    if str(getattr(settings, "REDIS_URL", "") or "").strip():
+        from apps.core.jobs import redis_client
+
+        return QuotaLimiter(redis_client)
+    from .quota_store import default_db_redis
+
+    return QuotaLimiter(default_db_redis)
 
 
 def _default_transport() -> Transport:
@@ -145,6 +153,10 @@ def _default_transport() -> Transport:
 def _actor_user() -> UUID | None:
     kind, actor_id = current_actor.get()
     return actor_id if kind == "user" and actor_id else None
+
+
+# Org-wide exhaustion scopes that notify org admins (a personal cap or a priority share does not).
+NOTIFY_SCOPES = frozenset({"org_day", "org_tokens", "project_day"})
 
 
 class GeminiEngine:
@@ -182,6 +194,10 @@ class GeminiEngine:
         if self._limiter is None:
             self._limiter = _default_limiter()
         return self._limiter
+
+    @property
+    def recorder(self) -> Recorder:
+        return self._recorder
 
     def _get_transport(self) -> Transport:
         if self._transport is None:
@@ -285,11 +301,26 @@ class GeminiEngine:
         except QuotaDenied as denied:
             d = denied.denial
             self._record(call.record(d.status, error_code=d.scope))
+            self._notify_exhausted(call, d)
             raise self._quota_exc(d) from None
         except LimiterUnavailable as exc:
             self._record(call.record(RequestStatus.ERROR.value, error_code=CODE_LIMITER_UNAVAILABLE))
             raise AIUnavailable("AI is temporarily unavailable (quota service unreachable).",
                                 code=CODE_LIMITER_UNAVAILABLE) from exc
+
+    def _notify_exhausted(self, call: _Call, d: Denial) -> None:
+        """First org-level exhaustion of the Pacific day -> one notification to the org admins (best effort)."""
+        if d.scope not in NOTIFY_SCOPES:
+            return
+        mark_once = getattr(self.limiter, "mark_once", None)
+        if mark_once is None:
+            return
+        try:
+            if not mark_once("quota_exhausted_notified", org_id=call.org_id):
+                return
+        except LimiterUnavailable:
+            return
+        notify_quota_exhausted(d.scope, d.resets_at)
 
     @staticmethod
     def _quota_exc(d: Denial) -> AIQuotaExhausted:

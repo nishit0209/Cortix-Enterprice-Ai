@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ from apps.ai.quota import (
     QuotaLimiter,
     default_model_limits,
 )
+from apps.ai.quota_store import DbRedis, MemoryCounterBackend
 from apps.ai.testing import FakeClock, FakeRedis
 from apps.ai.timeutil import next_pacific_midnight
 
@@ -23,11 +25,34 @@ MODEL = "gemini-3.5-flash-lite"
 T0 = datetime(2026, 11, 17, 18, 0, 30, tzinfo=UTC).timestamp()
 
 
-@pytest.fixture
-def env():
+class FlakyCounterBackend(MemoryCounterBackend):
+    """The PostgreSQL counter store's semantics in memory, with an outage switch like FakeRedis.fail."""
+
+    fail = False
+
+    def read(self, keys):
+        if self.fail:
+            raise ConnectionError("database unreachable")
+        return super().read(keys)
+
+    @contextmanager
+    def locked(self, keys):
+        if self.fail:
+            raise ConnectionError("database unreachable")
+        with super().locked(keys) as snap:
+            yield snap
+
+
+@pytest.fixture(params=["redis", "db"])
+def env(request):
+    """Every scenario runs on Redis (FakeRedis) AND on the no-Redis PostgreSQL store (DbRedis semantics)."""
     clock = FakeClock(T0)
-    redis = FakeRedis(clock)
-    return QuotaLimiter(lambda: redis, clock=clock), clock, redis
+    if request.param == "redis":
+        redis = FakeRedis(clock)
+        return QuotaLimiter(lambda: redis, clock=clock), clock, redis
+    backend = FlakyCounterBackend()
+    store = DbRedis(backend, clock=clock)
+    return QuotaLimiter(lambda: store, clock=clock), clock, backend
 
 
 BIG = ModelLimits(rpm=1000, tpm=10_000_000, rpd=100_000)

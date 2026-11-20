@@ -103,3 +103,23 @@ class AIModelQuota(models.Model):
 
     def __str__(self) -> str:
         return f"{self.model} rpm={self.rpm} tpm={self.tpm} rpd={self.rpd}"
+
+
+class AIQuotaCounter(models.Model):
+    """GLOBAL quota counters and breaker state when no Redis is configured (local PostgreSQL-only runtime).
+
+    One row per limiter key (the same keys as the Redis limiter: `ai:q:...`, `ai:breaker:<model>`). Rows are
+    locked with SELECT ... FOR UPDATE while a reservation is evaluated, so concurrent workers cannot overshoot a
+    limit. Keys contain org ids but no tenant data; expired rows are purged by the `ai.purge_quota_counters` job.
+    """
+
+    key = models.CharField(max_length=200, primary_key=True)
+    value = models.TextField(null=True, blank=True)  # NULL = absent (placeholder row created for locking)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["expires_at"], name="ai_quotactr_exp_idx")]
+
+    def __str__(self) -> str:  # pragma: no cover - admin/debug only
+        return f"{self.key}={self.value}"
