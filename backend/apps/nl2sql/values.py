@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections import OrderedDict
+from contextlib import nullcontext
 from dataclasses import replace
 from uuid import UUID
 
@@ -112,8 +113,13 @@ def with_known_values(ctx: QuestionContext, dataset_version_id: UUID | None = No
 
     if get_current_org_id() != ctx.org_id:
         return ctx  # offline tools / foreign context: never touch the database
+    from django.db import transaction
+
+    # Inside the caller's transaction a failing lookup must not poison it: run it in a savepoint.
+    guard = transaction.atomic() if transaction.get_connection().in_atomic_block else nullcontext()
     try:
-        values = known_values(ctx, dataset_version_id)
+        with guard:
+            values = known_values(ctx, dataset_version_id)
     except Exception as exc:  # noqa: BLE001 - an optimisation for the builder; never fail the question
         log.debug("nl2sql: dimension values unavailable (%s)", type(exc).__name__)
         return ctx
