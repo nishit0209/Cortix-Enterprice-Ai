@@ -159,6 +159,7 @@ def test_widgets_crud_layout_and_bulk_positions(org, owner, owner_client, fake):
     assert r.json()["title"] == "Revenue trend" and r.json()["chart"]["y"] == ["revenue"]
     assert owner_client.patch(wurl, {"kind": "text"}, format="json").status_code == 400  # a text tile has no query
     assert owner_client.patch(wurl, {"layout": {"x": 10, "y": 0, "w": 4, "h": 4}}, format="json").status_code == 400
+    assert owner_client.patch(wurl, {"chart": {"type": ["bar"]}}, format="json").status_code == 400  # not a 500
     assert owner_client.delete(durl(org, dash["id"], "widgets", note["id"])).status_code == 204
     assert owner_client.get(durl(org, dash["id"])).json()["widget_count"] == 2
     assert owner_client.delete(durl(org, dash["id"], "widgets", note["id"])).status_code == 404
@@ -178,6 +179,8 @@ def test_widgets_crud_layout_and_bulk_positions(org, owner, owner_client, fake):
     {"title": "Chart", "kind": "chart", "saved_query_id": "SQ", "layout": {"x": 8, "y": 0, "w": 6, "h": 4}},
     {"title": "Chart", "kind": "chart", "saved_query_id": "SQ", "layout": {"x": 0, "y": 0, "w": True, "h": 4}},
     {"title": "Chart", "kind": "chart", "saved_query_id": "SQ", "chart": {"type": "radar"}},
+    {"title": "Chart", "kind": "chart", "saved_query_id": "SQ", "chart": {"type": ["bar"]}},  # unhashable: 400, not 500
+    {"title": "Chart", "kind": "chart", "saved_query_id": "SQ", "chart": {"type": {"bar": 1}}},
     {"title": "Chart", "kind": "chart", "saved_query_id": str(uuid4())},  # unknown saved query
 ])
 def test_widget_validation(org, owner_client, fake, payload):

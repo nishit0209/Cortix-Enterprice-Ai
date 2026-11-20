@@ -59,7 +59,8 @@ def clean_layout(value: Any, *, field: str = "layout") -> dict:
 def clean_chart(value: Any, *, field: str = "chart") -> dict | None:
     if value is None:
         return None
-    if not isinstance(value, dict) or value.get("type") not in CHART_TYPES:
+    chart_type = value.get("type") if isinstance(value, dict) else None
+    if not isinstance(chart_type, str) or chart_type not in CHART_TYPES:  # a list/dict type is unhashable
         raise ValidationError({field: [f"Must be an object with type in {sorted(CHART_TYPES)}."]})
     y = value.get("y") or []
     if isinstance(y, str):
