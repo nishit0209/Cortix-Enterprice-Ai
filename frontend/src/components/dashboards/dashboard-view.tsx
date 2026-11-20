@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { isApiError } from "@/lib/api";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
 import { canManageDashboards } from "@/lib/permissions";
-import { useDashboard, useDeleteWidget, useSaveLayout, useUpdateDashboard } from "@/lib/queries/dashboards";
+import { dashKeys, useDashboard, useDeleteWidget, useSaveLayout, useUpdateDashboard } from "@/lib/queries/dashboards";
 import type { DashboardWidget } from "@/lib/types";
 import { DashboardGrid } from "./dashboard-grid";
 import { DashboardFormDialog, WidgetDialog } from "./dialogs";
@@ -77,7 +77,7 @@ export function DashboardView() {
     );
   }
 
-  const refreshAll = () => void qc.invalidateQueries({ queryKey: ["org", slug, "dashboards", id, "widgets"] });
+  const refreshAll = () => void qc.invalidateQueries({ queryKey: dashKeys.widgetDataAll(slug, id) });
 
   return (
     <div className="space-y-6">

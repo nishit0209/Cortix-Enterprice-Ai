@@ -363,6 +363,9 @@ export function PinDialog({
         const d = await createDash.mutateAsync({ title: newTitle.trim() });
         dashboardId = d.id;
         existing = [];
+        // Target the dashboard just created, so retrying after a failed pin reuses it instead of creating another.
+        setTarget(d.id);
+        setNewTitle("");
       }
       await createWidget.mutateAsync({
         dashboardId,

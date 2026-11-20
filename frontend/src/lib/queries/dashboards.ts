@@ -16,10 +16,17 @@ import type {
 
 const o = (org: string) => `/orgs/${encodeURIComponent(org)}`;
 
+/**
+ * Query keys. Widget data has its own root (not under `dashboards`): each widget fetch re-runs a saved query through
+ * the SQL guard and the warehouse and writes an audit row, so invalidating or cancelling the dashboard list or a
+ * dashboard must never touch it. List and detail operations also pass `exact: true` (the list key prefixes every
+ * detail key). Only a widget's own refresh, or "Refresh all" (`widgetDataAll`), re-runs widget queries.
+ */
 export const dashKeys = {
   list: (org: string) => ["org", org, "dashboards"] as const,
   detail: (org: string, id: string) => ["org", org, "dashboards", id] as const,
-  widgetData: (org: string, id: string, wid: string) => ["org", org, "dashboards", id, "widgets", wid, "data"] as const,
+  widgetDataAll: (org: string, id: string) => ["org", org, "dashboard-widget-data", id] as const,
+  widgetData: (org: string, id: string, wid: string) => ["org", org, "dashboard-widget-data", id, wid] as const,
   savedQueries: (org: string) => ["org", org, "saved-queries"] as const,
 };
 
@@ -50,7 +57,10 @@ export function useCreateDashboard(org: string) {
   return useMutation({
     mutationFn: (body: { title: string; description?: string; is_default?: boolean; is_shared?: boolean }) =>
       api.post<Dashboard>(`${o(org)}/dashboards`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: dashKeys.list(org) }),
+    onSuccess: (d) => {
+      if (d && typeof d === "object" && d.id) qc.setQueryData<Dashboard>(dashKeys.detail(org, d.id), { ...d, widgets: d.widgets ?? [] });
+      return qc.invalidateQueries({ queryKey: dashKeys.list(org), exact: true });
+    },
   });
 }
 
@@ -68,8 +78,8 @@ export function useUpdateDashboard(org: string) {
     mutationFn: ({ id, ...body }: DashboardPatch & { id: string }) => api.patch<Dashboard>(`${o(org)}/dashboards/${id}`, body),
     onSuccess: (d, vars) => {
       if (d && typeof d === "object" && Array.isArray((d as Dashboard).widgets)) qc.setQueryData(dashKeys.detail(org, vars.id), d);
-      else void qc.invalidateQueries({ queryKey: dashKeys.detail(org, vars.id) });
-      void qc.invalidateQueries({ queryKey: dashKeys.list(org) });
+      else void qc.invalidateQueries({ queryKey: dashKeys.detail(org, vars.id), exact: true });
+      void qc.invalidateQueries({ queryKey: dashKeys.list(org), exact: true });
     },
   });
 }
@@ -83,7 +93,8 @@ export function useSaveLayout(org: string, id: string) {
   return useMutation({
     mutationFn: (items: GridItem[]) => api.patch<Dashboard>(`${o(org)}/dashboards/${id}`, layoutPatch(items)),
     onMutate: async (items) => {
-      await qc.cancelQueries({ queryKey: dashKeys.detail(org, id) });
+      // Only the dashboard itself: widget data still loading must keep loading.
+      await qc.cancelQueries({ queryKey: dashKeys.detail(org, id), exact: true });
       const prev = qc.getQueryData<Dashboard>(dashKeys.detail(org, id));
       if (prev) {
         const pos = new Map(items.map((i) => [i.id, i]));
@@ -108,8 +119,9 @@ export function useDeleteDashboard(org: string) {
   return useMutation({
     mutationFn: (id: string) => api.delete(`${o(org)}/dashboards/${id}`),
     onSuccess: (_d, id) => {
-      qc.removeQueries({ queryKey: dashKeys.detail(org, id) });
-      void qc.invalidateQueries({ queryKey: dashKeys.list(org) });
+      qc.removeQueries({ queryKey: dashKeys.detail(org, id), exact: true });
+      qc.removeQueries({ queryKey: dashKeys.widgetDataAll(org, id) });
+      void qc.invalidateQueries({ queryKey: dashKeys.list(org), exact: true });
     },
   });
 }
@@ -122,9 +134,9 @@ export function useCreateWidget(org: string) {
     mutationFn: ({ dashboardId, ...body }: CreateWidgetRequest & { dashboardId: string }) =>
       api.post<DashboardWidget>(`${o(org)}/dashboards/${dashboardId}/widgets`, body),
     onSuccess: (_w, vars) => {
-      void qc.invalidateQueries({ queryKey: dashKeys.detail(org, vars.dashboardId) });
-      void qc.invalidateQueries({ queryKey: dashKeys.list(org) });
-      void qc.invalidateQueries({ queryKey: dashKeys.savedQueries(org) });
+      void qc.invalidateQueries({ queryKey: dashKeys.detail(org, vars.dashboardId), exact: true });
+      void qc.invalidateQueries({ queryKey: dashKeys.list(org), exact: true });
+      void qc.invalidateQueries({ queryKey: dashKeys.savedQueries(org), exact: true });
     },
   });
 }
@@ -138,7 +150,7 @@ export function useUpdateWidget(org: string, dashboardId: string) {
       qc.setQueryData<Dashboard>(dashKeys.detail(org, dashboardId), (prev) =>
         prev ? { ...prev, widgets: prev.widgets.map((x) => (x.id === vars.wid ? { ...x, ...(w && typeof w === "object" ? w : vars) } : x)) } : prev,
       );
-      if (vars.chart !== undefined) void qc.invalidateQueries({ queryKey: dashKeys.widgetData(org, dashboardId, vars.wid) });
+      if (vars.chart !== undefined) void qc.invalidateQueries({ queryKey: dashKeys.widgetData(org, dashboardId, vars.wid), exact: true });
     },
   });
 }
@@ -149,8 +161,8 @@ export function useDeleteWidget(org: string, dashboardId: string) {
     mutationFn: (wid: string) => api.delete(`${o(org)}/dashboards/${dashboardId}/widgets/${wid}`),
     onSuccess: (_d, wid) => {
       qc.setQueryData<Dashboard>(dashKeys.detail(org, dashboardId), (prev) => (prev ? { ...prev, widgets: prev.widgets.filter((w) => w.id !== wid) } : prev));
-      qc.removeQueries({ queryKey: dashKeys.widgetData(org, dashboardId, wid) });
-      void qc.invalidateQueries({ queryKey: dashKeys.list(org) });
+      qc.removeQueries({ queryKey: dashKeys.widgetData(org, dashboardId, wid), exact: true });
+      void qc.invalidateQueries({ queryKey: dashKeys.list(org), exact: true });
     },
   });
 }

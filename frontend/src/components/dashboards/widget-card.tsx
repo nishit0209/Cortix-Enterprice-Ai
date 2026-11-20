@@ -152,7 +152,15 @@ export function WidgetCard({
           </div>
         ) : q.data ? (
           <WidgetBody widget={widget} data={q.data} height={bodyHeight} />
-        ) : null}
+        ) : (
+          // No data, no error and no fetch running (e.g. the request was cancelled): say so and offer to load it.
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 px-2 text-center" role="note" aria-label={`${widget.title} not loaded`}>
+            <span className="text-sm text-fg-muted">This widget&apos;s data isn&apos;t loaded.</span>
+            <Button variant="link" size="xs" onClick={() => void q.refetch()}>
+              Load data
+            </Button>
+          </div>
+        )}
       </div>
       {q.data?.truncated && widget.kind !== "kpi" && (
         <div className="border-t border-border px-3 py-1 text-[11px] text-fg-subtle">Showing the first {q.data.rows.length} rows</div>
