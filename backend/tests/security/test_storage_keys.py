@@ -43,7 +43,9 @@ class _RecordingS3:
 
 
 @pytest.fixture
-def s3(monkeypatch):
+def s3(monkeypatch, settings):
+    """The S3 code path with a recording fake client (test settings default to STORAGE_BACKEND="fs")."""
+    settings.STORAGE_BACKEND = "s3"
     fake = _RecordingS3()
     monkeypatch.setattr(storage, "client", lambda: fake)
     return fake

@@ -228,7 +228,11 @@ def is_mask_null_rendering(col) -> bool:
     if not isinstance(branch, exp.If) or col.arg_key != "true" or not _is_false(branch.this):
         return False
     case = branch.parent
-    if not isinstance(case, exp.Case) or case.args.get("this") is not None or case.args.get("default") is not None:
+    if (
+        not isinstance(case, exp.Case)
+        or case.args.get("this") is not None
+        or case.args.get("default") is not None
+    ):
         return False
     return len(case.args.get("ifs") or []) == 1
 

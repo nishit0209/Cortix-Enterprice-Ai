@@ -226,7 +226,10 @@ def test_churn_signal_is_learnable_from_behaviour():
     ids = [c["customer_id"] for c in customers]
     active = [i for i in ids if i not in churned]
     assert mean(tickets[i] for i in churned) > 1.4 * mean(tickets[i] for i in active)
-    assert mean(x for i in churned for x in csat.get(i, [])) < mean(x for i in active for x in csat.get(i, [])) - 0.3
+    assert (
+        mean(x for i in churned for x in csat.get(i, []))
+        < mean(x for i in active for x in csat.get(i, [])) - 0.3
+    )
     recent = (dt.date.fromisoformat(MANIFEST["anchor"]) - dt.timedelta(days=90)).isoformat()
     churned_recent = mean(1 if last.get(i, "") >= recent else 0 for i in churned)
     active_recent = mean(1 if last.get(i, "") >= recent else 0 for i in active)
@@ -269,7 +272,9 @@ def test_products_have_duplicate_and_variant_listings_for_entity_resolution():
             assert ua == ub and abs(float(pa["pack_size"]) * fa - float(pb["pack_size"]) * fb) < 1e-6
         else:
             assert (pa["unit"], pa["pack_size"]) == (pb["unit"], pb["pack_size"])
-        assert abs(float(pa["list_price_inr"]) - float(pb["list_price_inr"])) <= 0.05 * float(pa["list_price_inr"])
+        assert abs(float(pa["list_price_inr"]) - float(pb["list_price_inr"])) <= 0.05 * float(
+            pa["list_price_inr"]
+        )
     families = meta["variant_families"]
     assert len(families) >= 5
     for ids in families:  # variants: same brand/category, DIFFERENT pack size => distinct products

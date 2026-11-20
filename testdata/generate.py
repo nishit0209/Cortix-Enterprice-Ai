@@ -953,7 +953,9 @@ def gen_commerce(out: Path, anchor: dt.date) -> dict:
             "product listed twice; variant_families are DIFFERENT products (pack sizes) of one brand and name."
         ),
     }
-    (out / "commerce_meta.json").write_text(json.dumps(meta, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    (out / "commerce_meta.json").write_text(
+        json.dumps(meta, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return {
         "customers": len(customers),
         "churned": sum(c[-1] for c in customers),

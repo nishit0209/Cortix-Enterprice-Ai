@@ -268,9 +268,7 @@ def test_oracle_mask_null_exemption_is_per_reference_in_every_clause():
 
 def test_oracle_mask_null_wrapper_does_not_excuse_other_mask_kinds():
     """`CASE WHEN FALSE THEN phone END` is not a mask_partial rendering: phone must carry repeat()/right()."""
-    sql = (
-        "SELECT c.phone FROM (SELECT CASE WHEN FALSE THEN phone END AS phone FROM org_qatest01.ds_102_v1) AS c"
-    )
+    sql = "SELECT c.phone FROM (SELECT CASE WHEN FALSE THEN phone END AS phone FROM org_qatest01.ds_102_v1) AS c"
     assert any("phone" in p and "read raw" in p for p in oracle_violations(_accepted(sql), "masked_multi"))
 
 
