@@ -264,3 +264,81 @@ Command (from backend/): `pytest tests/isolation tests/security tests/ai_eval te
 - **ai_ml:** golden g39 ("weekly orders last month") is still a builder gap (strict xfail in
   `backend/tests/ai_eval/test_golden_sales.py`). When the builder answers it, the xfail turns XPASS(strict); tell
   QA so the marker can be removed.
+
+## Review fixes (independent review of this branch, 2026-11-20)
+All 7 findings were verified against the Backend W3 and Frontend W3 branch code (read with `git show`). All 7 were
+real and all 7 are fixed. Nothing was rejected.
+
+| # | sev | finding | fix (commit) |
+|---|---|---|---|
+| 1 | medium | `test_seed_demo` matched datasets by substring, so `match[0]` was "Customers (web sign-ups)" for customers.csv and "Products (supplier B)" for products.csv | `testing.flows.find_seeded_dataset`: the exact normalised name OR the exact file named in the description seed_demo writes; exactly one match, otherwise the test fails (14eb2cf) |
+| 2 | medium | the second `seed_demo --password` re-hashes the password (new salt), which invalidates the `force_login` session, so the idempotency snapshot read 401 bodies | after the re-run: `check_password(DEMO_PASSWORD)`, a fresh `api_client_for(user)`, and `_snapshot` asserts 200 on every call (14eb2cf) |
+| 3 | medium | dashboards are owner-private unless `is_shared` (Backend W3 `visible_dashboards`), but the widget-policy and viewer tests created unshared boards | the boards are created with `is_shared: True` (cross-org boards too, so a 404 there proves org isolation). New: an unshared board is 404 to analyst and viewer (detail, widget data, list, PATCH/DELETE/widget writes); a shared board can be changed only by its owner (be2aa80) |
+| 4 | medium | e2e `expectSqlAndRegions` could never pass: the SQL disclosure starts collapsed and the result opens on the Chart tab | the helper scopes to the latest `article "NEXORA answer"`, waits for `aria-busy=false`, opens the `SQL…` disclosure (`aria-expanded=true`), asserts the SQL text, then clicks tab "Table" and checks the 5 region cells (f6c33f4) |
+| 5 | medium | the pin flow waited for the Pin dialog to close, but the dialog stays open on a success screen | the test asserts "The answer is on your dashboard." and the "Open dashboard" href (`/o/<slug>/dashboards/<id>`, which must match the API board), then clicks "Close". It pins as "Widget type" → Table, so the dashboard tile (`region` named by the widget title) is checked cell by cell; the API also asserts `kind: table` and `saved_query_id` (f6c33f4) |
+| 6 | medium | the SQL-guard oracle never flagged `*` / `t.*` over a physical policy table | `_wildcard_violations` flags a bare `*`, a `t.*` qualified with the source's alias or name (also inside a function), and a whole-row `row_to_json(t)` in the SELECT that reads a table with denied or masked columns. `COUNT(*)`/`COUNT(t.*)` and stars over derived tables or CTEs stay accepted. There are 17 new self-tests. The real guard on main produces explicit projections at the source (probed for every corpus case containing `*`), so no new verdict fails (af32a46) |
+| 7 | low | the accepted branch of the Windows-special-names test could not fail | an accepted name must be listed on disk as exactly that name in uploads/ (device, ADS stream and trailing-dot/space aliases fail), be the only file under the root, resolve inside it, and leave the tmp dir and the CWD unchanged. Then `get_object` must return the bytes (read after the on-disk checks, so a device name never blocks). A rejected name must also leave the disk untouched. Windows self-tests prove that a naive writer fails the check (ADS, `trailing.`, `trailing `, `nul`), and a plain name passes (e020126) |
+
+Verification outside a database:
+- **Backend W3 tree.** I exported `agent/backend/w3` read-only to a scratch dir (`git archive`) and overlaid this
+  branch's `backend/testing` and `backend/tests`.
+  - `test_seed_demo_matching.py` passes there with the REAL `apps.platform_admin.demo.dataset_name_for`/`csv_files`.
+  - All 10 special-name cases pass there: the backend rejects every name.
+  - `test_seed_demo.py`, `test_dashboard_widget_policy.py` and `test_w3_isolation.py` no longer skip there: all 12
+    tests reach DB setup and error only for lack of a database.
+  - The known fs failures there (403 vs 404/410, Windows overwrite) are unchanged; see Defects above.
+- **Frontend.** The e2e selectors were checked against the Frontend W3 source:
+  - `answer-card.tsx`: the article label, `aria-busy`, and the tabs "Chart"/"Table";
+  - `sql-code.tsx`: the `SqlPanel` disclosure button "SQL…" with `aria-expanded`;
+  - `dialogs.tsx`: `PinDialog` (success text, "Close", "Open dashboard") and `KindSelect` (combobox "Widget type",
+    option "Table");
+  - `widget-card.tsx`: a `<section aria-label={title}>` holding a `ResultTable`.
+
+### Tests after the review fixes (REAL, HEAD, no database: `nexora_migrator` password authentication fails on :5432)
+Command (from backend/): `pytest <suite> -p no:cacheprovider`.
+
+**Total: 411 passed, 2 failed, 129 skipped, 1 xfailed, 1044 errors.**
+
+| suite | passed | failed | skipped | xfailed | errors (no DB) |
+|---|---|---|---|---|---|
+| tests/security/sql | 225 | 2 | 2 | 0 | 0 |
+| tests/security (other) | 41 | 0 | 85 | 0 | 118 |
+| tests/isolation | 47 | 0 | 28 | 0 | 911 |
+| tests/integration | 22 | 0 | 10 | 0 | 15 |
+| tests/ai_eval | 76 | 0 | 4 | 1 | 0 |
+
+- **Passed (+31):** 17 oracle self-tests, 5 fs-storage oracle self-tests, and 9 seed_demo matcher tests.
+- **Failed:** still only mask-002/mask-008, the `mask_hash` MD5-vs-sha256 guard defect (data_engineering).
+- **Skipped:** +2 new dashboard isolation tests, which wait for Backend W3 routes.
+- **Errors:** every error is the database `OperationalError` at setup, so those tests were **not executed: no
+  database**.
+- **e2e:** `tsc --noEmit` OK; `npx playwright test --list` loads 13 tests; `E2E_SKIP_IF_DOWN=1 npx playwright test`
+  gives 13 skipped (the stack is down). The pin and SQL flows are therefore still unexecuted.
+- **Checks:**
+  - `check_conventions` OK; `check_ownership --agent qa_security --base main` OK;
+  - ruff check and ruff format OK (53 files);
+  - `manage.py check`: 0 issues; `makemigrations --check`: no changes.
+- **Frontend checks** (no frontend change on this branch; `npm ci` in this worktree): `npm run lint` OK,
+  `npm run typecheck` OK, `npm test -- --run` 120/120 passed (9 files), `npm run build` OK.
+
+### Requests from the review
+- **Integrator:** add to CONTRACT "W3 additions / Dashboards":
+  - `is_shared` (POST/PATCH body, list/detail payload; default false);
+  - the visibility rule: a dashboard is visible to its owner, or to every member with `dashboards.view` when
+    shared. Anything else is 404, with no existence oracle;
+  - only the owner may change a board or its widgets: 403 on a shared board, 404 on an unshared one.
+
+  The QA tests now encode exactly this as-built rule.
+- **Backend (optional):** `accounts.services.ensure_user` re-hashes an unchanged `--password` on every
+  `seed_demo` run, which logs the demo user out of every open session. Skip `set_password` when
+  `check_password(password)` already holds. The test no longer depends on this.
+- **Frontend:** the e2e now also relies on these accessible names. Please keep them stable:
+  - `article "NEXORA answer"` with `aria-busy`;
+  - the `SQL…` disclosure button with `aria-expanded`;
+  - tab "Table";
+  - combobox "Widget type", with option "Table…";
+  - the Pin success text "The answer is on your dashboard.", button "Close" and link "Open dashboard";
+  - the widget tile `section` labelled with the widget title.
+- The Backend request above about `seed_demo` names is superseded. The test now matches the exact normalised name
+  or the file named in the description, so seed_demo's current naming (`Customers`, `Products (supplier B)`, ...)
+  is fine as is.
