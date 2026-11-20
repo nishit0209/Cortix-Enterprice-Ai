@@ -123,10 +123,15 @@ def delay_seconds(countdown: float | None = None, eta: datetime | None = None, *
     return 0.0
 
 
+_timer_factory: Callable[..., Any] = threading.Timer
+
+
 def submit(task, args=None, kwargs=None, *, task_id: str | None = None, countdown: float | None = None,
-           eta: datetime | None = None, retries: int = 0, pool: Callable[[], Any] = executor,
-           timer_factory: Callable[..., Any] = threading.Timer) -> ThreadResult:
-    """Run `task` on the thread pool (after `countdown`/`eta` when given)."""
+           eta: datetime | None = None, retries: int = 0, pool: Callable[[], Any] | None = None,
+           timer_factory: Callable[..., Any] | None = None) -> ThreadResult:
+    """Run `task` on the thread pool (after `countdown`/`eta` when given, through a daemon timer)."""
+    pool = pool or executor
+    timer_factory = timer_factory or _timer_factory
     task_id = task_id or str(uuid.uuid4())
     args = tuple(args or ())
     kwargs = dict(kwargs or {})
@@ -224,15 +229,31 @@ def mark_job_failed(task, kwargs: dict, exc: BaseException) -> None:
 class RunnerMixin:
     """Routes `.delay()` / `.apply_async()` through `settings.TASK_RUNNER` (mixed into Celery Task subclasses)."""
 
+    def _apply_inline(self, args, kwargs, *, task_id=None, link=None, link_error=None, retries: int = 0):
+        """Eager execution that also honours `self.retry()` (immediately, without the countdown); exceptions
+        propagate, and retries beyond `max_retries` raise the task's exception like a worker would record it."""
+        attempt = retries
+        while True:
+            try:
+                return self.apply(args, kwargs, task_id=task_id, link=link, link_error=link_error, retries=attempt,
+                                  throw=True)
+            except Retry as exc:
+                if exc.sig is not None:
+                    args, kwargs = exc.sig.args, exc.sig.kwargs
+                attempt += 1
+
     def apply_async(self, args=None, kwargs=None, task_id=None, producer=None, link=None, link_error=None,
                     shadow=None, **options):
         name = runner_name()
         if name == "celery":
             return super().apply_async(args, kwargs, task_id=task_id, producer=producer, link=link,
                                        link_error=link_error, shadow=shadow, **options)
-        if name == "eager" or in_pool_thread():
-            # In a pool thread a nested submit + `.get()` could dead-lock a saturated pool: run inline instead.
-            return self.apply(args, kwargs, task_id=task_id, link=link, link_error=link_error,
-                              retries=options.get("retries", 0), throw=True)
+        delayed = options.get("countdown") is not None or options.get("eta") is not None
+        if name == "eager" or (in_pool_thread() and not delayed and not options.get("retries")):
+            # In a pool thread an immediate nested submit + `.get()` could dead-lock a saturated pool: run it
+            # inline instead. Delayed calls and retries (Task.retry re-sends with `retries` + countdown) always go
+            # through the timer, so they never block the current pool thread.
+            return self._apply_inline(args, kwargs, task_id=task_id, link=link, link_error=link_error,
+                                      retries=int(options.get("retries") or 0))
         return submit(self, args, kwargs, task_id=task_id, countdown=options.get("countdown"),
                       eta=options.get("eta"), retries=int(options.get("retries") or 0))

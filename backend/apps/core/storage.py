@@ -339,5 +339,17 @@ def key_org_id(key: str) -> UUID:
     return UUID(match.group(1))
 
 
+_KNOWN_TYPES = {
+    ".csv": "text/csv", ".tsv": "text/tab-separated-values", ".txt": "text/plain", ".json": "application/json",
+    ".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".parquet": "application/vnd.apache.parquet", ".zip": "application/zip",
+}
+
+
 def guess_content_type(name: str) -> str:
-    return mimetypes.guess_type(name)[0] or "application/octet-stream"
+    """Stable types for the formats NEXORA serves (the OS registry is not consulted for them, e.g. Windows maps
+    .csv to Excel); anything else falls back to mimetypes, then application/octet-stream."""
+    ext = os.path.splitext(str(name or ""))[1].lower()
+    return _KNOWN_TYPES.get(ext) or mimetypes.guess_type(name)[0] or "application/octet-stream"
