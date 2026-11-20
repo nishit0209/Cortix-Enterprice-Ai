@@ -2,7 +2,9 @@
 
 `GET /dashboards/{id}/widgets/{wid}/data` re-runs the saved query through `sqlguard.validate` + `execute` under
 the viewer's `effective_policy`, never from stored rows, and audits the refresh (`BiQueryAudit` source
-`dashboard`). With ONE widget pinned by the owner from an Ask-AI answer ("total revenue by region"):
+`dashboard`). Dashboards are private to their owner unless `is_shared` (as-built Backend W3: `visible_dashboards`
+= own OR shared, anything else 404), so the owner pins the widget on a SHARED board, the only way an analyst can
+view it. With ONE widget pinned by the owner from an Ask-AI answer ("total revenue by region"):
 
   * owner (no policy): the 5 regions + the NULL group, values equal to the independent pandas-free oracle;
   * analyst with a ROW policy region = North: exactly one row, North, with the owner's North value;
@@ -72,8 +74,9 @@ def _pin_region_widget(client, base: str, dataset_id: str) -> tuple[str, str]:
     )
     assert msg.status_code == 200, msg.content[:300]
     assert msg.json()["sql"]["source"] == "builder"
-    board = client.post(f"{base}/dashboards", {"title": "Regional"}, format="json")
+    board = client.post(f"{base}/dashboards", {"title": "Regional", "is_shared": True}, format="json")
     assert board.status_code == 201, board.content[:300]
+    assert board.json().get("is_shared", True) is True, board.json()
     widget = client.post(
         f"{base}/dashboards/{board.json()['id']}/widgets",
         {

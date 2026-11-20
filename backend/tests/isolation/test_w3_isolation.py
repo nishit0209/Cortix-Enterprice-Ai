@@ -7,8 +7,12 @@ owning app ships its isolation factories. This module adds what the matrix canno
     notifications, and `read-all` only touches the caller's own;
   * INSIDE one org, a BI conversation is private to its author (detail, messages, posting, feedback, list);
   * dashboards and widgets of org A are unreachable through org B (detail, widgets, widget data, PATCH/DELETE),
-    and widget data never serves rows to a non-member.
+    and widget data never serves rows to a non-member;
+  * INSIDE one org, a dashboard is private to its owner unless `is_shared` (as-built Backend W3:
+    `visible_dashboards` = own OR shared): an unshared board is 404 to every other member (detail, widgets, widget
+    data, PATCH/DELETE, list); a shared board is readable by `dashboards.view` but only its owner may change it.
 
+Cross-org boards are created SHARED, so a 404 there proves org isolation and not merely owner privacy.
 Every block skips cleanly until its feature is routed.
 """
 
@@ -144,10 +148,14 @@ def test_conversations_are_private_to_their_author_inside_one_org(two_orgs):
 
 
 # ------------------------------------------------------------------------------------------------ dashboards
-def _dashboard(world, title: str = "Org A board") -> dict:
-    resp = api_client_for(world.owner).post(f"{_base(world)}/dashboards", {"title": title}, format="json")
+def _dashboard(world, title: str = "Org A board", *, shared: bool = True) -> dict:
+    resp = api_client_for(world.owner).post(
+        f"{_base(world)}/dashboards", {"title": title, "is_shared": shared}, format="json"
+    )
     assert resp.status_code == 201, resp.content[:300]
-    return resp.json()
+    body = resp.json()
+    assert body.get("is_shared", shared) is shared, body
+    return body
 
 
 def _text_widget(world, dashboard_id: str) -> dict:
@@ -227,7 +235,7 @@ def test_widgets_cannot_reference_another_orgs_saved_query_or_message(two_orgs):
 @needs_dashboards
 def test_dashboard_viewers_cannot_modify_and_anonymous_gets_401(two_orgs, anon_client):
     a = two_orgs.a
-    board = _dashboard(a)
+    board = _dashboard(a)  # shared: readable by every member holding dashboards.view
     viewer = api_client_for(a.viewer)
     assert viewer.get(f"{_base(a)}/dashboards/{board['id']}").status_code == 200, "viewer has dashboards.view"
     assert (
@@ -236,3 +244,73 @@ def test_dashboard_viewers_cannot_modify_and_anonymous_gets_401(two_orgs, anon_c
     assert viewer.delete(f"{_base(a)}/dashboards/{board['id']}").status_code == 403
     assert anon_client.get(f"{_base(a)}/dashboards").status_code == 401
     assert anon_client.get(f"{_base(a)}/dashboards/{board['id']}").status_code == 401
+
+
+@needs_dashboards
+def test_unshared_dashboards_are_private_to_their_owner_inside_one_org(two_orgs):
+    a = two_orgs.a
+    board = _dashboard(a, "Owner private board", shared=False)
+    widget = _text_widget(a, board["id"])
+    base = _base(a)
+    for user in (a.analyst, a.viewer):
+        client = api_client_for(user)
+        for suffix in (
+            f"dashboards/{board['id']}",
+            f"dashboards/{board['id']}/widgets/{widget['id']}/data",
+        ):
+            resp = client.get(f"{base}/{suffix}")
+            assert resp.status_code == 404, (user.email, suffix, resp.status_code)
+            assert b"org-a-confidential-note" not in resp.content
+        listed = client.get(f"{base}/dashboards")
+        assert listed.status_code == 200, listed.content[:300]
+        assert board["id"] not in listed.content.decode(), (
+            f"{user.email} lists another member's private board"
+        )
+    # the analyst holds dashboards.manage, yet cannot touch (or detect) another member's private board
+    analyst = api_client_for(a.analyst)
+    for method, suffix, body in (
+        ("patch", f"dashboards/{board['id']}", {"title": "pwned", "is_shared": True}),
+        ("delete", f"dashboards/{board['id']}", None),
+        (
+            "post",
+            f"dashboards/{board['id']}/widgets",
+            {"title": "x", "kind": "text", "text": "x", "layout": {}},
+        ),
+        ("patch", f"dashboards/{board['id']}/widgets/{widget['id']}", {"text": "pwned"}),
+        ("delete", f"dashboards/{board['id']}/widgets/{widget['id']}", None),
+    ):
+        resp = getattr(analyst, method)(f"{base}/{suffix}", body or {}, format="json")
+        assert resp.status_code == 404, f"{method.upper()} {suffix} -> {resp.status_code}"
+    detail = api_client_for(a.owner).get(f"{base}/dashboards/{board['id']}")
+    assert detail.status_code == 200, "the owner still sees the private board"
+    assert detail.json()["title"] == "Owner private board"
+    assert detail.json().get("is_shared", False) is False
+    assert [w["id"] for w in detail.json()["widgets"]] == [widget["id"]]
+
+
+@needs_dashboards
+def test_a_shared_dashboard_is_changed_only_by_its_owner(two_orgs):
+    a = two_orgs.a
+    board = _dashboard(a, "Team board")
+    widget = _text_widget(a, board["id"])
+    base = _base(a)
+    analyst = api_client_for(a.analyst)
+    assert analyst.get(f"{base}/dashboards/{board['id']}").status_code == 200
+    for method, suffix, body in (
+        ("patch", f"dashboards/{board['id']}", {"title": "pwned"}),
+        ("delete", f"dashboards/{board['id']}", None),
+        (
+            "post",
+            f"dashboards/{board['id']}/widgets",
+            {"title": "x", "kind": "text", "text": "x", "layout": {}},
+        ),
+        ("patch", f"dashboards/{board['id']}/widgets/{widget['id']}", {"text": "pwned"}),
+        ("delete", f"dashboards/{board['id']}/widgets/{widget['id']}", None),
+    ):
+        resp = getattr(analyst, method)(f"{base}/{suffix}", body or {}, format="json")
+        assert resp.status_code in (403, 404), f"{method.upper()} {suffix} -> {resp.status_code}"
+    detail = api_client_for(a.owner).get(f"{base}/dashboards/{board['id']}").json()
+    assert detail["title"] == "Team board"
+    assert [(w["id"], w.get("text")) for w in detail["widgets"]] == [
+        (widget["id"], "org-a-confidential-note")
+    ]
