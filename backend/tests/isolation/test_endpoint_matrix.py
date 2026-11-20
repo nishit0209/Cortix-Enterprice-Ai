@@ -104,15 +104,18 @@ W2_CONTRACT_PATHS = [
     ("pipeline", f"pipelines/{_ID}"),
     ("pipeline-runs", f"pipelines/{_ID}/runs"),
     ("pipeline-run", f"pipeline-runs/{_ID}"),
-    ("semantic-models", "semantic-models"),
-    ("semantic-model", f"semantic-models/{_ID}"),
+    # As built (CONTRACT "W2 as-built additions": semantic model of a dataset + metrics CRUD). API_SPECIFICATION's
+    # org-level /semantic-models[/{id}] paths were not built; those entries could only ever skip.
+    ("dataset-semantic-model", f"datasets/{_ID}/semantic-model"),
+    ("dataset-semantic-model-refresh", f"datasets/{_ID}/semantic-model/refresh"),
+    ("dataset-metrics", f"datasets/{_ID}/metrics"),
+    ("dataset-metric", f"datasets/{_ID}/metrics/{_ID}"),
     ("bi-conversations", "bi/conversations"),
     ("bi-conversation", f"bi/conversations/{_ID}"),
     ("bi-messages", f"bi/conversations/{_ID}/messages"),
     ("bi-queries", "bi/queries"),
     ("bi-query-history", "bi/query-history"),
-    ("exports", "exports"),
-    ("export", f"exports/{_ID}"),
+    ("exports", "exports"),  # POST streams the file (CONTRACT "W3: Conversational BI"); no exports/{id} route
     ("documents", "documents"),
     ("document", f"documents/{_ID}"),
     ("documents-ask", "documents/ask"),
