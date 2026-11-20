@@ -181,3 +181,31 @@ Command, from `backend/`: `$env:PYTEST_DB_SUFFIX="ai_ml"; $env:DB_CONNECT_TIMEOU
 ## Defects for other agents
 - **[qa_security]** `tests/ai_eval/test_golden_sales.py::test_golden_question[g39]` fails as XPASS(strict) because `golden_sales.yaml` g39 still has `known_gap`. The gap is fixed in `apps/nl2sql/builder.py`. Remove the field.
 - **[data_engineering / qa_security]** Pre-existing on main, not caused by this branch: `tests/security/sql/test_sql_guard_corpus.py::test_guard_verdict[mask-002, -003, -004, -007, -008, -009, -010, -012, setop-009]` fail.
+
+## Review fixes (independent review of agent/ai_ml/w3)
+
+Fixed (each with regression tests; no DB needed):
+- **[high] Background download held `LocalEmbedder._lock`** (`apps/ai/embeddings.py`). `download()` now fetches and loads outside `_lock`, under its own `_download_lock`; only installing the finished model takes `_lock`.
+  - While a download runs, `available` / `status()["available"]` are False, and embed calls raise `EmbeddingUnavailable(reason="model_downloading")` at once.
+  - Request paths take `_lock` non-blocking. A concurrent load from the cache gives `model_loading` immediately, with no cooldown.
+  - A Hugging Face snapshot with no weights file (`*.safetensors` / `*.bin`), i.e. a download still in progress in any process, no longer counts as cached.
+  - Tests: `test_request_path_never_waits_for_a_background_download`, `test_concurrent_cache_load_degrades_instead_of_blocking`, `test_partial_snapshot_is_not_cached`.
+- **[medium] `ai.reembed_pending` ran inline in the scheduler tick** (`apps/ai/reembed.py`, new `apps/ai/tasks.py`).
+  - The registered fn is now `enqueue_reembed_pending()`. It returns at once and hands the run to `apps.ai.tasks.reembed_pending`, an ops task on `NexoraTask`, queue `ml`. While `NexoraTask` is missing (Backend W3 not merged yet), it hands the run to a daemon thread instead.
+  - `_run_lock` still prevents overlapping runs.
+  - Each org is embedded `COMMIT_EVERY` (64) rows per `tenant_context` transaction, up to `batch`.
+  - Tests: `test_periodic_fn_only_enqueues_the_task`, `..._falls_back_to_a_daemon_thread...`, `test_reembed_commits_each_slice_in_its_own_tenant_transaction`, `test_reembed_task_is_an_ops_task_on_the_ml_queue`.
+- **[medium] Share insight called the sum of a LIMITed top-N "the total"** (`apps/nl2sql/insights.py`, `sqlutil.py`, `services.py`).
+  - `compute_insights(..., complete=None|True|False)`: only `complete=True` says "X% of the total revenue (1,000)" and puts percentages in the top-N listing.
+  - Unknown or incomplete results say "X% of the combined revenue of the N regions shown (…)". The data carries `basis: "total"|"shown"`, `total` (None unless complete), `shown_total`, `groups_shown`.
+  - A SQL share column (builder `share_pct` = `SUM() OVER ()`, which covers every group) is used when present.
+  - `services.compute_insights(columns, rows, *, complete=None, sql=None, truncated=None)` derives completeness through `sqlutil.result_is_complete(sql, row_count, truncated=)`. The result is False when it is truncated, has an OFFSET, has an inner LIMIT, or reaches the outer LIMIT/FETCH. It is True when nothing cut it, and None when this cannot be told.
+  - Tests: `test_limited_top_n_is_never_called_the_total`, `test_result_is_complete[*]`, `test_services_compute_insights_derives_completeness_from_the_sql`, plus updated share tests.
+
+Request (backend, owner of `apps/bi`): in `apps/bi/services.py` `_insights()`, call `ports.compute_insights(column_dicts(rs.columns), rows, sql=<the executed SQL>, truncated=rs.truncated)`. Also widen `apps/bi/ports.compute_insights(columns, rows, **kwargs)` to forward them to `apps.nl2sql.services.compute_insights`. Until then BI never claims "the total". It states shares against the rows shown, or uses `share_pct` when the SQL has it.
+
+Tests after the fixes, on `apps/ai`, `apps/nl2sql`, `apps/documents` and `apps/ml`: 912 collected, 863 passed, 0 failed. 49 did not run because there is no database: they error at DB setup with "password authentication failed".
+
+Checks:
+- Pass: ruff, `check_conventions`, `check_ownership --agent ai_ml --base main`, `manage.py check`, `makemigrations --check` and lint-imports (2 contracts kept).
+- Not run: the frontend checks. The worktree has no `node_modules`, and this branch does not change `frontend/`.
