@@ -17,9 +17,16 @@ MESSAGE_STATUSES = [("pending", "pending"), ("ok", "ok"), ("error", "error"), ("
                     ("blocked", "blocked")]
 FEEDBACK = [("up", "up"), ("down", "down")]
 SQL_SOURCES = [("cache_exact", "cache_exact"), ("cache_semantic", "cache_semantic"), ("builder", "builder"),
-               ("llm", "llm"), ("manual", "manual"), ("none", "none")]
+               ("llm", "llm"), ("manual", "manual"), ("dashboard", "dashboard"), ("none", "none")]
 VERDICTS = [("ok", "ok"), ("rejected", "rejected"), ("error", "error"), ("blocked", "blocked")]
-PURPOSES = [("chat", "chat"), ("manual", "manual"), ("export", "export"), ("saved_query", "saved_query")]
+PURPOSES = [("chat", "chat"), ("manual", "manual"), ("export", "export"), ("saved_query", "saved_query"),
+            ("dashboard", "dashboard")]
+WIDGET_KINDS = [("chart", "chart"), ("table", "table"), ("kpi", "kpi"), ("text", "text")]
+GRID_COLUMNS = 12
+
+
+def default_layout() -> dict:
+    return {"x": 0, "y": 0, "w": 6, "h": 4}
 
 
 class Conversation(TenantModel):
@@ -125,3 +132,40 @@ class SavedQuery(TenantModel):
             models.UniqueConstraint(fields=["org", "owner_id", "name"], name="bi_saved_query_owner_name_uniq"),
         ]
         indexes = [models.Index(fields=["org", "dataset_id"], name="bi_saved_query_ds_idx")]
+
+
+class Dashboard(TenantModel):
+    """A grid of widgets. Private to its owner unless `is_shared` (then every member with `dashboards.view` sees
+    it; only the owner changes it). `is_default` marks the owner's home dashboard (at most one per owner)."""
+
+    owner_id = models.UUIDField()
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default="")
+    is_default = models.BooleanField(default=False)
+    is_shared = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org", "owner_id"], condition=models.Q(is_default=True),
+                                    name="bi_dashboard_one_default_per_owner"),
+        ]
+        indexes = [models.Index(fields=["org", "owner_id", "-updated_at"], name="bi_dashboard_owner_idx")]
+
+
+class DashboardWidget(TenantModel):
+    """One tile. Data widgets (chart | table | kpi) reference a SavedQuery and are ALWAYS re-executed through the
+    SQL guard under the viewer's policy (rows are never stored here); text widgets carry `text` only."""
+
+    dashboard = models.ForeignKey(Dashboard, on_delete=models.CASCADE, related_name="widgets")
+    title = models.CharField(max_length=200)
+    kind = models.CharField(max_length=8, choices=WIDGET_KINDS)
+    saved_query = models.ForeignKey(SavedQuery, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    chart = models.JSONField(null=True, blank=True)  # {type, x, y, series}
+    layout = models.JSONField(default=default_layout)  # {x, y, w, h} on a GRID_COLUMNS-wide grid
+    text = models.TextField(blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(kind__in=[k for k, _ in WIDGET_KINDS]), name="bi_widget_kind"),
+        ]
+        indexes = [models.Index(fields=["org", "dashboard", "created_at"], name="bi_widget_dashboard_idx")]

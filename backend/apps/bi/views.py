@@ -10,6 +10,10 @@
     GET, POST           saved-queries · GET/PATCH/DELETE /{id} · POST /{id}/run
     POST                exports                                exports.create + dataset ACL `export`
     GET                 insights                               org.view (the caller's own recent answers)
+    GET, POST           dashboards · GET/PATCH/DELETE /{id}    dashboards.view / dashboards.manage (owner only)
+    POST                dashboards/{id}/widgets                dashboards.manage (owner only)
+    PATCH, DELETE       dashboards/{id}/widgets/{widget_id}    dashboards.manage (owner only)
+    GET                 dashboards/{id}/widgets/{widget_id}/data   dashboards.view; re-run under the viewer's policy
 """
 
 from __future__ import annotations
@@ -32,18 +36,22 @@ from apps.core.pagination import DefaultCursorPagination
 from apps.core.permissions import HasOrgPermission
 from apps.core.tenancy.views import TenantAPIView, TenantGenericViewSet
 
-from . import ports, services
+from . import dashboards, ports, services
 from .models import BiQueryAudit, Conversation, Message, SavedQuery
 from .serializers import (
     AskSerializer,
     ConversationCreateSerializer,
     ConversationSerializer,
     ConversationUpdateSerializer,
+    DashboardCreateSerializer,
+    DashboardUpdateSerializer,
     ExportSerializer,
     FeedbackSerializer,
     ManualQuerySerializer,
     SavedQuerySerializer,
     SavedQueryUpdateSerializer,
+    WidgetCreateSerializer,
+    WidgetUpdateSerializer,
     message_payload,
 )
 from .streaming import event_stream_response
@@ -394,3 +402,102 @@ class InsightsView(TenantAPIView):
             raise ValidationError({"limit": ["Must be an integer."]}) from exc
         items = services.dashboard_insights(request.user.pk, limit=limit)
         return Response({"items": items, "next_cursor": None, "previous_cursor": None})
+
+
+# =============================================================================================== dashboards
+class DashboardPagination(DefaultCursorPagination):
+    ordering = ("-updated_at", "-id")
+
+
+class DashboardListView(TenantAPIView):
+    """GET /dashboards (own + shared, dashboards.view) · POST /dashboards {title, description?, is_default?,
+    is_shared?} (dashboards.manage)."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = {"get": "dashboards.view", "post": "dashboards.manage"}
+
+    def get(self, request, org):
+        qs = dashboards.with_widget_counts(dashboards.visible_dashboards(request.user.pk))
+        paginator = DashboardPagination()
+        page = paginator.paginate_queryset(qs, request, view=self)
+        return paginator.get_paginated_response([dashboards.dashboard_summary(d) for d in page])
+
+    def post(self, request, org):
+        ser = DashboardCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = dashboards.create_dashboard(user_id=request.user.pk, request=request, **ser.validated_data)
+        return Response(dashboards.dashboard_payload(d), status=status.HTTP_201_CREATED)
+
+
+class DashboardDetailView(TenantAPIView):
+    """GET (visible) · PATCH {title?, description?, is_default?, is_shared?, layout?: [{id,x,y,w,h}]} · DELETE
+    (owner only; others 404 when the dashboard is not shared with them, else 403)."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = {"get": "dashboards.view", "*": "dashboards.manage"}
+
+    def get(self, request, org, pk):
+        return Response(dashboards.dashboard_payload(dashboards.get_visible(request.user.pk, pk)))
+
+    def patch(self, request, org, pk):
+        d = dashboards.get_owned(request.user.pk, pk)
+        ser = DashboardUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        dashboards.update_dashboard(d, ser.validated_data, request=request)
+        return Response(dashboards.dashboard_payload(d))
+
+    def delete(self, request, org, pk):
+        dashboards.delete_dashboard(dashboards.get_owned(request.user.pk, pk), request=request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DashboardWidgetListView(TenantAPIView):
+    """POST /dashboards/{id}/widgets {title, kind, saved_query_id? | message_id?, chart?, layout?, text?}.
+    `message_id` pins an answered Ask-AI message (a SavedQuery is created from its audited SQL)."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = "dashboards.manage"
+
+    def post(self, request, org, pk):
+        d = dashboards.get_owned(request.user.pk, pk)
+        ser = WidgetCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        widget = dashboards.add_widget(d, org_id=request.tenant.org_id, user_id=request.user.pk,
+                                       api_key_id=_api_key_id(request), request=request, **ser.validated_data)
+        return Response(dashboards.widget_payload(widget), status=status.HTTP_201_CREATED)
+
+
+class DashboardWidgetDetailView(TenantAPIView):
+    """PATCH / DELETE /dashboards/{id}/widgets/{widget_id} (owner of the dashboard only)."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = "dashboards.manage"
+
+    def patch(self, request, org, pk, widget_id):
+        widget = dashboards.get_widget(dashboards.get_owned(request.user.pk, pk), widget_id)
+        ser = WidgetUpdateSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        dashboards.update_widget(widget, ser.validated_data, user_id=request.user.pk, request=request)
+        return Response(dashboards.widget_payload(widget))
+
+    def delete(self, request, org, pk, widget_id):
+        widget = dashboards.get_widget(dashboards.get_owned(request.user.pk, pk), widget_id)
+        dashboards.delete_widget(widget, request=request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DashboardWidgetDataView(TenantAPIView):
+    """GET /dashboards/{id}/widgets/{widget_id}/data -> {columns, rows, row_count, truncated, chart, refreshed_at,
+    query_audit_id}. Re-executed now under the VIEWER's policy (never stored rows); audited (source dashboard)."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = "dashboards.view"
+    rollback_on_error = False  # the audit row of a rejected refresh must survive the 4xx
+
+    def get(self, request, org, pk, widget_id):
+        widget = dashboards.get_widget(dashboards.get_visible(request.user.pk, pk), widget_id)
+        body = dashboards.widget_data(widget, org_id=request.tenant.org_id, user_id=request.user.pk,
+                                      api_key_id=_api_key_id(request))
+        resp = Response(body)
+        resp["Cache-Control"] = "no-store"
+        return resp

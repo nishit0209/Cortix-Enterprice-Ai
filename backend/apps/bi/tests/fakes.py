@@ -118,6 +118,9 @@ class FakeBackends:
     verified: list = field(default_factory=list)
     verify_error: Exception | None = None
     acl: dict = field(default_factory=dict)  # dataset_id -> bool (governance fake only)
+    policies: list = field(default_factory=list)  # every policy handed to validate() (whose rules ran)
+    propose_semantics: list = field(default_factory=list)
+    quota_resets_at: str = "2026-11-21T08:00:00+00:00"
 
     # semantic
     def dataset_semantics(self, dataset_id):
@@ -130,6 +133,7 @@ class FakeBackends:
     # sqlguard
     def validate(self, sql, policy):
         self.calls.append(("validate", sql))
+        self.policies.append(policy)
         if sql in self.rejections:
             code, message = self.rejections[sql]
             return GuardResult(ok=False, reject_code=code, message=message, executed_sql=None, params={})
@@ -146,8 +150,9 @@ class FakeBackends:
         return self.result
 
     # nl2sql
-    def propose(self, question, ctx, *, dataset_version_id=None):
-        self.calls.append(("propose", question, ctx, dataset_version_id))
+    def propose(self, question, ctx, *, semantics=None):
+        self.calls.append(("propose", question, ctx, semantics.dataset_version_id if semantics else None))
+        self.propose_semantics.append(semantics)
         if self.proposals:
             return self.proposals.pop(0)
         return SqlProposal(sql="SELECT region, SUM(amount) AS revenue FROM sales GROUP BY region", source="builder",
@@ -189,6 +194,7 @@ def install(monkeypatch, *, governance: bool = False, org_id=None) -> FakeBacken
     for name in ("dataset_semantics", "validate", "execute", "propose", "repair", "remember", "store_verified"):
         monkeypatch.setattr(ports, name, getattr(fake, name))
     monkeypatch.setattr(ports, "executing_role", lambda org_id: "wh_q_fake")
+    monkeypatch.setattr(ports, "ai_quota_resets_at", lambda user_id=None: fake.quota_resets_at)
     if governance:
         monkeypatch.setattr(ports, "check_dataset_access", fake.check_dataset_access)
         monkeypatch.setattr(ports, "effective_policy", fake.effective_policy)

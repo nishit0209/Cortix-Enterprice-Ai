@@ -88,3 +88,39 @@ class SavedQuerySerializer(serializers.ModelSerializer):
 class SavedQueryUpdateSerializer(SavedQuerySerializer):
     class Meta(SavedQuerySerializer.Meta):
         read_only_fields = ["id", "owner_id", "dataset_id", "created_at", "updated_at"]
+
+
+# ---------------------------------------------------------------------------------------------- dashboards
+# Shapes are validated here; layout/chart semantics (grid bounds, chart types) in apps.bi.dashboards.
+class DashboardCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, trim_whitespace=True)
+    description = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    is_default = serializers.BooleanField(required=False, default=False)
+    is_shared = serializers.BooleanField(required=False, default=False)
+
+
+class DashboardUpdateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, trim_whitespace=True, required=False)
+    description = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    is_default = serializers.BooleanField(required=False)
+    is_shared = serializers.BooleanField(required=False)
+    layout = serializers.ListField(child=serializers.DictField(), required=False, max_length=50)
+
+
+class WidgetCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, trim_whitespace=True)
+    kind = serializers.ChoiceField(choices=["chart", "table", "kpi", "text"])
+    saved_query_id = serializers.UUIDField(required=False, allow_null=True)
+    message_id = serializers.UUIDField(required=False, allow_null=True)
+    chart = serializers.JSONField(required=False, allow_null=True)
+    layout = serializers.DictField(required=False)
+    text = serializers.CharField(max_length=20_000, required=False, allow_blank=True)
+
+
+class WidgetUpdateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=200, trim_whitespace=True, required=False)
+    kind = serializers.ChoiceField(choices=["chart", "table", "kpi", "text"], required=False)
+    saved_query_id = serializers.UUIDField(required=False, allow_null=True)
+    chart = serializers.JSONField(required=False, allow_null=True)
+    layout = serializers.DictField(required=False)
+    text = serializers.CharField(max_length=20_000, required=False, allow_blank=True)

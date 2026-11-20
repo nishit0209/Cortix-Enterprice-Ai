@@ -3,6 +3,11 @@ from django.urls import path, re_path
 from .views import (
     UUID_RE,
     ConversationViewSet,
+    DashboardDetailView,
+    DashboardListView,
+    DashboardWidgetDataView,
+    DashboardWidgetDetailView,
+    DashboardWidgetListView,
     ExportView,
     InsightsView,
     ManualQueryView,
@@ -31,4 +36,13 @@ urlpatterns = [
     re_path(rf"^saved-queries/(?P<pk>{UUID_RE})/run$", saved_query_run, name="bi-saved-query-run"),
     path("exports", ExportView.as_view(), name="bi-exports"),
     path("insights", InsightsView.as_view(), name="bi-insights"),
+    # dashboards (CONTRACT "W3 additions")
+    path("dashboards", DashboardListView.as_view(), name="bi-dashboard-list"),
+    re_path(rf"^dashboards/(?P<pk>{UUID_RE})$", DashboardDetailView.as_view(), name="bi-dashboard-detail"),
+    re_path(rf"^dashboards/(?P<pk>{UUID_RE})/widgets$", DashboardWidgetListView.as_view(),
+            name="bi-dashboard-widgets"),
+    re_path(rf"^dashboards/(?P<pk>{UUID_RE})/widgets/(?P<widget_id>{UUID_RE})$",
+            DashboardWidgetDetailView.as_view(), name="bi-dashboard-widget-detail"),
+    re_path(rf"^dashboards/(?P<pk>{UUID_RE})/widgets/(?P<widget_id>{UUID_RE})/data$",
+            DashboardWidgetDataView.as_view(), name="bi-dashboard-widget-data"),
 ]
