@@ -116,7 +116,7 @@ def try_extension(cur, ext: str) -> bool:
     return True
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--host", default="localhost")
     p.add_argument("--port", type=int, default=5432)
@@ -125,7 +125,8 @@ def main() -> int:
     p.add_argument("--app-db", default="nexora_app")
     p.add_argument("--wh-db", default="nexora_wh")
     p.add_argument("--no-env", action="store_true", help="do not modify .env (print the lines instead)")
-    args = p.parse_args()
+    p.add_argument("--no-next", action="store_true", help=argparse.SUPPRESS)  # used by scripts/setup_local.py
+    args = p.parse_args(argv)
     if not args.password:
         args.password = getpass.getpass(f"Password for PostgreSQL superuser '{args.superuser}': ")
 
