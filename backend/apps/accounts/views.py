@@ -200,7 +200,7 @@ class PasswordChangeView(SessionView):
     """POST {current_password, new_password} -> 204 (session kept, key rotated)."""
 
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "login"
+    throttle_scope = "reauth"
 
     def post(self, request):
         ser = PasswordChangeSerializer(data=request.data)
@@ -256,7 +256,7 @@ class TotpDisableView(SessionView):
     """POST {password, code} -> disables MFA (re-auth with password AND a current code)."""
 
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "login"
+    throttle_scope = "reauth"
 
     def post(self, request):
         from . import mfa

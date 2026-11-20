@@ -31,9 +31,13 @@ class TenantScopedMixin:
     """Resolves `request.tenant` and wraps the whole handler in a tenant transaction."""
 
     tenant_url_kwarg = "org"
+    # A 4xx/5xx response rolls back the tenant transaction (no partial writes). Views whose only writes on
+    # an error path are evidence that must survive (e.g. the audit row of a rejected query) set this False.
+    rollback_on_error = True
 
     def dispatch(self, request, *args, **kwargs):
         self._tenant_stack = ExitStack()
+        self._tenant_atomic_entered = False
         try:
             return super().dispatch(request, *args, **kwargs)
         finally:
@@ -62,6 +66,7 @@ class TenantScopedMixin:
         request.tenant = info
         stack = self._tenant_stack
         stack.enter_context(transaction.atomic())
+        self._tenant_atomic_entered = True
         set_db_tenant(info.org_id)
         t1 = current_org.set(info.org_id)
         t2 = current_tenant.set(info)
@@ -74,7 +79,14 @@ class TenantScopedMixin:
         super().initial(request, *args, **kwargs)
 
     def finalize_response(self, request, response, *args, **kwargs):
-        if getattr(response, "status_code", 200) >= 400 and connection.in_atomic_block:
+        # Roll back only the tenant transaction this mixin opened. When it was never entered (anonymous,
+        # non-member 404, ...) any active atomic block belongs to a caller and must not be poisoned.
+        if (
+            getattr(response, "status_code", 200) >= 400
+            and self.rollback_on_error
+            and getattr(self, "_tenant_atomic_entered", False)
+            and connection.in_atomic_block
+        ):
             transaction.set_rollback(True)
         return super().finalize_response(request, response, *args, **kwargs)
 

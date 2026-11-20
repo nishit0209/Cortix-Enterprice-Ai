@@ -67,6 +67,19 @@ class AIUnavailable(NexoraError):
     default_detail = "AI is temporarily unavailable."
 
 
+class ReauthFailed(NexoraError):
+    """Password re-authentication failed (400 `reauth_failed`, `errors: [{field: "password"}]`)."""
+
+    status_code = 400
+    default_code = "reauth_failed"
+    default_detail = "The password is incorrect."
+
+    def __init__(self, detail: str | None = None, *, code: str | None = None, extra: dict | None = None):
+        message = detail or self.default_detail
+        extra = {"errors": [{"field": "password", "code": "reauth_failed", "message": message}], **(extra or {})}
+        super().__init__(message, code=code, extra=extra)
+
+
 class SqlRejected(NexoraError):
     status_code = 422
     default_code = "sql_rejected"

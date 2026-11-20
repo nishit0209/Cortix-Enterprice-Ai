@@ -47,10 +47,12 @@ class EnableTenantRLS(Operation):
         pass
 
     def database_forwards(self, app_label, schema_editor, from_state, to_state):
-        schema_editor.execute(rls_sql(self.table, self.column))
+        # params=None: execute verbatim (the schema editor would otherwise merge params client-side and
+        # treat any literal '%' as a placeholder).
+        schema_editor.execute(rls_sql(self.table, self.column), params=None)
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
-        schema_editor.execute(rls_reverse_sql(self.table))
+        schema_editor.execute(rls_reverse_sql(self.table), params=None)
 
     def describe(self):
         return f"Enable tenant RLS on {self.table}"
@@ -89,11 +91,17 @@ class MakeAppendOnly(Operation):
             CREATE TRIGGER append_only BEFORE UPDATE OR DELETE ON "{t}"
               FOR EACH ROW EXECUTE FUNCTION nexora_forbid_mutation();
             COMMENT ON TABLE "{t}" IS '{APPEND_ONLY_COMMENT}';
-            """
+            """,
+            # Verbatim: the plpgsql body contains a literal '%' (RAISE placeholder). With the default
+            # params=() Django's PG schema editor runs compose_sql() and psycopg fails on it.
+            params=None,
         )
 
     def database_backwards(self, app_label, schema_editor, from_state, to_state):
-        schema_editor.execute(f'DROP TRIGGER IF EXISTS append_only ON "{self.table}"; COMMENT ON TABLE "{self.table}" IS NULL;')
+        schema_editor.execute(
+            f'DROP TRIGGER IF EXISTS append_only ON "{self.table}"; COMMENT ON TABLE "{self.table}" IS NULL;',
+            params=None,
+        )
 
     def describe(self):
         return f"Make {self.table} append-only"

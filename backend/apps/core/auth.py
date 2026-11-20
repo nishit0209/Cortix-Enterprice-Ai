@@ -17,3 +17,11 @@ def enforce_csrf(request) -> None:
         SessionAuthentication().enforce_csrf(request)
     except PermissionDenied as exc:
         raise PermissionDenied(str(exc.detail), code="csrf_failed") from exc
+
+
+def require_password(user, password: str | None) -> None:
+    """Re-authentication for sensitive actions: 400 `reauth_failed` with `errors:[{field:"password"}]`."""
+    from .exceptions import ReauthFailed  # local: exceptions -> DRF settings -> this module (import cycle)
+
+    if not password or not user.check_password(password):
+        raise ReauthFailed()

@@ -14,7 +14,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.services import find_user_by_email, user_payload, users_by_id
-from apps.core.auth import CsrfEnforcedSessionAuthentication, enforce_csrf
+from apps.core.auth import CsrfEnforcedSessionAuthentication, enforce_csrf, require_password
 from apps.core.exceptions import Conflict, NexoraError
 from apps.core.models import AuditEvent
 from apps.core.permissions import DenyApiKey, HasOrgPermission
@@ -33,18 +33,6 @@ from .serializers import (
 )
 
 UUID_RE = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-
-
-class ReauthFailed(NexoraError):
-    status_code = 400
-    default_code = "reauth_failed"
-    default_detail = "The password is incorrect."
-
-
-def require_password(user, password: str) -> None:
-    if not password or not user.check_password(password):
-        raise ReauthFailed(extra={"errors": [{"field": "password", "code": "reauth_failed",
-                                               "message": "The password is incorrect."}]})
 
 
 # --- /orgs (non-tenant) --------------------------------------------------------------------------------
@@ -270,7 +258,7 @@ class AIConsentGrantView(TenantAPIView):
     permission_classes = [IsAuthenticated, DenyApiKey, HasOrgPermission]
     required_permissions = "org.ai_policy.consent"
     throttle_classes = [ScopedRateThrottle]
-    throttle_scope = "login"
+    throttle_scope = "reauth"
 
     def post(self, request, org):
         ser = ConsentSerializer(data=request.data)
