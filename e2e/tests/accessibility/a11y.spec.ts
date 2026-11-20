@@ -31,25 +31,33 @@ test.describe("accessibility: public pages", () => {
 });
 
 test.describe("accessibility: authenticated pages", () => {
-  test("axe on overview, datasets and settings", async ({ page, user }, testInfo) => {
+  test("axe on overview, datasets, Ask AI, AI policy and settings", async ({ page, user }, testInfo) => {
     const slug = await apiSignup(page.request, user); // page.request shares cookies with the page
+    // Routes as merged in frontend/src/app/o/[org]/** (paths from frontend/src/lib/nav.ts)
     for (const [label, route] of [
-      ["overview", `/o/${slug}`],
-      ["datasets", `/o/${slug}/datasets`],
+      ["overview", `/o/${slug}/dashboard`],
+      ["datasets", `/o/${slug}/data/datasets`],
+      ["ask", `/o/${slug}/ask`],
+      ["ai-policy", `/o/${slug}/settings/ai-policy`],
       ["settings", `/o/${slug}/settings`],
     ] as const) {
       const res = await page.goto(route);
       expect(res?.status() ?? 0, route).toBeLessThan(400);
+      await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
       await audit(page, testInfo, label);
     }
   });
 
-  test("theme toggle keeps contrast compliant", async ({ page, user }, testInfo) => {
+  test("dark and light themes keep contrast compliant", async ({ page, user }, testInfo) => {
     const slug = await apiSignup(page.request, user);
-    await page.goto(`/o/${slug}`);
-    const toggle = page.getByRole("button", { name: /theme|dark mode|light mode/i });
-    test.skip((await toggle.count()) === 0, "no theme toggle on this page");
-    await toggle.first().click();
-    await audit(page, testInfo, "overview-toggled-theme");
+    await page.goto(`/o/${slug}/dashboard`);
+    // Theme lives in the account menu (frontend/src/components/shell/user-menu.tsx): radio items System/Light/Dark
+    for (const theme of ["Dark", "Light"] as const) {
+      await page.getByRole("button", { name: /^Account menu for / }).click();
+      const item = page.getByRole("menuitemradio", { name: theme });
+      await item.click();
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await audit(page, testInfo, `overview-${theme.toLowerCase()}`);
+    }
   });
 });

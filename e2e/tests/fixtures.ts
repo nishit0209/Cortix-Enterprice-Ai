@@ -37,15 +37,20 @@ export async function apiSignup(request: APIRequestContext, user: TestUser): Pro
   return body.org.slug as string;
 }
 
-/** Sign up through the UI. Returns the org slug parsed from the /o/<slug>/ URL. */
+/**
+ * Sign up through the UI (frontend/src/components/auth/signup-form.tsx: Field labels "Full name", "Work email",
+ * "Organization name", "Password"; submit "Create workspace"; redirect to /o/<slug>/dashboard).
+ * Exact label matches: the "Password requirements" list and the show/hide toggle are also labelled.
+ * Returns the org slug parsed from the URL.
+ */
 export async function uiSignup(page: Page, user: TestUser): Promise<string> {
   await page.goto("/signup");
-  await page.getByLabel(/full name|your name/i).fill(user.fullName);
-  await page.getByLabel(/^email|work email/i).fill(user.email);
-  await page.getByLabel(/^password/i).first().fill(user.password);
-  await page.getByLabel(/organi[sz]ation|workspace|company/i).fill(user.orgName);
-  await page.getByRole("button", { name: /sign up|create (account|workspace)|get started/i }).click();
-  await page.waitForURL(/\/o\/[a-z0-9-]+(\/|$)/, { timeout: 30_000 });
+  await page.getByLabel("Full name", { exact: true }).fill(user.fullName);
+  await page.getByLabel("Work email", { exact: true }).fill(user.email);
+  await page.getByLabel("Organization name", { exact: true }).fill(user.orgName);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
+  await page.getByRole("button", { name: "Create workspace" }).click();
+  await page.waitForURL(/\/o\/[a-z0-9-]+\/dashboard$/, { timeout: 30_000 });
   const match = /\/o\/([a-z0-9-]+)/.exec(new URL(page.url()).pathname);
   expect(match, `unexpected post-signup URL ${page.url()}`).not.toBeNull();
   return match![1];
