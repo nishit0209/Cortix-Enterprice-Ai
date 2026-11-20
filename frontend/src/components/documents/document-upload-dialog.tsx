@@ -20,7 +20,8 @@ import { docKeys, uploadDocument } from "@/lib/queries/documents";
 import type { Classification } from "@/lib/types";
 import { formatBytes } from "@/lib/utils";
 
-const ACCEPT = [".pdf", ".docx", ".txt", ".md", ".html", ".png", ".jpg", ".jpeg", ".tiff"];
+/** Backend allow-list (`apps/documents/filetypes.py`): extension + magic bytes are checked server-side. */
+const ACCEPT = [".pdf", ".docx", ".xlsx", ".csv", ".txt"];
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB ?? 200);
 
 type Phase = { kind: "select" } | { kind: "uploading"; percent: number } | { kind: "processing"; jobId: string | null; docId: string | null } | { kind: "failed"; message: string };

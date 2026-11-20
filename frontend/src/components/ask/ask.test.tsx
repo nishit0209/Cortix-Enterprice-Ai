@@ -138,7 +138,7 @@ describe("Composer", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
     render(<Composer onSend={onSend} streaming={false} lastQuestion="Top 5 regions" />);
-    const box = screen.getByLabelText("Ask a question about your data");
+    const box = screen.getByRole("textbox", { name: "Ask a question" });
     await user.type(box, "{ArrowUp}");
     expect(box).toHaveValue("Top 5 regions");
     await user.clear(box);
@@ -226,7 +226,14 @@ describe("documents", () => {
   it("shows the extractive (policy) badge and clickable citations from a JSON answer", async () => {
     document.cookie = "csrftoken=t";
     const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ answer: "Notice is 30 days.", mode: "extractive", citations: [{ document_id: "d1", document_title: "Supplier MSA", page: 4, text: "30 days notice" }] }), {
+      new Response(JSON.stringify({
+          answer: "Notice is 30 days.",
+          mode: "extractive",
+          reason: "ai_policy_blocked",
+          message: "The AI data policy does not allow sending this document to Gemini.",
+          citations: [{ document_id: "d1", document_title: "Supplier MSA", page: 4, chunk_id: "c1", quote: "30 days notice", source_id: "S1" }],
+          unanswerable: false,
+        }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),

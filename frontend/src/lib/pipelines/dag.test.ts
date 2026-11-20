@@ -20,7 +20,7 @@ function linear(): BuilderDag {
       { id: "src", type: "source", config: { dataset_id: "ds1" }, position: { x: 0, y: 0 } },
       { id: "s1", type: "rename", config: { mapping: { amount: "net_amount" } }, position: { x: 1, y: 0 } },
       { id: "s2", type: "deduplicate", config: { keys: ["order_id"], keep: "first" }, position: { x: 2, y: 0 } },
-      { id: "dst", type: "destination", config: { dataset_name: "sales_clean", mode: "new_version" }, position: { x: 3, y: 0 } },
+      { id: "dst", type: "destination", config: { target: "new", dataset_name: "sales_clean" }, position: { x: 3, y: 0 } },
     ],
     edges: [
       { from: "src", to: "s1" },
@@ -71,7 +71,7 @@ describe("validateDag", () => {
     dag.nodes[3].config = { dataset_name: "" };
     const v = validateDag(dag);
     expect(v.byNode.s1).toContain("New names use lowercase letters, digits and underscores.");
-    expect(v.byNode.dst).toContain("Output dataset name is required.");
+    expect(v.byNode.dst).toContain("New dataset name is required.");
   });
 
   it("checks column references against the inferred input schema", () => {
@@ -81,27 +81,44 @@ describe("validateDag", () => {
     expect(v.byNode.s2).toEqual(['Column "amount" is not in the input.']);
   });
 
-  it("validates joins: two inputs, a left port and keys on both sides", () => {
+  it("validates joins: the joined dataset comes from config, keys are checked on both sides", () => {
     const dag: BuilderDag = {
       nodes: [
         { id: "a", type: "source", config: { dataset_id: "ds1" } },
-        { id: "b", type: "source", config: { dataset_id: "ds2" } },
-        { id: "j", type: "join", config: { how: "left", on: [{ left: "region", right: "region" }] } },
+        { id: "j", type: "join", config: { dataset_id: "ds2", how: "left", on: [{ left: "region", right: "region" }] } },
         { id: "d", type: "destination", config: { dataset_name: "joined" } },
       ],
       edges: [
-        { from: "a", to: "j", port: "left" },
-        { from: "b", to: "j", port: "right" },
+        { from: "a", to: "j" },
         { from: "j", to: "d" },
       ],
     };
     const schemas = inferSchemas(dag, SRC_COLS);
-    expect(validateDag(dag, schemas).ok).toBe(true);
+    expect(validateDag(dag, schemas, SRC_COLS).ok).toBe(true);
     expect(schemas.j?.map((c) => c.name)).toEqual(["order_id", "region", "amount", "manager"]);
-    const bad = { ...dag, edges: dag.edges.filter((e) => e.from !== "b") };
-    expect(validateDag(bad).byNode.j).toContain("A join needs exactly two inputs (left and right).");
-    const badKey = { ...dag, nodes: dag.nodes.map((n) => (n.id === "j" ? { ...n, config: { how: "inner", on: [{ left: "region", right: "nope" }] } } : n)) };
-    expect(validateDag(badKey, inferSchemas(badKey, SRC_COLS)).byNode.j).toContain('Column "nope" is not in the input.');
+    const noDataset = { ...dag, nodes: dag.nodes.map((n) => (n.id === "j" ? { ...n, config: { how: "inner", on: [{ left: "region", right: "region" }] } } : n)) };
+    expect(validateDag(noDataset).byNode.j).toContain("Dataset to join is required.");
+    const badKey = { ...dag, nodes: dag.nodes.map((n) => (n.id === "j" ? { ...n, config: { dataset_id: "ds2", how: "inner", on: [{ left: "region", right: "nope" }] } } : n)) };
+    expect(validateDag(badKey, inferSchemas(badKey, SRC_COLS), SRC_COLS).byNode.j).toContain('Column "nope" is not in the input.');
+  });
+
+  it("enforces the backend's linear chain: one source, one next step per node", () => {
+    const dag = linear();
+    dag.nodes.push({ id: "src2", type: "source", config: { dataset_id: "ds2" } }, { id: "x", type: "sort", config: { by: [{ column: "region" }] } });
+    dag.edges.push({ from: "src2", to: "x" }, { from: "s1", to: "x" });
+    const v = validateDag(dag);
+    expect(v.byNode.src2).toContain("Only one source is allowed. Use a Join step to bring in another dataset.");
+    expect(v.byNode.s1).toContain("Pipelines are a single chain: a step can feed only one next step.");
+  });
+
+  it("parses derive formulas and checks their columns", () => {
+    const dag = linear();
+    dag.nodes[2] = { id: "s2", type: "derive", config: { name: "gross", expression: "net_amount * 1.18" } };
+    expect(validateDag(dag, inferSchemas(dag, SRC_COLS)).ok).toBe(true);
+    dag.nodes[2] = { id: "s2", type: "derive", config: { name: "gross", expression: "amount * (1.18" } };
+    expect(validateDag(dag).byNode.s2?.[0]).toMatch(/^Expression: Expected "\)"/);
+    dag.nodes[2] = { id: "s2", type: "derive", config: { name: "gross", expression: "amount * 2" } };
+    expect(validateDag(dag, inferSchemas(dag, SRC_COLS)).byNode.s2).toEqual(['Column "amount" is not in the input.']);
   });
 });
 
@@ -126,7 +143,7 @@ describe("schema inference", () => {
     expect(s.agg).toEqual([
       { name: "region", type: "text" },
       { name: "total", type: "double precision" },
-      { name: "count_*", type: "bigint" },
+      { name: "row_count", type: "bigint" },
     ]);
   });
   it("is null downstream of an unknown source", () => {

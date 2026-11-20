@@ -49,7 +49,6 @@ import { CATEGORY_META, STEP_BY_TYPE, STEP_CATALOG, type StepCategory } from "@/
 import {
   inferSchemas,
   newNodeId,
-  parseDag,
   serializeDag,
   serverErrorsByNode,
   topoOrder,
@@ -57,6 +56,7 @@ import {
   type BuilderDag,
   type SchemaColumn,
 } from "@/lib/pipelines/dag";
+import { dagUpTo, fromWireDag, toWireDag } from "@/lib/pipelines/wire";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
 import { datasetKeys, useDatasets } from "@/lib/queries/datasets";
 import { deKeys, previewPipeline, runPipeline, usePipeline, useUpdatePipeline } from "@/lib/queries/pipelines";
@@ -102,7 +102,7 @@ function starterDag(): BuilderDag {
   return {
     nodes: [
       { id: "source_1", type: "source", config: { dataset_id: "" }, position: { x: 0, y: 80 } },
-      { id: "output_1", type: "destination", config: { dataset_name: "", mode: "new_version" }, position: { x: 560, y: 80 } },
+      { id: "output_1", type: "destination", config: { target: "new", dataset_name: "", classification: "internal" }, position: { x: 560, y: 80 } },
     ],
     edges: [],
   };
@@ -156,8 +156,7 @@ export function PipelineBuilder() {
 }
 
 type BottomPanel =
-  | { kind: "preview-job"; jobId: string; nodeId: string | null }
-  | { kind: "preview"; columns: Array<{ name: string; type?: string } | string>; rows: unknown[][]; nodeId: string | null }
+  | { kind: "preview"; columns: Array<{ name: string; type?: string } | string>; rows: unknown[][]; nodeId: string | null; sourceRows?: number; rejected?: number }
   | { kind: "run"; jobId: string }
   | null;
 
@@ -166,7 +165,7 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
   const qc = useQueryClient();
   const desktop = useIsDesktop();
   const readOnly = !can("pipelines.manage") || !desktop;
-  const initial = React.useMemo(() => (pipeline.dag && (pipeline.dag.nodes ?? []).length ? parseDag(pipeline.dag) : starterDag()), [pipeline.dag]);
+  const initial = React.useMemo(() => (pipeline.dag && (pipeline.dag.nodes ?? []).length ? fromWireDag(pipeline.dag) : starterDag()), [pipeline.dag]);
   const flow0 = React.useMemo(() => toFlow(initial), [initial]);
   const [nodes, setNodes, onNodesChange] = useNodesState<StepNode>(flow0.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(flow0.edges);
@@ -186,7 +185,10 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
   const dirty = json !== savedJson || name.trim() !== pipeline.name;
 
   // Source dataset columns → static schema inference.
-  const sourceIds = Array.from(new Set(dag.nodes.filter((n) => n.type === "source" && n.config.dataset_id).map((n) => String(n.config.dataset_id))));
+  // Source datasets and joined datasets both need their columns.
+  const sourceIds = Array.from(
+    new Set(dag.nodes.filter((n) => (n.type === "source" || n.type === "join") && n.config.dataset_id).map((n) => String(n.config.dataset_id))),
+  );
   const colQueries = useQueries({
     queries: sourceIds.map((dsId) => ({
       queryKey: datasetKeys.columns(slug, dsId),
@@ -206,7 +208,7 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceIds.join(","), colKey]);
   const schemas = React.useMemo(() => inferSchemas(dag, sourceColumns), [dag, sourceColumns]);
-  const validation = React.useMemo(() => validateDag(dag, schemas), [dag, schemas]);
+  const validation = React.useMemo(() => validateDag(dag, schemas, sourceColumns), [dag, schemas, sourceColumns]);
   const issues = React.useMemo(() => {
     const merged: Record<string, string[]> = { ...validation.byNode };
     for (const [k, v] of Object.entries(serverIssues)) merged[k] = [...(merged[k] ?? []), ...v];
@@ -319,7 +321,7 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
 
   const save = async (): Promise<boolean> => {
     try {
-      const body: { dag: ReturnType<typeof serializeDag>; name?: string } = { dag: serializeDag(dag) };
+      const body: { dag: ReturnType<typeof toWireDag>; name?: string } = { dag: toWireDag(dag, schemas) };
       if (name.trim() && name.trim() !== pipeline.name) body.name = name.trim();
       const saved = await update.mutateAsync(body);
       setSavedJson(json);
@@ -340,12 +342,15 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
   const preview = async () => {
     setBusy("preview");
     try {
-      const res = await previewPipeline(slug, pipeline.id, { dag: serializeDag(dag), node_id: selected ?? undefined, limit: 50 });
-      if ("job_id" in res && res.job_id) setPanel({ kind: "preview-job", jobId: res.job_id, nodeId: selected });
-      else {
-        const r = res as { columns: Array<{ name: string; type?: string } | string>; rows: unknown[][]; errors?: Array<{ field: string | null; message: string }> };
-        if (r.errors?.length) setServerIssues(serverErrorsByNode(r.errors, dag));
-        setPanel({ kind: "preview", columns: r.columns ?? [], rows: r.rows ?? [], nodeId: selected });
+      const target = selected && selected !== dag.nodes.find((n) => n.type === "destination")?.id ? selected : null;
+      const res = await previewPipeline(slug, pipeline.id, { dag: toWireDag(dagUpTo(dag, target), schemas), ...(target ? { node_id: target } : {}), limit: 50 });
+      if (!res.ok) {
+        const err = res.error;
+        if (err?.node) setServerIssues((s) => ({ ...s, [err.node!]: [...(s[err.node!] ?? []), err.message] }));
+        toast.error(err?.message ?? "The dry run failed.");
+        setPanel(null);
+      } else {
+        setPanel({ kind: "preview", columns: res.columns ?? [], rows: res.rows ?? [], nodeId: target, sourceRows: res.source_rows, rejected: res.rows_rejected });
       }
     } catch (e) {
       if (isApiError(e) && e.errors.length) setServerIssues(serverErrorsByNode(e.errors, dag));
@@ -451,8 +456,8 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
             {pipeline.schedule && (
               <Tooltip content={describeCron(pipeline.schedule.cron, pipeline.schedule.timezone)}>
                 <span className="hidden xl:inline">
-                  <Badge tone={pipeline.schedule.is_active === false ? "outline" : "info"}>
-                    <CalendarClock /> {pipeline.schedule.is_active === false ? "Paused" : "Scheduled"}
+                  <Badge tone={pipeline.schedule.enabled === false ? "outline" : "info"}>
+                    <CalendarClock /> {pipeline.schedule.enabled === false ? "Paused" : "Scheduled"}
                   </Badge>
                 </span>
               </Tooltip>
@@ -583,7 +588,7 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
                 onChange={(c) => updateConfig(selNode.id, c)}
                 onDelete={() => deleteNode(selNode.id)}
                 input={leftIn ? (schemas[leftIn.from] ?? null) : null}
-                rightInput={rightIn ? (schemas[rightIn.from] ?? null) : null}
+                rightInput={selNode.data.stepType === "join" ? (sourceColumns[String(selNode.data.config.dataset_id ?? "")] ?? null) : rightIn ? (schemas[rightIn.from] ?? null) : null}
                 output={schemas[selNode.id] ?? null}
                 issues={issues[selNode.id] ?? []}
                 datasets={datasets.data ?? []}
@@ -620,23 +625,18 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
                     if (s.status === "succeeded") toast.success("Pipeline run succeeded");
                   }}
                 />
-              ) : panel.kind === "preview-job" ? (
-                <JobProgress
-                  org={slug}
-                  jobId={panel.jobId}
-                  title="Dry run"
-                  showLogs={false}
-                  onDone={(s) => {
-                    const r = (s.result ?? {}) as { preview?: { columns: Array<{ name: string } | string>; rows: unknown[][] }; columns?: Array<{ name: string } | string>; rows?: unknown[][] };
-                    const p = r.preview ?? (r.columns ? { columns: r.columns, rows: r.rows ?? [] } : null);
-                    if (p) setPanel({ kind: "preview", columns: p.columns, rows: p.rows, nodeId: panel.nodeId });
-                    else if (s.status !== "succeeded") toast.error(s.error?.message ?? "Dry run failed");
-                  }}
-                />
               ) : panel.columns.length === 0 ? (
                 <p className="text-sm text-fg-muted">The dry run produced no columns.</p>
               ) : (
-                <ResultTable columns={panel.columns} rows={panel.rows} caption="Pipeline preview" />
+                <div className="space-y-2">
+                  {(panel.sourceRows !== undefined || panel.rejected) && (
+                    <p className="text-xs text-fg-muted">
+                      Sample of {panel.sourceRows ?? "?"} source rows · {panel.rows.length} shown
+                      {panel.rejected ? ` · ${panel.rejected} rejected` : ""}
+                    </p>
+                  )}
+                  <ResultTable columns={panel.columns} rows={panel.rows} caption="Pipeline preview" />
+                </div>
               )}
             </div>
           </div>

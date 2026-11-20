@@ -13,26 +13,18 @@ import { EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { FeatureStatusBadge } from "@/components/ui/status";
 import { Tooltip } from "@/components/ui/overlays";
-import { guardMessage, SOURCE_LABELS } from "@/lib/chat/error-copy";
+import { guardMessage, SOURCE_LABELS, verdictLabel, verdictTone } from "@/lib/chat/error-copy";
 import { isUnavailableEndpoint } from "@/lib/errors";
 import { historyDatasetId, historyDatasetName, useQueryHistory } from "@/lib/queries/bi";
 import { formatMs } from "@/hooks/use-countdown";
 import type { QueryHistoryItem } from "@/lib/types";
-import { formatDateTime, formatNumber, formatRelative, titleCase } from "@/lib/utils";
+import { formatDateTime, formatNumber, formatRelative } from "@/lib/utils";
 import { SourceBadge, SqlCode } from "./sql-code";
-
-const VERDICT_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> = {
-  allowed: "success",
-  rejected: "danger",
-  error: "danger",
-  timeout: "warning",
-  blocked_by_policy: "warning",
-};
 
 export function VerdictBadge({ verdict }: { verdict: string }) {
   return (
-    <Badge tone={VERDICT_TONE[verdict] ?? "neutral"} dot>
-      {verdict === "blocked_by_policy" ? "Blocked by policy" : titleCase(verdict)}
+    <Badge tone={verdictTone(verdict)} dot>
+      {verdictLabel(verdict)}
     </Badge>
   );
 }
@@ -116,7 +108,7 @@ export function QueryHistoryView() {
   );
 
   const sources = Array.from(new Set((q.data ?? []).map((r) => r.source))).map((s) => ({ value: s, label: SOURCE_LABELS[s] ?? s }));
-  const verdicts = Array.from(new Set((q.data ?? []).map((r) => r.verdict))).map((v) => ({ value: v, label: titleCase(v) }));
+  const verdicts = Array.from(new Set((q.data ?? []).map((r) => r.verdict))).map((v) => ({ value: v, label: verdictLabel(v) }));
   const editorHref = (r: QueryHistoryItem) => {
     const sp = new URLSearchParams({ sql: r.executed_sql ?? "" });
     const ds = historyDatasetId(r);

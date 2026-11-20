@@ -91,7 +91,7 @@ export function PipelinesView() {
         header: "Schedule",
         cell: ({ row }) =>
           row.original.schedule ? (
-            <Badge tone={row.original.schedule.is_active === false ? "outline" : "info"}>
+            <Badge tone={row.original.schedule.enabled === false ? "outline" : "info"}>
               <CalendarClock /> {describeCron(row.original.schedule.cron)}
             </Badge>
           ) : (

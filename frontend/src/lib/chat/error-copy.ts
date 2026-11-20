@@ -134,6 +134,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   builder: "Builder",
   llm: "Gemini",
   manual: "Manual",
+  dashboard: "Dashboard",
   none: "None",
 };
 
@@ -148,7 +149,36 @@ export function sourceTone(source: string | null | undefined): "teal" | "info" |
       return "accent";
     case "manual":
       return "warning";
+    case "dashboard":
+      return "info";
     default:
       return "neutral";
   }
+}
+
+/** Guard verdicts of the query audit log (`apps/bi` BiQueryAudit.verdict: ok | rejected | error | blocked). */
+const VERDICT_LABELS: Record<string, string> = {
+  ok: "Allowed",
+  allowed: "Allowed",
+  rejected: "Rejected",
+  error: "Error",
+  blocked: "Blocked by policy",
+  blocked_by_policy: "Blocked by policy",
+  timeout: "Timed out",
+};
+
+export function verdictLabel(verdict: string): string {
+  return VERDICT_LABELS[verdict] ?? verdict.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+export function verdictTone(verdict: string): "success" | "danger" | "warning" | "neutral" {
+  if (verdict === "ok" || verdict === "allowed") return "success";
+  if (verdict === "rejected" || verdict === "error") return "danger";
+  if (verdict === "blocked" || verdict === "blocked_by_policy" || verdict === "timeout") return "warning";
+  return "neutral";
+}
+
+/** True for a query the guard let through. */
+export function isAllowedVerdict(verdict: string | null | undefined): boolean {
+  return verdict === "ok" || verdict === "allowed";
 }

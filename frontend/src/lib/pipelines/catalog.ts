@@ -1,6 +1,8 @@
 /**
- * Pipeline step catalog for the visual builder (node types per the W2 data_pipelines brief).
+ * Pipeline step catalog for the visual builder, aligned with `backend/apps/pipelines/steps.py`.
  * Each entry declares its category, arity (inputs/outputs) and the config fields the inspector renders.
+ * Pipelines are a linear chain (one source -> steps -> one output); a join brings in a second dataset through
+ * its config. `wire.ts` translates the few editing shapes that differ from the backend's field names.
  */
 
 export type StepCategory = "source" | "schema" | "clean" | "reshape" | "destination";
@@ -44,20 +46,26 @@ export interface StepSpec {
 }
 
 export const CAST_TYPES = ["text", "bigint", "double precision", "numeric", "boolean", "date", "timestamptz"].map((v) => ({ value: v, label: v }));
+/** Backend `FilterOp`. `in`/`not_in` take a list, `between` takes [low, high]. */
 export const FILTER_OPS = [
-  { value: "=", label: "equals" },
-  { value: "!=", label: "not equals" },
-  { value: ">", label: ">" },
-  { value: ">=", label: "≥" },
-  { value: "<", label: "<" },
-  { value: "<=", label: "≤" },
+  { value: "eq", label: "equals" },
+  { value: "ne", label: "not equals" },
+  { value: "gt", label: ">" },
+  { value: "gte", label: "≥" },
+  { value: "lt", label: "<" },
+  { value: "lte", label: "≤" },
+  { value: "between", label: "between" },
   { value: "in", label: "in list" },
   { value: "not_in", label: "not in list" },
   { value: "contains", label: "contains" },
+  { value: "starts_with", label: "starts with" },
+  { value: "ends_with", label: "ends with" },
   { value: "is_null", label: "is empty" },
   { value: "not_null", label: "is not empty" },
 ];
-export const AGG_FUNCS = ["sum", "avg", "min", "max", "count", "count_distinct", "median"].map((v) => ({ value: v, label: v }));
+export const LIST_OPS = new Set(["in", "not_in", "between"]);
+/** Backend `AggFunc`. */
+export const AGG_FUNCS = ["sum", "mean", "median", "min", "max", "count", "count_distinct", "std", "first", "last"].map((v) => ({ value: v, label: v }));
 
 export const STEP_CATALOG: StepSpec[] = [
   {
@@ -99,7 +107,16 @@ export const STEP_CATALOG: StepSpec[] = [
     outputs: 1,
     fields: [
       { key: "casts", label: "Casts", kind: "casts", required: true },
-      { key: "on_error", label: "On a failed cast", kind: "select", options: [{ value: "null", label: "Set null" }, { value: "reject", label: "Reject row" }] },
+      {
+        key: "on_error",
+        label: "On a failed cast",
+        kind: "select",
+        options: [
+          { value: "null", label: "Set null" },
+          { value: "reject", label: "Reject row" },
+          { value: "fail", label: "Fail the run" },
+        ],
+      },
     ],
     defaults: { casts: [], on_error: "null" },
   },
@@ -130,7 +147,7 @@ export const STEP_CATALOG: StepSpec[] = [
     type: "fill_null",
     label: "Fill nulls",
     category: "clean",
-    description: "Replace missing values with a constant or a statistic.",
+    description: "Replace missing values with a constant, zero, a statistic or the neighbouring value.",
     inputs: 1,
     outputs: 1,
     fields: [
@@ -140,11 +157,19 @@ export const STEP_CATALOG: StepSpec[] = [
         label: "Strategy",
         kind: "select",
         required: true,
-        options: ["constant", "mean", "median", "mode", "forward_fill"].map((v) => ({ value: v, label: v.replace("_", " ") })),
+        options: [
+          { value: "value", label: "A fixed value" },
+          { value: "zero", label: "Zero" },
+          { value: "mean", label: "Mean" },
+          { value: "median", label: "Median" },
+          { value: "mode", label: "Most frequent" },
+          { value: "forward", label: "Previous row" },
+          { value: "backward", label: "Next row" },
+        ],
       },
-      { key: "value", label: "Value", kind: "text", required: true, showIf: { key: "strategy", in: ["constant"] } },
+      { key: "value", label: "Value", kind: "text", required: true, showIf: { key: "strategy", in: ["value"] } },
     ],
-    defaults: { columns: [], strategy: "constant", value: "" },
+    defaults: { columns: [], strategy: "value", value: "" },
   },
   {
     type: "drop_nulls",
@@ -153,8 +178,19 @@ export const STEP_CATALOG: StepSpec[] = [
     description: "Remove rows with nulls in the chosen columns (any column when none chosen).",
     inputs: 1,
     outputs: 1,
-    fields: [{ key: "columns", label: "Columns", kind: "columns", hint: "Leave empty to check every column." }],
-    defaults: { columns: [] },
+    fields: [
+      { key: "columns", label: "Columns", kind: "columns", hint: "Leave empty to check every column." },
+      {
+        key: "how",
+        label: "Drop a row when",
+        kind: "select",
+        options: [
+          { value: "any", label: "Any chosen column is null" },
+          { value: "all", label: "All chosen columns are null" },
+        ],
+      },
+    ],
+    defaults: { columns: [], how: "any" },
   },
   {
     type: "deduplicate",
@@ -191,7 +227,7 @@ export const STEP_CATALOG: StepSpec[] = [
     outputs: 1,
     fields: [
       { key: "name", label: "New column", kind: "text", required: true, placeholder: "net_amount" },
-      { key: "expression", label: "Expression", kind: "expression", required: true, placeholder: "amount - discount" },
+      { key: "expression", label: "Expression", kind: "expression", required: true, placeholder: "round(amount - discount, 2)" },
     ],
     defaults: { name: "", expression: "" },
   },
@@ -222,27 +258,47 @@ export const STEP_CATALOG: StepSpec[] = [
     type: "join",
     label: "Join",
     category: "reshape",
-    description: "Join two inputs on key columns (left input = top handle).",
-    inputs: 2,
+    description: "Bring in columns from another dataset by matching key columns.",
+    inputs: 1,
     outputs: 1,
     fields: [
+      { key: "dataset_id", label: "Dataset to join", kind: "dataset", required: true },
       { key: "how", label: "Join type", kind: "select", required: true, options: [{ value: "inner", label: "Inner" }, { value: "left", label: "Left" }] },
       { key: "on", label: "Join keys", kind: "join_keys", required: true },
     ],
-    defaults: { how: "inner", on: [] },
+    defaults: { dataset_id: "", how: "inner", on: [] },
   },
   {
     type: "destination",
     label: "Dataset output",
     category: "destination",
-    description: "Write the result as a new dataset version.",
+    description: "Write the result as a new dataset, or as a new version of an existing one.",
     inputs: 1,
     outputs: 0,
     fields: [
-      { key: "dataset_name", label: "Output dataset name", kind: "text", required: true, placeholder: "sales_clean" },
-      { key: "mode", label: "Write mode", kind: "select", options: [{ value: "new_version", label: "New version (replace)" }, { value: "append", label: "Append (new version with appended rows)" }] },
+      {
+        key: "target",
+        label: "Write to",
+        kind: "select",
+        required: true,
+        options: [
+          { value: "new", label: "A new dataset" },
+          { value: "existing", label: "A new version of a dataset" },
+        ],
+      },
+      { key: "dataset_name", label: "New dataset name", kind: "text", required: true, placeholder: "Sales (clean)", showIf: { key: "target", in: ["new"] } },
+      { key: "dataset_id", label: "Dataset", kind: "dataset", required: true, showIf: { key: "target", in: ["existing"] } },
+      {
+        key: "classification",
+        label: "Classification",
+        kind: "select",
+        options: [
+          { value: "internal", label: "Internal" },
+          { value: "confidential", label: "Confidential" },
+        ],
+      },
     ],
-    defaults: { dataset_name: "", mode: "new_version" },
+    defaults: { target: "new", dataset_name: "", classification: "internal" },
   },
 ];
 

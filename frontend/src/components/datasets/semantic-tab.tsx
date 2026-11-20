@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BookOpen, Pencil, Plus, Save, Send, Sigma, Trash2, Undo2, X } from "lucide-react";
+import { BookOpen, Pencil, Plus, RefreshCw, RotateCcw, Save, Sigma, Trash2, Undo2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,17 +17,18 @@ import { StatusBadge } from "@/components/ui/status";
 import { isApiError } from "@/lib/api";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
 import {
-  useCreateSemanticModel,
+  semanticDiff,
   useDeleteMetric,
-  usePublishSemanticModel,
+  useRefreshSemanticModel,
   useSaveMetric,
   useSemanticModel,
   useUpdateSemanticModel,
 } from "@/lib/queries/pipelines";
 import type { Dataset, MetricDefinition, SemanticColumn, SemanticTable } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatRelative } from "@/lib/utils";
 
-const ROLES = ["dimension", "measure", "time", "id", "attribute"];
+/** Backend roles (`apps/semantic/generation.py`). `pii` is fixed for columns detected as personal data. */
+const ROLES = ["dimension", "measure", "time", "id", "pii"];
 const AGGS = ["sum", "avg", "min", "max", "count", "count_distinct"];
 const NONE = "__none__";
 
@@ -72,61 +73,47 @@ export function SynonymInput({ value, onChange, id, disabled }: { value: string[
 
 export function SemanticTab({ org, dataset, canManage }: { org: string; dataset: Dataset; canManage: boolean }) {
   const q = useSemanticModel(org, dataset.id);
-  const create = useCreateSemanticModel(org, dataset.id);
   const update = useUpdateSemanticModel(org, dataset.id);
-  const publish = usePublishSemanticModel(org, dataset.id);
+  const refresh = useRefreshSemanticModel(org, dataset.id);
   const model = q.data ?? null;
   const [tables, setTables] = React.useState<SemanticTable[]>([]);
   const [metricEdit, setMetricEdit] = React.useState<MetricDefinition | null>(null);
   const [metricDelete, setMetricDelete] = React.useState<MetricDefinition | null>(null);
+  const [resetOpen, setResetOpen] = React.useState(false);
   React.useEffect(() => {
     if (model) setTables(structuredClone(model.tables));
   }, [model]);
-  const dirty = !!model && JSON.stringify(tables) !== JSON.stringify(model.tables);
+  const patch = React.useMemo(() => (model ? semanticDiff(model, tables) : {}), [model, tables]);
+  const dirty = !!(patch.tables?.length || patch.columns?.length);
 
   if (q.isLoading) return <Skeleton className="h-80 rounded-card" />;
-  if (q.isError) {
+  if (q.isError || !model) {
     return (
       <Card>
-        {isUnavailableEndpoint(q.error) ? (
-          <EmptyState icon={<BookOpen />} title="The semantic layer isn't available yet" description="Descriptions, synonyms, roles and metrics appear here once the semantic service is deployed." />
+        {q.isError && isApiError(q.error) && q.error.code === "dataset_not_ready" ? (
+          <EmptyState icon={<BookOpen />} title="The semantic model appears when the dataset is ready" description="It is generated from the profiled columns once ingestion finishes." />
+        ) : q.isError && isUnavailableEndpoint(q.error) ? (
+          <EmptyState icon={<BookOpen />} title="The semantic layer isn't available" description="The semantic service did not respond. Descriptions, synonyms, roles and metrics appear here once it does." />
         ) : (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         )}
       </Card>
     );
   }
-  if (!model) {
-    return (
-      <Card>
-        <EmptyState
-          icon={<BookOpen />}
-          title="No semantic model yet"
-          description="A semantic model gives columns business names, descriptions, synonyms and roles, and defines reusable metrics. Ask AI and the query builder use it to understand questions."
-          action={
-            canManage ? (
-              <Button
-                loading={create.isPending}
-                onClick={async () => {
-                  try {
-                    await create.mutateAsync(dataset.name);
-                    toast.success("Semantic model created from the profile");
-                  } catch (e) {
-                    toast.error(errorMessage(e));
-                  }
-                }}
-              >
-                <Plus /> Create from profile
-              </Button>
-            ) : undefined
-          }
-        />
-      </Card>
-    );
-  }
 
-  const setColumn = (ti: number, ci: number, patch: Partial<SemanticColumn>) =>
-    setTables((ts) => ts.map((t, i) => (i !== ti ? t : { ...t, columns: t.columns.map((c, j) => (j !== ci ? c : { ...c, ...patch })) })));
+  const setColumn = (ti: number, ci: number, p: Partial<SemanticColumn>) =>
+    setTables((ts) => ts.map((t, i) => (i !== ti ? t : { ...t, columns: t.columns.map((c, j) => (j !== ci ? c : { ...c, ...p })) })));
+  const setTable = (ti: number, p: Partial<SemanticTable>) => setTables((ts) => ts.map((t, i) => (i !== ti ? t : { ...t, ...p })));
+
+  const doRefresh = async (reset: boolean) => {
+    try {
+      await refresh.mutateAsync(reset);
+      toast.success(reset ? "Semantic model regenerated; manual edits were reset." : "Semantic model refreshed from the current version. Your edits were kept.");
+      setResetOpen(false);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -135,26 +122,36 @@ export function SemanticTab({ org, dataset, canManage }: { org: string; dataset:
           <BookOpen className="size-4 text-fg-subtle" aria-hidden />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-fg">{model.name}</div>
-            <div className="text-xs text-fg-muted">Version {model.version ?? 1}</div>
+            <div className="text-xs text-fg-muted">
+              {model.version !== null ? `Dataset version ${model.version}` : "No ready version"}
+              {model.generated_at ? ` · generated ${formatRelative(model.generated_at)}` : ""}
+            </div>
           </div>
-          <StatusBadge status={model.status === "published" ? "active" : "draft"} />
-          <span className="text-xs text-fg-muted">{model.status === "published" ? "Published: used by Ask AI" : "Draft: publish to use it in Ask AI"}</span>
+          <StatusBadge status={model.status === "ready" ? "active" : "failed"} />
+          <span className="text-xs text-fg-muted">
+            {model.status === "ready" ? "Ask AI uses these names, synonyms and metrics." : (model.last_error?.message ?? "Generation failed. Refresh to retry.")}
+          </span>
           {canManage && (
-            <div className="ml-auto flex gap-2">
+            <div className="ml-auto flex flex-wrap gap-2">
               {dirty && (
                 <Button variant="ghost" size="sm" onClick={() => setTables(structuredClone(model.tables))}>
                   <Undo2 /> Discard
                 </Button>
               )}
+              <Button variant="ghost" size="sm" loading={refresh.isPending && !resetOpen} disabled={dirty} onClick={() => void doRefresh(false)}>
+                <RefreshCw /> Refresh
+              </Button>
+              <Button variant="ghost" size="sm" disabled={dirty} onClick={() => setResetOpen(true)}>
+                <RotateCcw /> Reset edits
+              </Button>
               <Button
-                variant="secondary"
                 size="sm"
                 disabled={!dirty}
                 loading={update.isPending}
                 onClick={async () => {
                   try {
-                    await update.mutateAsync({ id: model.id, tables });
-                    toast.success("Semantic model saved");
+                    await update.mutateAsync(patch);
+                    toast.success("Semantic model saved. Ask AI uses it from the next question.");
                   } catch (e) {
                     toast.error(errorMessage(e));
                   }
@@ -162,97 +159,110 @@ export function SemanticTab({ org, dataset, canManage }: { org: string; dataset:
               >
                 <Save /> Save
               </Button>
-              <Button
-                size="sm"
-                disabled={dirty}
-                loading={publish.isPending}
-                onClick={async () => {
-                  try {
-                    await publish.mutateAsync(model.id);
-                    toast.success("Published. Ask AI now uses these descriptions and metrics.");
-                  } catch (e) {
-                    toast.error(errorMessage(e));
-                  }
-                }}
-              >
-                <Send /> Publish
-              </Button>
             </div>
           )}
         </div>
       </Card>
 
       {tables.map((t, ti) => (
-        <Card key={t.id ?? t.alias}>
-          <CardHeader title={<span className="font-mono">{t.alias}</span>} description={t.description || t.display_name} />
-          <CardContent className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead className="text-left text-xs text-fg-muted">
-                <tr className="border-b border-border">
-                  <th className="py-2 pr-3 font-medium">Column</th>
-                  <th className="py-2 pr-3 font-medium">Display name &amp; description</th>
-                  <th className="py-2 pr-3 font-medium">Synonyms</th>
-                  <th className="py-2 pr-3 font-medium">Role</th>
-                  <th className="py-2 pr-3 font-medium">Default agg</th>
-                  <th className="py-2 font-medium" title="Excluded columns are never named in AI prompts">
-                    AI
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {t.columns.map((c, ci) => (
-                  <tr key={c.column_name} className="border-b border-border align-top last:border-0">
-                    <td className="py-2.5 pr-3 font-mono text-xs text-fg">{c.column_name}</td>
-                    <td className="space-y-1.5 py-2 pr-3">
-                      <Input aria-label={`${c.column_name} display name`} value={c.display_name} disabled={!canManage} onChange={(e) => setColumn(ti, ci, { display_name: e.target.value })} className="h-8 text-xs" />
-                      <Textarea
-                        aria-label={`${c.column_name} description`}
-                        value={c.description}
-                        disabled={!canManage}
-                        onChange={(e) => setColumn(ti, ci, { description: e.target.value })}
-                        placeholder="What this column means"
-                        className="min-h-12 text-xs"
-                      />
-                    </td>
-                    <td className="w-56 py-2 pr-3">
-                      <SynonymInput id={`syn-${ti}-${ci}`} value={c.synonyms ?? []} disabled={!canManage} onChange={(v) => setColumn(ti, ci, { synonyms: v })} />
-                    </td>
-                    <td className="w-36 py-2 pr-3">
-                      <Select value={c.role} onValueChange={(v) => setColumn(ti, ci, { role: v, ...(v !== "measure" ? { default_agg: null } : {}) })} disabled={!canManage}>
-                        <SelectTrigger className="h-8 text-xs" aria-label={`${c.column_name} role`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ROLES.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {r}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="w-36 py-2 pr-3">
-                      <Select value={c.default_agg ?? NONE} onValueChange={(v) => setColumn(ti, ci, { default_agg: v === NONE ? null : v })} disabled={!canManage || c.role !== "measure"}>
-                        <SelectTrigger className="h-8 text-xs" aria-label={`${c.column_name} default aggregation`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={NONE}>—</SelectItem>
-                          {AGGS.map((a) => (
-                            <SelectItem key={a} value={a}>
-                              {a}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="py-3">
-                      <Switch checked={c.exposed_to_ai !== false} disabled={!canManage} onCheckedChange={(v) => setColumn(ti, ci, { exposed_to_ai: v })} aria-label={`Expose ${c.column_name} to AI`} />
-                    </td>
+        <Card key={t.name}>
+          <CardHeader title={<span className="font-mono">{t.name}</span>} description={t.display_name !== t.name ? t.display_name : undefined} />
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <Field id={`tbl-desc-${ti}`} label="Table description">
+                <Textarea value={t.description} disabled={!canManage} onChange={(e) => setTable(ti, { description: e.target.value })} placeholder="What one row represents" className="min-h-12 text-xs" />
+              </Field>
+              <div className="space-y-1.5">
+                <label htmlFor={`tbl-syn-${ti}`} className="text-sm font-medium text-fg">
+                  Table synonyms
+                </label>
+                <SynonymInput id={`tbl-syn-${ti}`} value={t.synonyms ?? []} disabled={!canManage} onChange={(v) => setTable(ti, { synonyms: v })} />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className="text-left text-xs text-fg-muted">
+                  <tr className="border-b border-border">
+                    <th className="py-2 pr-3 font-medium">Column</th>
+                    <th className="py-2 pr-3 font-medium">Display name &amp; description</th>
+                    <th className="py-2 pr-3 font-medium">Synonyms</th>
+                    <th className="py-2 pr-3 font-medium">Role</th>
+                    <th className="py-2 pr-3 font-medium">Default agg</th>
+                    <th className="py-2 font-medium" title="Excluded columns are never named in AI prompts">
+                      AI
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {t.columns.map((c, ci) => {
+                    const aggAllowed = c.role === "measure" || c.role === "id";
+                    return (
+                      <tr key={c.name} className="border-b border-border align-top last:border-0">
+                        <td className="py-2.5 pr-3">
+                          <div className="font-mono text-xs text-fg">{c.name}</div>
+                          <div className="mt-0.5 text-[11px] text-fg-subtle">{c.data_type ?? c.type}</div>
+                          {c.is_pii && (
+                            <Badge tone="warning" className="mt-1">
+                              PII
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="space-y-1.5 py-2 pr-3">
+                          <Input aria-label={`${c.name} display name`} value={c.display_name} disabled={!canManage} onChange={(e) => setColumn(ti, ci, { display_name: e.target.value })} className="h-8 text-xs" />
+                          <Textarea
+                            aria-label={`${c.name} description`}
+                            value={c.description}
+                            disabled={!canManage}
+                            onChange={(e) => setColumn(ti, ci, { description: e.target.value })}
+                            placeholder="What this column means"
+                            className="min-h-12 text-xs"
+                          />
+                        </td>
+                        <td className="w-56 py-2 pr-3">
+                          <SynonymInput id={`syn-${ti}-${ci}`} value={c.synonyms ?? []} disabled={!canManage} onChange={(v) => setColumn(ti, ci, { synonyms: v })} />
+                        </td>
+                        <td className="w-36 py-2 pr-3">
+                          <Select
+                            value={c.role}
+                            onValueChange={(v) => setColumn(ti, ci, { role: v, ...(v !== "measure" && v !== "id" ? { default_agg: null } : {}) })}
+                            disabled={!canManage || !!c.is_pii}
+                          >
+                            <SelectTrigger className="h-8 text-xs" aria-label={`${c.name} role`} title={c.is_pii ? "Columns with personal data keep the pii role" : undefined}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ROLES.filter((r) => r !== "pii" || c.is_pii || c.role === "pii").map((r) => (
+                                <SelectItem key={r} value={r}>
+                                  {r}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="w-36 py-2 pr-3">
+                          <Select value={c.default_agg ?? NONE} onValueChange={(v) => setColumn(ti, ci, { default_agg: v === NONE ? null : v })} disabled={!canManage || !aggAllowed}>
+                            <SelectTrigger className="h-8 text-xs" aria-label={`${c.name} default aggregation`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={NONE}>—</SelectItem>
+                              {AGGS.map((a) => (
+                                <SelectItem key={a} value={a}>
+                                  {a}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-3">
+                          <Switch checked={c.exposed_to_ai !== false} disabled={!canManage} onCheckedChange={(v) => setColumn(ti, ci, { exposed_to_ai: v })} aria-label={`Expose ${c.name} to AI`} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       ))}
@@ -261,7 +271,7 @@ export function SemanticTab({ org, dataset, canManage }: { org: string; dataset:
         <CardHeader
           icon={<Sigma />}
           title="Metrics"
-          description="Reusable business measures. Expressions are validated by the SQL guard's expression mode."
+          description="Reusable business measures. Expressions are validated by the SQL guard; invalid ones are not offered to Ask AI."
           actions={
             canManage ? (
               <Button size="sm" variant="secondary" onClick={() => setMetricEdit({ key: "", name: "", expression: "", description: "", synonyms: [] })}>
@@ -278,15 +288,19 @@ export function SemanticTab({ org, dataset, canManage }: { org: string; dataset:
               {model.metrics.map((m) => (
                 <li key={m.id ?? m.key} className="flex flex-wrap items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-medium text-fg">{m.name}</span>
                       <Badge tone="outline" className="font-mono">
                         {m.key}
                       </Badge>
+                      {m.is_default && <Badge tone="neutral">auto</Badge>}
+                      {m.status === "invalid" && <Badge tone="danger">invalid</Badge>}
+                      {m.is_active === false && <Badge tone="outline">inactive</Badge>}
                     </div>
                     <code className="mt-1 block font-mono text-xs text-accent">{m.expression}</code>
+                    {m.error && <p className="mt-1 text-xs text-danger">{m.error}</p>}
                     {m.description && <p className="mt-1 text-xs text-fg-muted">{m.description}</p>}
-                    {m.synonyms?.length > 0 && <p className="mt-1 text-[11px] text-fg-subtle">Also: {m.synonyms.join(", ")}</p>}
+                    {(m.synonyms?.length ?? 0) > 0 && <p className="mt-1 text-[11px] text-fg-subtle">Also: {m.synonyms.join(", ")}</p>}
                   </div>
                   {canManage && (
                     <div className="flex gap-1">
@@ -304,14 +318,23 @@ export function SemanticTab({ org, dataset, canManage }: { org: string; dataset:
           )}
         </CardContent>
       </Card>
-      <MetricDialog org={org} datasetId={dataset.id} modelId={model.id} metric={metricEdit} onClose={() => setMetricEdit(null)} />
-      <MetricDeleteDialog org={org} datasetId={dataset.id} modelId={model.id} metric={metricDelete} onClose={() => setMetricDelete(null)} />
+      <MetricDialog org={org} datasetId={dataset.id} metric={metricEdit} onClose={() => setMetricEdit(null)} />
+      <MetricDeleteDialog org={org} datasetId={dataset.id} metric={metricDelete} onClose={() => setMetricDelete(null)} />
+      <ConfirmDialog
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        title="Reset all manual edits?"
+        description="The semantic model is regenerated from the dataset profile. Descriptions, synonyms and roles you edited are replaced by the generated ones. Metrics you defined are kept."
+        confirmLabel="Reset edits"
+        loading={refresh.isPending}
+        onConfirm={() => void doRefresh(true)}
+      />
     </div>
   );
 }
 
-function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: string; datasetId: string; modelId: string; metric: MetricDefinition | null; onClose: () => void }) {
-  const save = useSaveMetric(org, datasetId, modelId);
+function MetricDialog({ org, datasetId, metric, onClose }: { org: string; datasetId: string; metric: MetricDefinition | null; onClose: () => void }) {
+  const save = useSaveMetric(org, datasetId);
   const [m, setM] = React.useState<MetricDefinition | null>(metric);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   React.useEffect(() => {
@@ -319,7 +342,7 @@ function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: strin
     setErrors({});
   }, [metric]);
   if (!m) return <Dialog open={false} />;
-  const set = (patch: Partial<MetricDefinition>) => setM((x) => (x ? { ...x, ...patch } : x));
+  const set = (p: Partial<MetricDefinition>) => setM((x) => (x ? { ...x, ...p } : x));
   return (
     <Dialog open={!!metric} onOpenChange={(o) => !o && onClose()}>
       <DialogContent size="md">
@@ -329,7 +352,7 @@ function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: strin
           onSubmit={async (e) => {
             e.preventDefault();
             const errs: Record<string, string> = {};
-            if (!/^[a-z_][a-z0-9_]{0,62}$/.test(m.key)) errs.key = "Use lowercase letters, digits and underscores.";
+            if (!m.id && m.key && !/^[a-z][a-z0-9_]{0,62}$/.test(m.key)) errs.key = "Start with a letter; use lowercase letters, digits and underscores.";
             if (!m.name.trim()) errs.name = "Name is required.";
             if (!m.expression.trim()) errs.expression = "Expression is required.";
             setErrors(errs);
@@ -345,7 +368,7 @@ function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: strin
           }}
         >
           <DialogBody className="grid gap-4 sm:grid-cols-2">
-            <Field id="m-key" label="Key" error={errors.key}>
+            <Field id="m-key" label="Key" error={errors.key} hint={m.id ? undefined : "Optional; generated from the name when empty."}>
               <Input value={m.key} onChange={(e) => set({ key: e.target.value })} placeholder="net_revenue" className="font-mono" disabled={!!m.id} />
             </Field>
             <Field id="m-name" label="Name" error={errors.name}>
@@ -363,6 +386,12 @@ function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: strin
               </label>
               <SynonymInput id="m-syn" value={m.synonyms ?? []} onChange={(v) => set({ synonyms: v })} />
             </div>
+            {m.id && (
+              <label className="flex items-center gap-2 text-sm text-fg sm:col-span-2">
+                <Switch checked={m.is_active !== false} onCheckedChange={(v) => set({ is_active: v })} aria-label="Metric active" />
+                Active (offered to Ask AI)
+              </label>
+            )}
           </DialogBody>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose}>
@@ -378,8 +407,8 @@ function MetricDialog({ org, datasetId, modelId, metric, onClose }: { org: strin
   );
 }
 
-function MetricDeleteDialog({ org, datasetId, modelId, metric, onClose }: { org: string; datasetId: string; modelId: string; metric: MetricDefinition | null; onClose: () => void }) {
-  const del = useDeleteMetric(org, datasetId, modelId);
+function MetricDeleteDialog({ org, datasetId, metric, onClose }: { org: string; datasetId: string; metric: MetricDefinition | null; onClose: () => void }) {
+  const del = useDeleteMetric(org, datasetId);
   return (
     <ConfirmDialog
       open={!!metric}

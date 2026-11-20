@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { DashboardsView } from "@/components/dashboards/dashboards-view";
 
 export default function DashboardsPage() {
-  return <PlannedModule id="dashboards" />;
+  return <DashboardsView />;
 }

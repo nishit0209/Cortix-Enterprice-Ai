@@ -11,6 +11,25 @@ export interface ErrorCopy {
 }
 
 export const ERROR_CATALOG: Record<string, ErrorCopy> = {
+  download_expired: {
+    title: "The download link expired",
+    description: "Download links are signed and only valid for a short time.",
+    action: "Start the download again to get a fresh link.",
+  },
+  export_unavailable: {
+    title: "The file isn't available",
+    description: "The server did not return a downloadable file.",
+    action: "Try again. If it persists, contact your administrator.",
+  },
+  widget_query_missing: {
+    title: "This widget's query was deleted",
+    description: "The saved query behind this widget no longer exists.",
+    action: "Remove the widget or pin a new answer.",
+  },
+  widget_has_no_data: {
+    title: "This widget has no data",
+    description: "Text widgets don't run a query.",
+  },
   network_error: {
     title: "Can't reach NEXORA",
     description: "The API did not respond. The backend may be starting up or your connection dropped.",

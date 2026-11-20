@@ -67,6 +67,8 @@ export function MembersView() {
   const remove = useRemoveMember(slug);
   const revokeInvite = useRevokeInvitation(slug);
   const roleOptions = useRoleOptions(slug);
+  // Filter by the org's roles from GET /roles (custom roles included); the system catalog only while loading.
+  const roleFilter = React.useMemo(() => [{ columnId: "role", label: "Role", options: roleOptions }], [roleOptions]);
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [removing, setRemoving] = React.useState<Member | null>(null);
 
@@ -210,7 +212,7 @@ export function MembersView() {
         onRetry={() => void members.refetch()}
         searchPlaceholder="Search by name or email…"
         getRowId={(m) => m.id}
-        filters={ROLE_FILTER}
+        filters={roleFilter}
         emptyState={
           <EmptyState
             icon={<Users />}
@@ -297,14 +299,6 @@ export function MembersView() {
     </div>
   );
 }
-
-const ROLE_FILTER = [
-  {
-    columnId: "role",
-    label: "Role",
-    options: FALLBACK_ROLES.map((k) => ({ value: k, label: ROLE_LABELS[k] })),
-  },
-];
 
 const inviteSchema = z.object({
   email: z.string().trim().email("Enter a valid email address"),

@@ -201,14 +201,14 @@ export function SearchPanel({
               <li key={h.chunk_id}>
                 <button
                   type="button"
-                  onClick={() => onOpen(h.document_id, h.page_from)}
+                  onClick={() => onOpen(h.document_id, h.page ?? 1)}
                   className="block w-full rounded-card border border-border bg-surface p-4 text-left shadow-xs transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-soft focus-ring"
                 >
                   <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-medium text-fg">{h.document_title ?? titles.get(h.document_id) ?? "Document"}</span>
                     <Badge tone="outline">
-                      p.{h.page_from}
-                      {h.page_to && h.page_to !== h.page_from ? `–${h.page_to}` : ""}
+                      p.{h.page ?? "?"}
+                      {h.page_to && h.page_to !== h.page ? `–${h.page_to}` : ""}
                     </Badge>
                     {typeof h.score === "number" && <span className="tabular ml-auto text-fg-subtle">score {h.score.toFixed(3)}</span>}
                   </div>

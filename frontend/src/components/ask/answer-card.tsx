@@ -10,6 +10,7 @@ import {
   Info,
   Lightbulb,
   Loader2,
+  Pin,
   Sparkles,
   Table2,
   ThumbsDown,
@@ -33,6 +34,7 @@ import { SqlPanel, SourceBadge } from "./sql-code";
 import { ChartTypeSwitcher, ResultChart } from "./result-chart";
 import { ResultTable } from "./result-table";
 import { ChatErrorCard, type ErrorCardContext } from "./error-card";
+import { PinDialog } from "@/components/dashboards/dialogs";
 
 const INSIGHT_ICON: Record<string, React.ReactNode> = {
   trend: <TrendingUp className="size-3.5" aria-hidden />,
@@ -63,6 +65,7 @@ export function AnswerCard({
   onFollowUp,
   onRetry,
   canExport,
+  canPin = false,
 }: {
   view: AnswerView;
   question: string;
@@ -71,7 +74,10 @@ export function AnswerCard({
   onFollowUp: (q: string) => void;
   onRetry?: () => void;
   canExport: boolean;
+  /** Show "Pin to dashboard" (dashboards.manage). */
+  canPin?: boolean;
 }) {
+  const [pinOpen, setPinOpen] = React.useState(false);
   const reduce = useReducedMotion();
   const streaming = view.phase === "connecting" || view.phase === "streaming";
   const [override, setOverride] = React.useState<ChartType | null>(null);
@@ -320,6 +326,22 @@ export function AnswerCard({
                 <ThumbsDown />
               </Button>
             </Tooltip>
+            {canPin && result && (view.sql?.executed || view.sql?.raw) && (
+              <>
+                <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+                <Button variant="ghost" size="xs" onClick={() => setPinOpen(true)}>
+                  <Pin /> Pin to dashboard
+                </Button>
+                <PinDialog
+                  org={ctx.slug}
+                  messageId={view.messageId}
+                  defaultTitle={question || "Pinned answer"}
+                  chart={override ? { ...(view.chart ?? {}), type: override } : (view.chart ?? (spec ? { type: spec.type, x: spec.x, y: spec.y, series: spec.series } : null))}
+                  open={pinOpen}
+                  onOpenChange={setPinOpen}
+                />
+              </>
+            )}
             {canExport && result && (
               <>
                 <span className="mx-1 h-4 w-px bg-border" aria-hidden />

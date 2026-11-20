@@ -1,9 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, unwrapList, uploadWithProgress, type UploadProgress } from "@/lib/api";
+import { api, fetchAll, unwrapList, uploadWithProgress, type UploadProgress } from "@/lib/api";
 import type {
   Classification,
+  DocumentAnswer,
   DocumentChunk,
   DocumentEntity,
   DocumentItem,
@@ -21,7 +22,7 @@ export const docKeys = {
   part: (org: string, id: string, part: string) => ["org", org, "documents", id, part] as const,
 };
 
-const PROCESSING = new Set(["uploaded", "extracting", "ocr", "chunking", "embedding", "processing", "queued", "running"]);
+const PROCESSING = new Set(["processing", "uploaded", "queued", "running"]);
 export const isDocProcessing = (d: Pick<DocumentItem, "status"> | undefined) => !!d && PROCESSING.has(d.status);
 
 export function useDocuments(org: string) {
@@ -40,12 +41,13 @@ export function useDocument(org: string, id: string) {
   });
 }
 
+/** Pages and passages are cursor-paginated (max 200 per page); entities/tables return `{items}`. Follow every cursor. */
 function usePart<T>(org: string, id: string, part: string, enabled: boolean) {
   return useQuery({
     queryKey: docKeys.part(org, id, part),
     enabled,
     retry: false,
-    queryFn: async ({ signal }) => unwrapList(await api.get<T[] | Paginated<T>>(`${o(org)}/documents/${id}/${part}`, { signal, query: { limit: 500 } })),
+    queryFn: ({ signal }) => fetchAll<T>(`${o(org)}/documents/${id}/${part}`, { signal, maxItems: 5000 }),
   });
 }
 
@@ -84,14 +86,22 @@ export function useDeleteDocument(org: string) {
   });
 }
 
+/** GET /documents/search?q=&k=&document_ids= (hybrid vector + full-text search, RRF-fused). */
 export function useDocumentSearch(org: string) {
   return useMutation({
     mutationFn: async (body: { query: string; limit?: number; document_ids?: string[] }) => {
-      const res = await api.post<{ items?: DocumentSearchHit[]; results?: DocumentSearchHit[] } | DocumentSearchHit[]>(`${o(org)}/documents/search`, { limit: 20, ...body });
+      const res = await api.get<{ results?: DocumentSearchHit[]; items?: DocumentSearchHit[] } | DocumentSearchHit[]>(`${o(org)}/documents/search`, {
+        query: { q: body.query, k: body.limit ?? 20, document_ids: body.document_ids?.length ? body.document_ids.join(",") : undefined },
+      });
       if (Array.isArray(res)) return res;
-      return res.items ?? res.results ?? [];
+      return res.results ?? res.items ?? [];
     },
   });
+}
+
+/** POST /documents/ask (JSON). `mode: "extractive"` + `reason` when generation is not allowed or not available. */
+export function askDocuments(org: string, body: { question: string; document_ids?: string[] }, signal?: AbortSignal) {
+  return api.post<DocumentAnswer>(`${o(org)}/documents/ask`, body, { signal });
 }
 
 /* ---------------- highlighting ---------------- */

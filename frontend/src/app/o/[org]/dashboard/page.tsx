@@ -32,11 +32,15 @@ import { useQueryHistory } from "@/lib/queries/bi";
 import { datasetGrowth, dailyRequests, pctChange } from "@/lib/dashboard";
 import { SourceBadge } from "@/components/ask/sql-code";
 import { VerdictBadge } from "@/components/ask/query-history";
+import { isAllowedVerdict } from "@/lib/chat/error-copy";
 import { useDatasets } from "@/lib/queries/datasets";
 import { isUnavailableEndpoint } from "@/lib/errors";
 import { formatBytes, formatNumber, formatRelative, toPercentScore } from "@/lib/utils";
 import { scoreTone } from "@/components/ui/score-ring";
 import { aiHealth } from "@/components/shell/ai-status-pill";
+import { HomeDashboardSection } from "@/components/dashboards/dashboard-view";
+import { useDashboards } from "@/lib/queries/dashboards";
+import { pickHomeDashboard } from "@/lib/dashboards/home";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -67,6 +71,8 @@ export default function DashboardPage() {
   const canUsage = can("org.settings.edit") || can("audit.view");
   const usage = useAiUsage(slug, 14, canUsage);
   const history = useQueryHistory(slug, { limit: 6 }, can("bi.chat"));
+  const dashboards = useDashboards(slug, can("dashboards.view"));
+  const homeDashboard = pickHomeDashboard(dashboards.data, me.user.id);
   const [hello, setHello] = React.useState("Welcome");
   React.useEffect(() => setHello(greeting()), []);
 
@@ -195,6 +201,9 @@ export default function DashboardPage() {
         />
       </section>
 
+      {/* The caller's home dashboard (is_default), from /dashboards. */}
+      {homeDashboard && <HomeDashboardSection dashboardId={homeDashboard.id} />}
+
       {/* Charts */}
       <section aria-label="Charts" className="grid gap-4 lg:grid-cols-12">
         <ChartCard
@@ -256,6 +265,15 @@ export default function DashboardPage() {
                 title="No pipeline runs this week"
                 description="Run a pipeline to track its success rate here."
                 className="h-full"
+                action={
+                  can("pipelines.view") ? (
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/o/${slug}/data/pipelines`}>
+                        <Workflow /> Open pipelines
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : undefined
           }
@@ -315,7 +333,21 @@ export default function DashboardPage() {
                 <ErrorState compact error={activity.error} onRetry={() => void activity.refetch()} />
               )
             ) : (activity.data ?? []).length === 0 ? (
-              <EmptyState compact icon={<Activity />} title="No activity yet" description="Uploads, invitations and policy changes will appear here." />
+              <EmptyState
+                compact
+                icon={<Activity />}
+                title="No activity yet"
+                description="Uploads, invitations and policy changes will appear here."
+                action={
+                  can("datasets.create") ? (
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/o/${slug}/data/datasets?upload=1`}>
+                        <Upload /> Upload data
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
               <ActivityList events={activity.data!} max={8} />
             )}
@@ -538,7 +570,7 @@ function RecentQuestions({ slug, q }: { slug: string; q: ReturnType<typeof useQu
                   {h.question ?? <span className="font-mono text-xs text-fg-muted">{h.executed_sql}</span>}
                 </span>
                 <SourceBadge source={h.source} />
-                {h.verdict !== "allowed" && <VerdictBadge verdict={h.verdict} />}
+                {!isAllowedVerdict(h.verdict) && <VerdictBadge verdict={h.verdict} />}
                 <span className="shrink-0 text-xs text-fg-subtle">{formatRelative(h.occurred_at)}</span>
               </li>
             ))}
