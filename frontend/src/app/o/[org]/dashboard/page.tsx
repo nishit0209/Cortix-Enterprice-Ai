@@ -37,6 +37,8 @@ import { isUnavailableEndpoint } from "@/lib/errors";
 import { formatBytes, formatNumber, formatRelative, toPercentScore } from "@/lib/utils";
 import { scoreTone } from "@/components/ui/score-ring";
 import { aiHealth } from "@/components/shell/ai-status-pill";
+import { HomeDashboardSection } from "@/components/dashboards/dashboard-view";
+import { pickDefault, useDashboards } from "@/lib/queries/dashboards";
 
 function greeting(now = new Date()) {
   const h = now.getHours();
@@ -67,6 +69,8 @@ export default function DashboardPage() {
   const canUsage = can("org.settings.edit") || can("audit.view");
   const usage = useAiUsage(slug, 14, canUsage);
   const history = useQueryHistory(slug, { limit: 6 }, can("bi.chat"));
+  const dashboards = useDashboards(slug, can("dashboards.view"));
+  const homeDashboard = pickDefault(dashboards.data ?? []);
   const [hello, setHello] = React.useState("Welcome");
   React.useEffect(() => setHello(greeting()), []);
 
@@ -194,6 +198,9 @@ export default function DashboardPage() {
           }
         />
       </section>
+
+      {/* The caller's home dashboard (is_default), from /dashboards. */}
+      {homeDashboard && <HomeDashboardSection dashboardId={homeDashboard.id} />}
 
       {/* Charts */}
       <section aria-label="Charts" className="grid gap-4 lg:grid-cols-12">

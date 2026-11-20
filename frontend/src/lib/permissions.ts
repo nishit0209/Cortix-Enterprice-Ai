@@ -57,3 +57,11 @@ export function permissionsAllow(permissions: string[] | undefined, role: string
   if (permissions) return perms.every((p) => permissions.includes(p));
   return roleAllows(role, perms);
 }
+
+/**
+ * Creating/editing dashboards. The catalog codename is `dashboards.create`; the W3 contract names it
+ * `dashboards.manage`. Either one grants it, so the UI works whichever the backend ships.
+ */
+export function canManageDashboards(can: (perm: string) => boolean): boolean {
+  return can("dashboards.manage") || can("dashboards.create");
+}
