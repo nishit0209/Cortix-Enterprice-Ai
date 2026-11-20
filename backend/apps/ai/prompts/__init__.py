@@ -35,7 +35,7 @@ class PromptSpec:
 
 
 _REGISTRY: dict[str, PromptSpec] = {}
-_MODULES = ("apps.ai.prompts.nl2sql", "apps.ai.prompts.bi")
+_MODULES = ("apps.ai.prompts.nl2sql", "apps.ai.prompts.bi", "apps.ai.prompts.docs")
 _loaded = False
 
 
