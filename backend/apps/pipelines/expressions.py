@@ -361,6 +361,10 @@ def cast_expr(e: pl.Expr, target: str, fmt: str | None = None, source: pl.DataTy
 # no eval, and the result still goes through `check()` (whitelist, arity, typing, size/depth limits).
 # ---------------------------------------------------------------------------------------------------
 MAX_TEXT_LEN = 2000
+# Parenthesis / function-call / unary nesting allowed while parsing text. The recursive-descent parser uses several
+# Python frames per level, so this bound keeps it far from the interpreter recursion limit (check() then enforces
+# MAX_DEPTH on the resulting tree).
+MAX_PARSE_DEPTH = 32
 _TOKEN_RE = re.compile(
     r"\s*(?:(?P<num>(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?)"
     r"|(?P<str>'(?:[^'\\]|\\.|'')*'|\"(?:[^\"\\]|\\.|\"\")*\")"
@@ -399,6 +403,13 @@ class _Parser:
     def __init__(self, text: str):
         self.toks = _tokens(text)
         self.i = 0
+        self.depth = 0
+
+    def nest(self) -> None:
+        self.depth += 1
+        if self.depth > MAX_PARSE_DEPTH:
+            raise ExpressionError(f"The expression is nested deeper than {MAX_PARSE_DEPTH} levels.",
+                                  "expression_too_deep")
 
     def peek(self, value: str | None = None, kind: str | None = None) -> bool:
         if self.i >= len(self.toks):
@@ -450,7 +461,10 @@ class _Parser:
     def not_expr(self) -> dict[str, Any]:
         if self.peek("not") or self.peek("!"):
             self.take()
-            return {"op": "not", "args": [self.not_expr()]}
+            self.nest()
+            inner = self.not_expr()
+            self.depth -= 1
+            return {"op": "not", "args": [inner]}
         return self.compare()
 
     def compare(self) -> dict[str, Any]:
@@ -475,14 +489,19 @@ class _Parser:
     def unary(self) -> dict[str, Any]:
         if self.peek("-", "sym"):
             self.take()
+            self.nest()
             operand = self.unary()
+            self.depth -= 1
             if set(operand) == {"lit"} and isinstance(operand["lit"], (int, float)) and \
                     not isinstance(operand["lit"], bool):
                 return {"lit": -operand["lit"]}
             return {"op": "neg", "args": [operand]}
         if self.peek("+", "sym"):
             self.take()
-            return self.unary()
+            self.nest()
+            operand = self.unary()
+            self.depth -= 1
+            return operand
         return self.primary()
 
     def primary(self) -> dict[str, Any]:
@@ -501,6 +520,7 @@ class _Parser:
                 if word not in OPS:
                     raise ExpressionError(f"Unknown function {value}() at position {pos + 1}.", "operator_not_allowed")
                 self.take()
+                self.nest()
                 args: list[dict[str, Any]] = []
                 if not self.peek(")", "sym"):
                     args.append(self.or_expr())
@@ -508,11 +528,14 @@ class _Parser:
                         self.take()
                         args.append(self.or_expr())
                 self.expect(")")
+                self.depth -= 1
                 return {"op": word, "args": args}
             return {"col": value}
         if value == "(":
+            self.nest()
             inner = self.or_expr()
             self.expect(")")
+            self.depth -= 1
             return inner
         raise ExpressionError(f"Unexpected {value!r} at position {pos + 1}.", "invalid_expression")
 
@@ -528,4 +551,7 @@ def parse_text(text: str) -> dict[str, Any]:
         raise ExpressionError("The expression is empty.", "invalid_expression")
     if len(text) > MAX_TEXT_LEN:
         raise ExpressionError(f"The expression is longer than {MAX_TEXT_LEN} characters.", "expression_too_large")
-    return _Parser(text).parse()
+    try:
+        return _Parser(text).parse()
+    except RecursionError:  # defence in depth: MAX_PARSE_DEPTH should always trip first
+        raise ExpressionError("The expression is nested too deeply.", "expression_too_deep") from None

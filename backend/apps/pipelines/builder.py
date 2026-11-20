@@ -27,7 +27,9 @@ TYPE_ALIASES = {
 }
 FILTER_OPS = {"=": "eq", "==": "eq", "!=": "ne", "<>": "ne", ">": "gt", ">=": "gte", "<": "lt", "<=": "lte"}
 AGG_FUNCS = {"avg": "mean", "average": "mean", "distinct_count": "count_distinct"}
-FILL_STRATEGIES = {"constant": "value"}
+FILL_STRATEGIES = {"constant": "value", "forward_fill": "forward", "backward_fill": "backward"}
+NO_VALUE_OPS = ("is_null", "not_null")
+_BLANK = ("", None)
 
 Problem = tuple[str, str, str]  # (field, code, message)
 
@@ -55,8 +57,15 @@ def _filter(cfg: dict[str, Any]) -> None:
     _rename(cfg, "mode", "match")
     conditions = cfg.get("conditions")
     if isinstance(conditions, list):
-        cfg["conditions"] = [{**c, "op": FILTER_OPS.get(c.get("op"), c.get("op"))} if isinstance(c, dict) else c
-                             for c in conditions]
+        cfg["conditions"] = [_condition(c) if isinstance(c, dict) else c for c in conditions]
+
+
+def _condition(c: dict[str, Any]) -> dict[str, Any]:
+    c = {**c, "op": FILTER_OPS.get(c.get("op"), c.get("op"))}
+    # the inspector resets `value` to "" whenever the operator changes, also to is_null / not_null (no value)
+    if c["op"] in NO_VALUE_OPS and "value" in c and c["value"] in _BLANK:
+        c.pop("value")
+    return c
 
 
 def _sort(cfg: dict[str, Any]) -> None:
@@ -87,10 +96,19 @@ def _aggregate(cfg: dict[str, Any]) -> None:
             alias = a.pop("as", None)
             if alias and "alias" not in a:
                 a["alias"] = alias
-            if not a.get("column"):
-                a["column"] = None
+        if isinstance(a, dict) and "column" in a and a["column"] in ("*", "", None):
+            # the inspector offers "*" (all rows) for count(*); a missing column stays an error for other functions
+            a = {**a, "column": None}
         out.append(a)
     cfg["aggregations"] = out
+
+
+def _fill_null(cfg: dict[str, Any]) -> None:
+    if cfg.get("strategy") in FILL_STRATEGIES:
+        cfg["strategy"] = FILL_STRATEGIES[cfg["strategy"]]
+    # the inspector only hides `value` for statistic / fill-forward strategies; it keeps the default ""
+    if cfg.get("strategy", "value") != "value" and "value" in cfg and cfg["value"] in _BLANK:
+        cfg.pop("value")
 
 
 def _derive(cfg: dict[str, Any], problems: list[Problem]) -> None:
@@ -123,8 +141,7 @@ def normalize_node(node_type: str, config: Any) -> tuple[str, Any, list[Problem]
     elif canonical == "filter":
         _filter(cfg)
     elif canonical == "fill_null":
-        if cfg.get("strategy") in FILL_STRATEGIES:
-            cfg["strategy"] = FILL_STRATEGIES[cfg["strategy"]]
+        _fill_null(cfg)
     elif canonical == "deduplicate":
         _rename(cfg, "keys", "subset")
         if cfg.get("subset") == []:

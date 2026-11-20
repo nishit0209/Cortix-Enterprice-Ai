@@ -11,8 +11,9 @@ import polars as pl
 import pytest
 
 from apps.pipelines import engine, expressions
+from apps.pipelines import types as T
 from apps.pipelines.builder import normalize_node
-from apps.pipelines.dag import validate_dag
+from apps.pipelines.dag import Resolvers, validate_dag
 
 DS = str(uuid.uuid4())
 FRAME = pl.DataFrame({
@@ -132,3 +133,84 @@ def test_parsed_trees_are_still_checked_against_the_schema():
     long_sum = " + ".join(f"c{i}" for i in range(12))  # more operands than add's arity: stays nested, still valid
     tree = expressions.parse_text(long_sum)
     assert expressions.check(tree, {f"c{i}": "bigint" for i in range(12)}) == "bigint"
+
+
+# ------------------------------------------------------------------- configs exactly as the inspector emits them
+# (review fix W3): the inspector keeps hidden defaults such as value "" and offers "*" as the count(*) column.
+RESOLVERS = Resolvers(dataset_schema=lambda i: {"order_id": T.BIGINT, "city": T.TEXT, "amount": T.DOUBLE,
+                                                "qty": T.TEXT} if str(i) == DS else None,
+                      check_dataset=lambda i: None)
+GAPS = pl.DataFrame({"order_id": [1, 2, 3, 4], "city": ["Pune", None, "Pune", None],
+                     "amount": [10.0, None, 30.0, None], "qty": ["1", "2", "3", "4"]})
+
+
+def _run(*steps):
+    validation = validate_dag(_chain(*steps), RESOLVERS)
+    assert validation.ok, validation.payload()["errors"]
+    return engine.execute(validation, engine.RunIO(load_source=lambda node, limit: GAPS)).frame
+
+
+@pytest.mark.parametrize(("strategy", "column", "value", "expected"), [
+    ("constant", "city", "Unknown", ["Pune", "Unknown", "Pune", "Unknown"]),
+    ("constant", "city", "", ["Pune", "", "Pune", ""]),
+    ("mean", "amount", "", [10.0, 20.0, 30.0, 20.0]),
+    ("median", "amount", "", [10.0, 20.0, 30.0, 20.0]),
+    ("mode", "city", "", ["Pune", "Pune", "Pune", "Pune"]),
+    ("forward_fill", "amount", "", [10.0, 10.0, 30.0, 30.0]),
+    ("backward_fill", "amount", None, [10.0, 30.0, 30.0, None]),
+])
+def test_every_builder_fill_strategy_validates_and_runs(strategy, column, value, expected):
+    fill = {"id": "f", "type": "fill_null", "config": {"columns": [column], "strategy": strategy, "value": value}}
+    assert _run(fill)[column].to_list() == expected
+
+
+def test_a_real_value_with_a_statistic_strategy_is_still_rejected():
+    fill = {"id": "f", "type": "fill_null", "config": {"columns": ["amount"], "strategy": "mean", "value": "7"}}
+    errors = validate_dag(_chain(fill), RESOLVERS).payload()["errors"]
+    assert [e["node_id"] for e in errors] == ["f"]
+
+
+@pytest.mark.parametrize(("op", "expected"), [("is_null", [2, 4]), ("not_null", [1, 3])])
+def test_null_filters_from_the_inspector_carry_an_empty_value(op, expected):
+    flt = {"id": "n", "type": "filter", "config": {"conditions": [{"column": "city", "op": op, "value": ""}],
+                                                   "mode": "all"}}
+    assert _run(flt)["order_id"].to_list() == expected
+
+
+def test_a_real_value_on_a_null_filter_is_still_rejected():
+    flt = {"id": "n", "type": "filter", "config": {"conditions": [{"column": "city", "op": "is_null",
+                                                                   "value": "x"}], "mode": "all"}}
+    assert not validate_dag(_chain(flt), RESOLVERS).ok
+
+
+def test_count_star_from_the_inspector():
+    agg = {"id": "agg", "type": "aggregate", "config": {"group_by": ["city"], "aggregations": [
+        {"column": "*", "fn": "count", "as": "orders"}, {"column": "amount", "fn": "sum", "as": ""}]}}
+    out = _run(agg).sort("city", nulls_last=True)
+    assert out["orders"].to_list() == [2, 2]
+
+
+def test_star_is_only_valid_for_count():
+    agg = {"id": "agg", "type": "aggregate", "config": {"group_by": [], "aggregations": [
+        {"column": "*", "fn": "sum", "as": ""}]}}
+    errors = validate_dag(_chain(agg), RESOLVERS).payload()["errors"]
+    assert [e["node_id"] for e in errors] == ["agg"]
+
+
+@pytest.mark.parametrize("text", [
+    "(" * 150 + "1" + ")" * 150, "-" * 1500 + "a", "not " * 400 + "a", "abs(" * 100 + "a" + ")" * 100,
+    "(" * (expressions.MAX_PARSE_DEPTH + 1) + "a" + ")" * (expressions.MAX_PARSE_DEPTH + 1),
+])
+def test_deep_nesting_is_an_expression_error_not_a_recursion_error(text):
+    with pytest.raises(expressions.ExpressionError) as exc:
+        expressions.parse_text(text)
+    assert exc.value.code == "expression_too_deep"
+    derive = {"id": "d", "type": "derive", "config": {"name": "x", "expression": text}}
+    errors = validate_dag(_chain(derive), RESOLVERS).payload()["errors"]
+    assert {(e["node_id"], e["code"]) for e in errors} == {("d", "expression_too_deep")}
+
+
+def test_nesting_up_to_the_parse_bound_still_parses():
+    depth = expressions.MAX_PARSE_DEPTH
+    assert expressions.parse_text("(" * depth + "a" + ")" * depth) == {"col": "a"}
+    assert expressions.parse_text("--a") == {"op": "neg", "args": [{"op": "neg", "args": [{"col": "a"}]}]}

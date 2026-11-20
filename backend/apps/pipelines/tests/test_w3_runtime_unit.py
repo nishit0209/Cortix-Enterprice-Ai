@@ -398,3 +398,17 @@ def test_preview_serializer_accepts_node_id_and_limit():
     assert ser.is_valid(), ser.errors
     assert ser.validated_data["node_id"] == "trim" and ser.validated_data["limit"] == 50
     assert not PreviewSerializer(data={"limit": 500}).is_valid()
+
+
+def test_local_tick_leaves_connection_management_to_the_core_scheduler(settings, monkeypatch):
+    """Review fix W3: closing the thread's default connection inside a core-scheduler tick would release the core
+    scheduler's session-level advisory lock mid-tick."""
+    import django.db
+
+    closed = []
+    monkeypatch.setattr(django.db, "close_old_connections", lambda: closed.append(1))
+    monkeypatch.setattr(scheduling, "dispatch_due", lambda *a, **k: {"enqueued": 0})
+    settings.CELERY_TASK_ALWAYS_EAGER = False
+    settings.TASK_RUNNER = "thread"
+    assert scheduling.local_tick() == {"enqueued": 0}
+    assert closed == []

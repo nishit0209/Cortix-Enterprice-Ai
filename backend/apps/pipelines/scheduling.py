@@ -290,16 +290,14 @@ def _finalize(org_id: UUID, run_id: UUID) -> str:
 
 def local_tick() -> dict[str, int] | None:
     """Entry point for `apps.core.scheduler` (in-process periodic thread). No-op under Celery, where beat runs the
-    `pipelines.dispatch_due` task instead, so the two paths can never both dispatch."""
-    from django.db import close_old_connections
+    `pipelines.dispatch_due` task instead, so the two paths can never both dispatch.
 
+    Connection management belongs to the caller: the core scheduler holds a session-level advisory lock on this
+    thread's default connection while it runs jobs, so closing that connection here would release its lock mid-tick.
+    """
     if runner_mode() == "celery":
         return None
-    close_old_connections()
-    try:
-        return dispatch_due()
-    finally:
-        close_old_connections()
+    return dispatch_due()
 
 
 def register_local_dispatcher() -> bool:
