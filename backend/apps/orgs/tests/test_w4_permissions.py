@@ -132,8 +132,9 @@ def test_an_ml_predict_key_carries_only_that_scope(org, owner_client):
     assert r.status_code == 201, r.content
     bearer = APIClient()
     bearer.credentials(HTTP_AUTHORIZATION=f"Bearer {r.json()['secret']}")
-    from apps.accounts.authentication import ApiKeyAuthentication
     from rest_framework.test import APIRequestFactory
+
+    from apps.accounts.authentication import ApiKeyAuthentication
 
     request = APIRequestFactory().get("/", HTTP_AUTHORIZATION=f"Bearer {r.json()['secret']}")
     ApiKeyAuthentication().authenticate(request)
@@ -160,8 +161,9 @@ def test_an_ml_predict_key_loses_the_scope_when_the_creator_loses_it(org):
     secret = _create_key(client_for(holder), org, ["ml.predict"]).json()["secret"]
     with tenant_context(org.id):
         RolePermission.objects.filter(role__key="predictors", permission__codename="ml.predict").delete()
-    from apps.accounts.authentication import ApiKeyAuthentication
     from rest_framework.test import APIRequestFactory
+
+    from apps.accounts.authentication import ApiKeyAuthentication
 
     request = APIRequestFactory().get("/", HTTP_AUTHORIZATION=f"Bearer {secret}")
     ApiKeyAuthentication().authenticate(request)

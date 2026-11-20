@@ -14,6 +14,7 @@ from .views import (
     MessageFeedbackView,
     QueryHistoryView,
     SavedQueryViewSet,
+    UsageView,
 )
 
 conversation_list = ConversationViewSet.as_view({"get": "list", "post": "create"})
@@ -36,6 +37,7 @@ urlpatterns = [
     re_path(rf"^saved-queries/(?P<pk>{UUID_RE})/run$", saved_query_run, name="bi-saved-query-run"),
     path("exports", ExportView.as_view(), name="bi-exports"),
     path("insights", InsightsView.as_view(), name="bi-insights"),
+    path("usage", UsageView.as_view(), name="org-usage"),
     # dashboards (CONTRACT "W3 additions")
     path("dashboards", DashboardListView.as_view(), name="bi-dashboard-list"),
     re_path(rf"^dashboards/(?P<pk>{UUID_RE})$", DashboardDetailView.as_view(), name="bi-dashboard-detail"),

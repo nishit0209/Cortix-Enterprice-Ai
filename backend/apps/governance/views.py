@@ -6,6 +6,10 @@
     POST                         /orgs/{org}/datasets/{id}/policy-preview
     GET, PUT                     /orgs/{org}/users/{user_id}/attributes
     GET                          /orgs/{org}/access-history   (`audit.view`)
+    GET, POST                    /orgs/{org}/retention-policies           (`governance.retention.edit`)
+    GET, PATCH, DELETE           /orgs/{org}/retention-policies/{id}
+    POST                         /orgs/{org}/retention-policies/{id}/dry-run · /apply
+    GET                          /orgs/{org}/retention-targets            supported targets
 """
 
 from __future__ import annotations
@@ -23,16 +27,17 @@ from apps.core import audit
 from apps.core.exceptions import Conflict
 from apps.core.pagination import DefaultCursorPagination
 from apps.core.permissions import DenyApiKey, HasOrgPermission
-from apps.core.registry import asset_exists
+from apps.core.registry import asset_exists, policy_sampler
 from apps.core.tenancy.views import TenantAPIView, TenantGenericViewSet
 from apps.orgs.models import Membership
 
-from . import services
-from .models import AccessHistory, ColumnPolicy, DatasetAcl, RowPolicy, UserAttribute
+from . import retention, services
+from .models import AccessHistory, ColumnPolicy, DatasetAcl, RetentionPolicy, RowPolicy, UserAttribute
 from .serializers import (
     ColumnPolicySerializer,
     DatasetAclSerializer,
     PolicyPreviewSerializer,
+    RetentionPolicySerializer,
     RowPolicySerializer,
     UserAttributesSerializer,
 )
@@ -120,10 +125,18 @@ class RowPolicyViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Re
 
 
 class PolicyPreviewView(TenantAPIView):
-    """Compute the effective policy AS a chosen member (no data is read).
+    """Compute the effective policy AS a chosen member, optionally with a small sample query.
 
-    Body: {user_id, tables?, columns_by_table?, privilege?}. Without tables/columns the dataset schema
-    provider registered by the datasets app is used. A user that fails the ACL gets `access: false`."""
+    Body: {user_id, tables?, columns_by_table?, privilege?, sample?: bool, limit?: 1..50}. Without tables/columns the
+    dataset schema provider registered by the datasets app is used. A user that fails the ACL gets `access: false`.
+
+    `sample: true` runs `SELECT <visible columns> ... LIMIT n` through the real guard and executor under the
+    member's policy INTERSECTED with the caller's own policy (the caller never sees more than they may see
+    themselves; no data leaves the org). The sample is audited (BI query audit purpose `policy_preview`, access
+    history). The response adds `sample: {ok, columns, rows, row_count, truncated, executed_sql, query_audit_id}`
+    or `sample: {ok: false, code, detail}`."""
+
+    rollback_on_error = False  # a rejected sample keeps its audit row
 
     permission_classes = PERMS
     required_permissions = "governance.policy.edit"
@@ -142,10 +155,24 @@ class PolicyPreviewView(TenantAPIView):
         except services.DatasetAccessDenied:
             return Response({"access": False, "policy": None})
         except ValueError as exc:
-            from rest_framework.exceptions import ValidationError
-
             raise ValidationError({"tables": [str(exc)]}) from exc
-        return Response({"access": True, "policy": services.policy_to_dict(policy)})
+        body = {"access": True, "policy": services.policy_to_dict(policy)}
+        if data["sample"]:
+            body["sample"] = self._sample(request, dataset_id, policy, data)
+        return Response(body)
+
+    @staticmethod
+    def _sample(request, dataset_id, policy, data) -> dict:
+        sampler = policy_sampler()
+        if sampler is None:
+            return {"ok": False, "code": "sample_unavailable", "detail": "Sampling is not available."}
+        try:
+            mine = services.effective_policy(request.user.pk, dataset_id, privilege="query")
+        except services.DatasetAccessDenied:
+            return {"ok": False, "code": "sample_not_permitted",
+                    "detail": "You cannot query this dataset yourself, so no sample can be shown."}
+        combined = services.intersect_policies(policy, mine)
+        return sampler(combined, actor_id=request.user.pk, impersonated_user_id=data["user_id"], limit=data["limit"])
 
 
 class UserAttributesView(TenantAPIView):
@@ -226,3 +253,105 @@ class AccessHistoryView(TenantAPIView):
             }
             for r in page
         ])
+
+
+# ================================================================================================ retention (W4)
+class RetentionPolicyViewSet(TenantGenericViewSet):
+    """Retention policies (`governance.retention.edit`, never via API keys). See apps/governance/retention.py.
+
+    `mode` starts as `dry_run`; switching to `enforce` needs a dry run with the CURRENT window/action (409
+    `retention_dry_run_required`). `POST /{id}/apply {confirm: true}` deletes/archives now (also needs a dry run)."""
+
+    permission_classes = PERMS
+    required_permissions = "governance.retention.edit"
+    serializer_class = RetentionPolicySerializer
+    lookup_value_regex = UUID_RE
+    pagination_class = DefaultCursorPagination
+
+    def get_queryset(self):
+        return RetentionPolicy.objects.all()
+
+    def _get(self, pk) -> RetentionPolicy:
+        obj = RetentionPolicy.objects.filter(id=pk).first()
+        if obj is None:
+            raise NotFound()
+        return obj
+
+    def list(self, request, org):
+        page = self.paginate_queryset(self.get_queryset())
+        return self.get_paginated_response(RetentionPolicySerializer(page, many=True).data)
+
+    def create(self, request, org):
+        ser = RetentionPolicySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        if ser.validated_data.get("mode") == "enforce":
+            raise Conflict("Create the policy in dry_run mode and run a dry run before enforcing it.",
+                           code="retention_dry_run_required")
+        if RetentionPolicy.objects.filter(target=ser.validated_data["target"]).exists():
+            raise Conflict("A retention policy for this target already exists.", code="duplicate")
+        obj = ser.save(created_by=request.user.pk)
+        audit.record("governance.retention.create", target=obj, request=request,
+                     metadata={"target": obj.target, "retain_days": obj.retain_days, "action": obj.action,
+                               "mode": obj.mode})
+        return Response(RetentionPolicySerializer(obj).data, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, org, pk=None):
+        return Response(RetentionPolicySerializer(self._get(pk)).data)
+
+    def partial_update(self, request, org, pk=None):
+        obj = self._get(pk)
+        before = RetentionPolicySerializer(obj).data
+        ser = RetentionPolicySerializer(obj, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        window_changed = any(k in data and data[k] != getattr(obj, k) for k in ("retain_days", "action"))
+        if data.get("mode", obj.mode) == "enforce" and (obj.last_dry_run_at is None or window_changed):
+            raise Conflict("Run a dry run with these settings before enforcing the policy.",
+                           code="retention_dry_run_required")
+        obj = ser.save()
+        if window_changed:  # a new window or action invalidates the previous dry run
+            obj.last_dry_run_at, obj.last_dry_run = None, None
+            obj.save(update_fields=["last_dry_run_at", "last_dry_run", "updated_at"])
+        after = RetentionPolicySerializer(obj).data
+        changes = {k: [before.get(k), after.get(k)] for k in data if before.get(k) != after.get(k)}
+        audit.record("governance.retention.update", target=obj, changes=changes or None, request=request,
+                     metadata={"target": obj.target})
+        return Response(after)
+
+    def destroy(self, request, org, pk=None):
+        obj = self._get(pk)
+        audit.record("governance.retention.delete", target=obj, request=request,
+                     metadata={"target": obj.target, "retain_days": obj.retain_days})
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def dry_run(self, request, org, pk=None):
+        obj = self._get(pk)
+        try:
+            result = retention.dry_run(obj)
+        except retention.RetentionError as exc:
+            raise Conflict(str(exc), code=exc.code) from exc
+        audit.record("governance.retention.dry_run", target=obj, request=request,
+                     metadata={"target": obj.target, **result})
+        return Response({"policy": RetentionPolicySerializer(obj).data, "dry_run": result})
+
+    def apply(self, request, org, pk=None):
+        obj = self._get(pk)
+        if request.data.get("confirm") is not True:
+            raise ValidationError({"confirm": ["Send confirm: true to delete or archive the matched data."]})
+        try:
+            result = retention.apply(obj, trigger="manual", request=request)
+        except retention.RetentionError as exc:
+            raise Conflict(str(exc), code=exc.code) from exc
+        return Response({"policy": RetentionPolicySerializer(obj).data, "result": result})
+
+
+class RetentionTargetsView(TenantAPIView):
+    """GET /retention-targets -> {items: [{key, label, description, actions}], never: [append-only tables]}"""
+
+    permission_classes = PERMS
+    required_permissions = "governance.retention.edit"
+
+    def get(self, request, org):
+        return Response({"items": [retention.target_payload(t) for t in retention.targets()],
+                         "never": sorted(retention.NEVER_TARGETS)})

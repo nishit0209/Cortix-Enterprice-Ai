@@ -20,7 +20,7 @@ SQL_SOURCES = [("cache_exact", "cache_exact"), ("cache_semantic", "cache_semanti
                ("llm", "llm"), ("manual", "manual"), ("dashboard", "dashboard"), ("none", "none")]
 VERDICTS = [("ok", "ok"), ("rejected", "rejected"), ("error", "error"), ("blocked", "blocked")]
 PURPOSES = [("chat", "chat"), ("manual", "manual"), ("export", "export"), ("saved_query", "saved_query"),
-            ("dashboard", "dashboard")]
+            ("dashboard", "dashboard"), ("policy_preview", "policy_preview")]
 WIDGET_KINDS = [("chart", "chart"), ("table", "table"), ("kpi", "kpi"), ("text", "text")]
 GRID_COLUMNS = 12
 
@@ -86,7 +86,7 @@ class BiQueryAudit(TenantModel):
     dataset_name = models.CharField(max_length=200, blank=True, default="")
     conversation_id = models.UUIDField(null=True, blank=True)
     message_id = models.UUIDField(null=True, blank=True)
-    purpose = models.CharField(max_length=12, choices=PURPOSES, default="chat")
+    purpose = models.CharField(max_length=16, choices=PURPOSES, default="chat")
     question = models.TextField(blank=True, default="")
     source = models.CharField(max_length=16, choices=SQL_SOURCES)
     raw_sql = models.TextField(blank=True, default="")

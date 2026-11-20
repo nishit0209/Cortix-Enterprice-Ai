@@ -68,7 +68,22 @@ def _user_attributes(world) -> dict[str, str]:
     return {"user_id": str(world.analyst.pk)}
 
 
+def _retention_policy(world) -> dict[str, str]:
+    from apps.governance.models import RetentionPolicy
+
+    pol = world.resources.get("retention_policy")
+    if pol is None:
+        with world.tenant():
+            pol = RetentionPolicy.objects.create(name="isolation notifications", target="notifications",
+                                                 retain_days=30)
+        world.resources["retention_policy"] = pol
+    return {"pk": str(pol.id)}
+
+
 ISOLATION_FACTORIES = {
+    "retention-policy-detail": _retention_policy,
+    "retention-policy-dry-run": _retention_policy,
+    "retention-policy-apply": _retention_policy,
     "dataset-acl-list": _dataset_only,
     "dataset-acl-detail": _acl,
     "column-policy-list": _dataset_only,

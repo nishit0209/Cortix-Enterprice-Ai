@@ -17,6 +17,15 @@ from rest_framework.views import APIView
 from .context import TenantInfo, current_actor, current_org, current_tenant, set_db_tenant
 
 
+def member_org_status(user_id: UUID | str, org_slug: str) -> str | None:
+    """Status of the org (`active` | `suspended`) when the user is an ACTIVE member of it, else None. Pre-tenant
+    lookup via SECURITY DEFINER function (orgs migration 0004); never reveals an org the user is not in."""
+    with connection.cursor() as cur:
+        cur.execute("SELECT nexora_member_org_status(%s, %s)", [str(user_id), org_slug])
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
 def resolve_membership(user_id: UUID | str, org_slug: str) -> TenantInfo | None:
     """Pre-tenant lookup via SECURITY DEFINER function (defined in orgs migrations)."""
     with connection.cursor() as cur:
@@ -57,6 +66,10 @@ class TenantScopedMixin:
             raise NotAuthenticated()  # 401 regardless of whether the org exists (reveals nothing)
         info = resolve_membership(user.pk, slug)
         if info is None:
+            if member_org_status(user.pk, slug) == "suspended":
+                from apps.core.exceptions import OrgSuspended
+
+                raise OrgSuspended()  # a member of a suspended org: 403 org_suspended (they know the org)
             raise NotFound()  # 404, not 403: never reveal other orgs
         return info
 

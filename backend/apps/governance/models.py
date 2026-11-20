@@ -134,3 +134,36 @@ class AccessHistory(TenantModel):
             models.Index(fields=["org", "asset_type", "asset_id", "-occurred_at"], name="access_hist_asset_idx"),
             models.Index(fields=["org", "user_id", "-occurred_at"], name="access_hist_user_idx"),
         ]
+
+
+RETENTION_ACTIONS = [("delete", "delete"), ("archive", "archive")]
+RETENTION_MODES = [("dry_run", "dry_run"), ("enforce", "enforce")]
+
+
+class RetentionPolicy(TenantModel):
+    """Delete (or archive) data of one supported `target` older than `retain_days` (governance.retention).
+
+    `mode` is `dry_run` (the periodic job only counts what WOULD be affected) until an admin switches it to
+    `enforce`, which requires a completed dry run first. Append-only evidence tables (audit events, access
+    history, BI query audit, AI request logs, consent ledger) are never retention targets (see retention.py)."""
+
+    name = models.CharField(max_length=120)
+    target = models.CharField(max_length=64)
+    retain_days = models.PositiveIntegerField()
+    action = models.CharField(max_length=8, choices=RETENTION_ACTIONS, default="delete")
+    mode = models.CharField(max_length=8, choices=RETENTION_MODES, default="dry_run")
+    is_active = models.BooleanField(default=True)
+    last_dry_run_at = models.DateTimeField(null=True, blank=True)
+    last_dry_run = models.JSONField(null=True, blank=True)  # {cutoff, matched, at}
+    last_applied_at = models.DateTimeField(null=True, blank=True)
+    last_result = models.JSONField(null=True, blank=True)  # {cutoff, affected, at, trigger}
+    created_by = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["org", "target"], name="retention_policy_org_target_uniq"),
+            models.CheckConstraint(condition=models.Q(retain_days__gte=1), name="retention_policy_days_min"),
+            models.CheckConstraint(condition=models.Q(action__in=["delete", "archive"]), name="retention_policy_action"),
+            models.CheckConstraint(condition=models.Q(mode__in=["dry_run", "enforce"]), name="retention_policy_mode"),
+        ]
+        indexes = [models.Index(fields=["org", "is_active"], name="retention_policy_active_idx")]

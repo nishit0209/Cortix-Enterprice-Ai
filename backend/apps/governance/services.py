@@ -354,6 +354,46 @@ def policy_to_dict(policy: QueryPolicy) -> dict:
     }
 
 
+def _stricter_mask(a: MaskSpec | None, b: MaskSpec | None) -> MaskSpec | None:
+    if a is None or b is None:
+        return a or b
+    if MASK_RANK[a.kind] != MASK_RANK[b.kind]:
+        return a if MASK_RANK[a.kind] > MASK_RANK[b.kind] else b
+    return a if a.keep_last <= b.keep_last else b
+
+
+def intersect_policies(primary: QueryPolicy, other: QueryPolicy) -> QueryPolicy:
+    """The policy that satisfies BOTH: allowed columns intersect, masks combine to the most restrictive, row
+    predicates are ANDed, caps take the minimum. Used by the policy preview so an admin previewing "as" another
+    member never sees a column or row their OWN policy hides. Identity fields come from `primary`."""
+    if primary.dataset_id != other.dataset_id or primary.org_id != other.org_id:
+        raise ValueError("policies of different datasets cannot be combined")
+    allowed: dict[str, frozenset[str]] = {}
+    for table, cols in primary.allowed_columns.items():
+        both = frozenset(cols) & frozenset(other.allowed_columns.get(table, frozenset()))
+        if both:
+            allowed[table] = both
+    masks: dict[tuple[str, str], MaskSpec] = {}
+    for key in set(primary.column_masks) | set(other.column_masks):
+        if key[0] in allowed and key[1] in allowed[key[0]]:
+            masks[key] = _stricter_mask(primary.column_masks.get(key), other.column_masks.get(key))
+    predicates: dict[str, RowPredicate] = {}
+    for table in allowed:
+        conds = tuple(primary.row_predicates[table].conditions) if table in primary.row_predicates else ()
+        if table in other.row_predicates:
+            conds += tuple(c for c in other.row_predicates[table].conditions if c not in conds)
+        if conds:
+            predicates[table] = RowPredicate(conditions=conds)
+    fingerprint = hashlib.sha256(f"{primary.fingerprint}|{other.fingerprint}".encode()).hexdigest()
+    return QueryPolicy(
+        org_id=primary.org_id, user_id=primary.user_id, dataset_id=primary.dataset_id,
+        tables={t: p for t, p in primary.tables.items() if t in allowed},
+        allowed_columns=allowed, column_masks=masks, row_predicates=predicates,
+        row_cap=min(primary.row_cap, other.row_cap), byte_cap=min(primary.byte_cap, other.byte_cap),
+        timeout_s=min(primary.timeout_s, other.timeout_s), fingerprint=fingerprint,
+    )
+
+
 # --- DB-backed API (inside a tenant context) -----------------------------------------------------------------
 def load_subject(user_id: UUID | str) -> PolicySubject | None:
     """The user's active membership in the current org, or None."""

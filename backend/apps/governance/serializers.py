@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from apps.orgs.models import Membership, Role
 
-from .models import ColumnPolicy, DatasetAcl, RowPolicy
+from .models import ColumnPolicy, DatasetAcl, RetentionPolicy, RowPolicy
 from .services import COLUMN_RE, validate_predicate
 
 
@@ -141,10 +141,56 @@ class PolicyPreviewSerializer(serializers.Serializer):
         child=serializers.ListField(child=serializers.CharField(max_length=128), max_length=2000), required=False
     )
     privilege = serializers.ChoiceField(choices=["read", "query", "export", "admin"], default="query")
+    # W4: also run a small sample query AS the member (impersonated policy AND the caller's own policy)
+    sample = serializers.BooleanField(default=False)
+    limit = serializers.IntegerField(min_value=1, max_value=50, default=20)
 
     def validate(self, attrs):
+        if attrs.get("sample") and "tables" in attrs:
+            raise serializers.ValidationError({"sample": ["A sample runs on the dataset's own tables; omit tables."]})
         if ("tables" in attrs) != ("columns_by_table" in attrs):
             raise serializers.ValidationError("Provide both tables and columns_by_table, or neither.")
         if "tables" in attrs and set(attrs["columns_by_table"]) - set(attrs["tables"]):
             raise serializers.ValidationError({"columns_by_table": ["Keys must be logical tables listed in tables."]})
+        return attrs
+
+
+class RetentionPolicySerializer(serializers.ModelSerializer):
+    """`target` must be a registered retention target; `mode=enforce` needs a completed dry run first (409)."""
+
+    class Meta:
+        model = RetentionPolicy
+        fields = ["id", "name", "target", "retain_days", "action", "mode", "is_active", "last_dry_run_at",
+                  "last_dry_run", "last_applied_at", "last_result", "created_by", "created_at", "updated_at"]
+        read_only_fields = ["id", "last_dry_run_at", "last_dry_run", "last_applied_at", "last_result", "created_by",
+                            "created_at", "updated_at"]
+        validators: list = []  # the (org, target) uniqueness is answered as 409 by the view
+
+    def validate_retain_days(self, value: int) -> int:
+        from .retention import MAX_RETAIN_DAYS
+
+        if not 1 <= value <= MAX_RETAIN_DAYS:
+            raise serializers.ValidationError(f"Must be between 1 and {MAX_RETAIN_DAYS} days.")
+        return value
+
+    def validate_target(self, value: str) -> str:
+        from .retention import NEVER_TARGETS, get_target
+
+        if self.instance is not None and value != self.instance.target:
+            raise serializers.ValidationError("The target of a policy cannot be changed; create a new policy.")
+        if value in NEVER_TARGETS:
+            raise serializers.ValidationError("Append-only evidence (audit, access history, query audit, AI logs) "
+                                              "is never deleted by retention.")
+        if get_target(value) is None:
+            raise serializers.ValidationError("Unsupported retention target.")
+        return value
+
+    def validate(self, attrs):
+        from .retention import get_target
+
+        inst = self.instance
+        target = get_target(attrs.get("target", inst.target if inst else ""))
+        action = attrs.get("action", inst.action if inst else "delete")
+        if target is not None and action not in target.actions:
+            raise serializers.ValidationError({"action": [f"{target.key} supports: {', '.join(target.actions)}."]})
         return attrs
