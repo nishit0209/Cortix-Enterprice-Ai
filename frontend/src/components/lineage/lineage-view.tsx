@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { GitBranch } from "lucide-react";
+import { GitBranch, Upload } from "lucide-react";
 import { useOrgContext } from "@/components/shell/org-context";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,7 +15,7 @@ import { useDatasets } from "@/lib/queries/datasets";
 import { LineageGraphView } from "./lineage-graph";
 
 export function LineageView() {
-  const { slug } = useOrgContext();
+  const { slug, can } = useOrgContext();
   const datasets = useDatasets(slug);
   const params = useSearchParams();
   const router = useRouter();
@@ -64,7 +66,20 @@ export function LineageView() {
       <Card>
         <CardContent className="pt-5">
           {datasets.isSuccess && (datasets.data ?? []).length === 0 ? (
-            <EmptyState icon={<GitBranch />} title="Nothing to trace yet" description="Upload a dataset to start recording lineage." />
+            <EmptyState
+              icon={<GitBranch />}
+              title="Nothing to trace yet"
+              description="Upload a dataset to start recording lineage."
+              action={
+                can("datasets.create") ? (
+                  <Button size="sm" asChild>
+                    <Link href={`/o/${slug}/data/datasets?upload=1`}>
+                      <Upload /> Upload a dataset
+                    </Link>
+                  </Button>
+                ) : undefined
+              }
+            />
           ) : (
             <LineageGraphView org={slug} nodeType="dataset" nodeId={datasetId} depth={depth} height={560} />
           )}

@@ -264,6 +264,15 @@ export default function DashboardPage() {
                 title="No pipeline runs this week"
                 description="Run a pipeline to track its success rate here."
                 className="h-full"
+                action={
+                  can("pipelines.view") ? (
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/o/${slug}/data/pipelines`}>
+                        <Workflow /> Open pipelines
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : undefined
           }
@@ -323,7 +332,21 @@ export default function DashboardPage() {
                 <ErrorState compact error={activity.error} onRetry={() => void activity.refetch()} />
               )
             ) : (activity.data ?? []).length === 0 ? (
-              <EmptyState compact icon={<Activity />} title="No activity yet" description="Uploads, invitations and policy changes will appear here." />
+              <EmptyState
+                compact
+                icon={<Activity />}
+                title="No activity yet"
+                description="Uploads, invitations and policy changes will appear here."
+                action={
+                  can("datasets.create") ? (
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={`/o/${slug}/data/datasets?upload=1`}>
+                        <Upload /> Upload data
+                      </Link>
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
               <ActivityList events={activity.data!} max={8} />
             )}

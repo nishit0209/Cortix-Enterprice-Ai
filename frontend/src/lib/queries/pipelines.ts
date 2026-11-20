@@ -35,11 +35,14 @@ export const deKeys = {
   semantic: (org: string, datasetId: string) => ["org", org, "semantic", datasetId] as const,
 };
 
-/** Idempotency-Key for job-starting POSTs (API_SPECIFICATION §1). */
+/**
+ * Idempotency-Key for job-starting POSTs (API_SPECIFICATION §1). `randomUUID` needs a secure context (plain
+ * http on a LAN address is not one); `getRandomValues` works everywhere.
+ */
 export function idempotencyKey(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+  const c: Crypto = globalThis.crypto;
+  if (typeof c.randomUUID === "function") return c.randomUUID();
+  return Array.from(c.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /* ---------------- data sources ---------------- */

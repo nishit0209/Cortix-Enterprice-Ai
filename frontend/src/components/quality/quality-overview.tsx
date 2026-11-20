@@ -3,9 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
-import { Copy, Gauge, ListChecks, ShieldAlert, TriangleAlert } from "lucide-react";
+import { Copy, Gauge, ListChecks, ShieldAlert, TriangleAlert, Upload } from "lucide-react";
 import { useOrgContext } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { EmptyState, ErrorState } from "@/components/ui/feedback";
@@ -28,7 +29,7 @@ interface FailingRule extends QualityRule {
 const SEVERITY_TONE: Record<string, "danger" | "warning" | "neutral"> = { error: "danger", critical: "danger", warn: "warning", warning: "warning", info: "neutral" };
 
 export function QualityOverview() {
-  const { slug } = useOrgContext();
+  const { slug, can } = useOrgContext();
   const datasets = useDatasets(slug);
   const ready = React.useMemo(() => (datasets.data ?? []).filter((d) => String(d.status) === "ready").slice(0, MAX_REPORTS), [datasets.data]);
   const reports = useQueries({
@@ -94,7 +95,20 @@ export function QualityOverview() {
         <ErrorState error={datasets.error} onRetry={() => void datasets.refetch()} />
       ) : datasets.isSuccess && ready.length === 0 ? (
         <Card>
-          <EmptyState icon={<ListChecks />} title="No profiled datasets yet" description="Quality is computed when a dataset finishes ingesting." />
+          <EmptyState
+            icon={<ListChecks />}
+            title="No profiled datasets yet"
+            description="Quality is computed when a dataset finishes ingesting. Upload a dataset to get its first score."
+            action={
+              can("datasets.create") ? (
+                <Button size="sm" asChild>
+                  <Link href={`/o/${slug}/data/datasets?upload=1`}>
+                    <Upload /> Upload a dataset
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
         </Card>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">

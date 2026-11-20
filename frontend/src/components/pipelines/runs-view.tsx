@@ -109,7 +109,21 @@ export function RunsView() {
           getRowId={(r) => r.id}
           initialSorting={[{ id: "started_at", desc: true }]}
           filters={[{ columnId: "status", label: "Status", options: Array.from(new Set((runs.data ?? []).map((r) => r.status))).map((s) => ({ value: s, label: titleCase(s) })) }]}
-          emptyState={<EmptyState compact icon={<History />} title="No runs yet" description="Run the pipeline from the builder or wait for its schedule." />}
+          emptyState={
+            <EmptyState
+              compact
+              icon={<History />}
+              title="No runs yet"
+              description="Run the pipeline from the builder or wait for its schedule."
+              action={
+                <Button size="sm" variant="secondary" asChild>
+                  <Link href={`/o/${slug}/data/pipelines/${id}`}>
+                    <Workflow /> Open builder
+                  </Link>
+                </Button>
+              }
+            />
+          }
         />
       )}
     </div>
