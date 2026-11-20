@@ -73,7 +73,8 @@ def test_tenant_task_resets_actor_after_each_run(monkeypatch):
 
 
 def test_finalize_response_rolls_back_only_its_own_tenant_transaction(monkeypatch):
-    from django.db import connection
+    from types import SimpleNamespace
+
     from rest_framework.response import Response
     from rest_framework.test import APIRequestFactory
     from rest_framework.views import APIView
@@ -82,7 +83,8 @@ def test_finalize_response_rolls_back_only_its_own_tenant_transaction(monkeypatc
 
     calls = []
     monkeypatch.setattr(views_mod.transaction, "set_rollback", lambda flag, using=None: calls.append(flag))
-    monkeypatch.setattr(connection, "in_atomic_block", True)  # e.g. an outer caller/test transaction
+    # an outer caller/test transaction is active
+    monkeypatch.setattr(views_mod, "connection", SimpleNamespace(in_atomic_block=True))
 
     class Probe(views_mod.TenantScopedMixin, APIView):
         pass
