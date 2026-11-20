@@ -221,11 +221,22 @@ def _apply_positions(dashboard: Dashboard, items: Any) -> int:
     return len(updates)
 
 
-def delete_dashboard(dashboard: Dashboard, *, request=None) -> None:
+def delete_dashboard(dashboard: Dashboard, *, request=None, delete_owned_queries: bool = False) -> None:
+    """Delete a dashboard and its widgets. `delete_owned_queries=True` also deletes the dashboard owner's saved
+    queries that only this dashboard's widgets used (pinned answers), e.g. when demo content is reset."""
+    query_ids = set(DashboardWidget.objects.filter(dashboard=dashboard).exclude(saved_query=None)
+                    .values_list("saved_query_id", flat=True))
     audit.record("bi.dashboard.delete", target=dashboard, request=request,
                  metadata={"title": dashboard.title,
                            "widgets": DashboardWidget.objects.filter(dashboard=dashboard).count()})
     dashboard.delete()
+    if delete_owned_queries and query_ids:
+        still_used = set(DashboardWidget.objects.filter(saved_query_id__in=query_ids)
+                         .values_list("saved_query_id", flat=True))
+        for sq in SavedQuery.objects.filter(id__in=query_ids - still_used, owner_id=dashboard.owner_id):
+            audit.record("bi.saved_query.delete", target=sq, request=request,
+                         metadata={"name": sq.name, "reason": "dashboard_deleted"})
+            sq.delete()
 
 
 # ================================================================================================ widgets

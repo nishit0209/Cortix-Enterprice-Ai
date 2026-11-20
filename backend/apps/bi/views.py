@@ -123,12 +123,8 @@ class ConversationViewSet(SseAwareMixin, mixins.ListModelMixin, TenantGenericVie
     def create(self, request, org):
         ser = ConversationCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        dataset_id = ser.validated_data["dataset_id"]
-        semantics = services.ensure_dataset_visible(request.user.pk, dataset_id, privilege="query")
-        conv = Conversation.objects.create(user_id=request.user.pk, dataset_id=dataset_id,
-                                           title=ser.validated_data.get("title") or services.DEFAULT_TITLE)
-        audit.record("bi.conversation.create", target=conv,
-                     metadata={"dataset_id": str(dataset_id), "dataset_name": semantics.dataset_name})
+        conv = services.create_conversation(user_id=request.user.pk, dataset_id=ser.validated_data["dataset_id"],
+                                            title=ser.validated_data.get("title") or "")
         return Response(ConversationSerializer(conv).data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, org, pk=None):

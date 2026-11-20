@@ -371,6 +371,30 @@ class Turn:
         return ("api_key", self.api_key_id) if self.api_key_id else ("user", self.user_id)
 
 
+def create_conversation(*, user_id: UUID, dataset_id: UUID, title: str = "", request=None) -> Conversation:
+    """A new conversation about a dataset the user can query (404 otherwise). Inside a tenant context."""
+    semantics = ensure_dataset_visible(user_id, dataset_id, privilege="query")
+    conv = Conversation.objects.create(user_id=user_id, dataset_id=dataset_id, title=(title or "")[:200] or DEFAULT_TITLE)
+    core_audit.record("bi.conversation.create", target=conv, request=request,
+                      metadata={"dataset_id": str(dataset_id), "dataset_name": semantics.dataset_name})
+    return conv
+
+
+def get_conversation(user_id: UUID, conversation_id) -> Conversation | None:
+    """The user's own conversation (others' conversations do not exist for them)."""
+    return Conversation.objects.filter(id=conversation_id, user_id=user_id).first()
+
+
+def delete_conversation(*, user_id: UUID, conversation_id, request=None) -> bool:
+    conv = get_conversation(user_id, conversation_id)
+    if conv is None:
+        return False
+    core_audit.record("bi.conversation.delete", target=conv, request=request,
+                      metadata={"dataset_id": str(conv.dataset_id)})
+    conv.delete()
+    return True
+
+
 def start_turn(conversation: Conversation, question: str, *, user_id: UUID, api_key_id: UUID | None = None,
                tenant: TenantInfo | None = None) -> Turn:
     """Create the user message and the pending assistant message (inside the request's tenant context)."""
@@ -800,16 +824,25 @@ from .dashboards import (  # noqa: E402
     dashboard_payload,
     delete_dashboard,
     delete_widget,
+    get_owned,
+    get_visible,
     pin_message,
     update_dashboard,
     update_widget,
+    visible_dashboards,
     widget_data,
 )
 
 __all__ = [
     "GUARD_REJECT_CODES",
     "add_widget",
+    "create_conversation",
     "create_dashboard",
+    "delete_conversation",
+    "get_conversation",
+    "get_owned",
+    "get_visible",
+    "visible_dashboards",
     "dashboard_payload",
     "delete_dashboard",
     "delete_widget",

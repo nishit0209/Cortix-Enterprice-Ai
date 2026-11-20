@@ -56,6 +56,29 @@ def find_user_by_email(email: str):
     return User.objects.filter(email__iexact=(email or "").strip()).first()
 
 
+def ensure_user(email: str, *, password: str | None = None, full_name: str = ""):
+    """Get or create a user by email (idempotent; used by `manage.py seed_demo`). Returns (user, created).
+
+    A given `password` is validated with the configured password validators and set (also on an existing user);
+    without one an existing user's password is left untouched and a new user gets an unusable password."""
+    from django.contrib.auth.password_validation import validate_password
+
+    from .models import User
+
+    email = (email or "").strip().lower()
+    user = find_user_by_email(email)
+    created = user is None
+    if created:
+        user = User(email=email, full_name=(full_name or "")[:150])
+    if password:
+        validate_password(password, user)
+        user.set_password(password)
+    elif created:
+        user.set_unusable_password()
+    user.save()
+    return user, created
+
+
 def users_by_id(ids) -> dict:
     """Bulk-load global users (no tenant data) keyed by id string."""
     from .models import User
