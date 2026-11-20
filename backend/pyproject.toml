@@ -35,6 +35,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.importlinter]
 root_package = "apps"
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Only apps.ai talks to Gemini"
@@ -45,7 +46,7 @@ source_modules = [
   "apps.lineage", "apps.warehouse", "apps.semantic", "apps.sqlguard", "apps.nl2sql",
   "apps.documents", "apps.ml", "apps.customers", "apps.products",
 ]
-forbidden_modules = ["google.genai"]
+forbidden_modules = ["google"]
 allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
