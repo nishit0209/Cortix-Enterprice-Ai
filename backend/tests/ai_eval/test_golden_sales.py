@@ -29,9 +29,10 @@ from testing.golden import (
 )
 
 QUESTIONS = golden()["questions"]
-# Measured on 2026-11-18 (W2): 43 of 48 questions answered correctly by the builder alone; it answered nothing
-# wrongly. Raise the floor when the builder improves; never lower it without a reviewed reason.
-BUILDER_ACCURACY_FLOOR = 43 / 48
+# Measured on 2026-11-18 (W2): 43 of 48. Measured on main 2026-11-20 (W4, after the W3 builder fixes for g39/g45):
+# 45 of 48 answered correctly by the builder alone (93.8%), precision when answered 100%; g46-g48 are declined.
+# Raise the floor when the builder improves; never lower it without a reviewed reason.
+BUILDER_ACCURACY_FLOOR = 45 / 48
 
 
 # ------------------------------------------------------------------------------------------------ the set itself
@@ -137,18 +138,41 @@ def test_cassette_replay_pipeline_runs_through_nl2sql_propose():
 
 
 # ------------------------------------------------------------------------------------------------ cassette files
-_CRAFTED_G45 = {
+# The cassette-file tests use a question the deterministic builder DECLINES (g48: a value filter plus a top-N on
+# units), so evaluate() really takes the cassette path. The W3 builder now answers g45 itself, which is why these
+# tests no longer use it. If the builder later learns g48 too, `_cassette_case` forces the cassette path explicitly
+# (the file-lookup and replay logic under test is independent of the builder).
+_CASSETTE_ID = "g48"
+_CRAFTED_G48 = {
     "format": "nexora.cassette.v1",
-    "id": "g45",
+    "id": _CASSETTE_ID,
     "prompt_key": "nl2sql.generate",
     "response": {
-        "sql": "SELECT category, SUM(revenue) AS revenue FROM sales WHERE region = 'North' GROUP BY category",
-        "explanation": "Revenue in the North region by category.",
+        "sql": "SELECT product, SUM(quantity) AS units FROM sales WHERE region = 'West' "
+        "GROUP BY product ORDER BY units DESC LIMIT 3",
+        "explanation": "The three products with the most units sold in the West region.",
         "assumptions": [],
-        "chart_hint": {"type": "bar", "x": "category", "y": ["revenue"]},
+        "chart_hint": {"type": "bar", "x": "product", "y": ["units"]},
         "clarification": None,
     },
 }
+
+
+def _cassette_case(monkeypatch) -> dict:
+    """The golden case the cassette tests replay; the builder is bypassed if it ever starts answering it."""
+    import testing.golden as golden_mod
+
+    case = next(q for q in QUESTIONS if q["id"] == _CASSETTE_ID)
+    assert case["builder"] is False, "the cassette tests need an LLM-path question"
+    if builder_sql(case["question"]) is not None:
+        monkeypatch.setattr(golden_mod, "builder_sql", lambda _question: None)
+    return case
+
+
+def test_the_cassette_question_is_declined_by_the_builder_on_main():
+    """Documents WHY g48 is the cassette question (measured W4: the builder declines g46-g48, answers g45)."""
+    case = next(q for q in QUESTIONS if q["id"] == _CASSETTE_ID)
+    assert builder_sql(case["question"]) is None
 
 
 @pytest.mark.parametrize("layout", ["{id}.json", "nl2sql/{id}.json"])
@@ -157,15 +181,15 @@ def test_cassettes_dir_env_is_searched_first_in_both_layouts(tmp_path, monkeypat
 
     from testing.golden import CASSETTES_ENV, cassette_dirs, cassette_path
 
-    path = tmp_path / layout.format(id="g45")
+    case = _cassette_case(monkeypatch)
+    path = tmp_path / layout.format(id=_CASSETTE_ID)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_CRAFTED_G45), encoding="utf-8")
+    path.write_text(json.dumps(_CRAFTED_G48), encoding="utf-8")
     monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
     assert cassette_dirs()[0] == tmp_path
-    assert cassette_path("g45") == path
-    case = next(q for q in QUESTIONS if q["id"] == "g45")
-    loaded = cassette_for("g45", case["question"])
-    assert loaded["response"]["sql"].startswith("SELECT category")
+    assert cassette_path(_CASSETTE_ID) == path
+    loaded = cassette_for(_CASSETTE_ID, case["question"])
+    assert loaded["response"]["sql"].startswith("SELECT product")
     outcome = evaluate(case, use_cassettes=True)
     assert outcome.source == "cassette" and outcome.correct, outcome.problems
     monkeypatch.delenv(CASSETTES_ENV)
@@ -178,7 +202,7 @@ def test_cassettes_dir_env_is_searched_first_in_both_layouts(tmp_path, monkeypat
         ("not json", "JSON"),
         ("[]", "JSON object"),
         ('{"format": "other.v2", "response": {}}', "format"),
-        ('{"id": "g46", "response": {"sql": "SELECT 1"}}', "recorded for"),
+        ('{"id": "g46", "response": {"sql": "SELECT 1"}}', "recorded for"),  # the file is g48's
         ('{"question": "a different question", "response": {"sql": "SELECT 1"}}', "stale"),
         ('{"prompt_key": "nl2sql.generate"}', "response"),
         ('{"prompt_key": 7, "response": {"sql": "SELECT 1"}}', "prompt_key"),
@@ -187,11 +211,11 @@ def test_cassettes_dir_env_is_searched_first_in_both_layouts(tmp_path, monkeypat
 def test_a_bad_cassette_is_a_recording_defect_not_a_skip(tmp_path, monkeypatch, payload, fragment):
     from testing.golden import CASSETTES_ENV, CassetteError
 
-    (tmp_path / "g45.json").write_text(payload, encoding="utf-8")
+    (tmp_path / f"{_CASSETTE_ID}.json").write_text(payload, encoding="utf-8")
     monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
-    case = next(q for q in QUESTIONS if q["id"] == "g45")
+    case = next(q for q in QUESTIONS if q["id"] == _CASSETTE_ID)
     with pytest.raises(CassetteError, match=fragment):
-        cassette_for("g45", case["question"])
+        cassette_for(_CASSETTE_ID, case["question"])
 
 
 def test_report_counts_cassette_answers_separately(tmp_path, monkeypatch):
@@ -199,11 +223,12 @@ def test_report_counts_cassette_answers_separately(tmp_path, monkeypatch):
 
     from testing.golden import CASSETTES_ENV
 
-    (tmp_path / "g45.json").write_text(json.dumps(_CRAFTED_G45), encoding="utf-8")
+    case = next(q for q in QUESTIONS if q["id"] == _CASSETTE_ID)
+    (tmp_path / f"{_CASSETTE_ID}.json").write_text(json.dumps(_CRAFTED_G48), encoding="utf-8")
     monkeypatch.setenv(CASSETTES_ENV, str(tmp_path))
     with_cassettes = report(use_cassettes=True)
     builder_only = report(use_cassettes=False)
-    if builder_sql(next(q for q in QUESTIONS if q["id"] == "g45")["question"]) is None:
+    if builder_sql(case["question"]) is None:
         assert with_cassettes["cassette_answered"] == 1 and with_cassettes["cassette_correct"] == 1
         assert with_cassettes["correct"] == builder_only["correct"] + 1
     assert with_cassettes["builder_correct"] == builder_only["builder_correct"]

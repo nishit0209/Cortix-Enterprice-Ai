@@ -206,9 +206,6 @@ questions:
   - id: g39
     question: weekly orders last month
     builder: true
-    known_gap: >-
-      apps/nl2sql/builder.py:_series -> match_measure("orders") has no COUNT default inside a time series, so the
-      builder declines "weekly orders" (works for "weekly revenue"); reported to AI/ML in the W2 QA handoff
     check: {type: series, agg: count_distinct, measure: order_id, grain: week, period: {relative: last, unit: month}}
   - id: g40
     question: monthly revenue in 2025
@@ -233,10 +230,10 @@ questions:
     builder: true
     check: {type: compare, agg: sum, measure: revenue, unit: quarter}
 
-  # ------------------------------------------------------------------ need the LLM path (filters on values, ratios)
+  # ------------------------------------------------------------------ value filters (g45 builder since W3; g46-g48 LLM path)
   - id: g45
     question: revenue in the North region by category
-    builder: false
+    builder: true          # W3: the builder resolves the value filter (region = North) itself
     check: {type: group, agg: sum, measure: revenue, by: category, where: {region: North}}
   - id: g46
     question: total revenue from Electronics in 2025
