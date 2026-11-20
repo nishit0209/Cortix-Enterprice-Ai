@@ -120,10 +120,18 @@ export function AskWorkspace() {
   );
 
   // Switching conversation drops a finished live turn that belongs elsewhere.
+  // Only reacts to the user switching conversations (not to the live turn changing state, which would drop an
+  // early error card while the URL is still catching up with a just-created conversation).
   const { live, clear } = chat;
+  const liveRef = React.useRef(live);
+  liveRef.current = live;
+  const prevSelected = React.useRef(selectedId);
   React.useEffect(() => {
-    if (live && live.conversationId !== selectedId && live.state.phase !== "streaming" && live.state.phase !== "connecting") clear();
-  }, [selectedId, live, clear]);
+    if (prevSelected.current === selectedId) return;
+    prevSelected.current = selectedId;
+    const l = liveRef.current;
+    if (l && l.conversationId !== selectedId && l.state.phase !== "streaming" && l.state.phase !== "connecting") clear();
+  }, [selectedId, clear]);
 
   const merged = mergeLive(messages.data ?? [], chat.live, selectedId);
   const turns = buildTurns(merged.messages);
