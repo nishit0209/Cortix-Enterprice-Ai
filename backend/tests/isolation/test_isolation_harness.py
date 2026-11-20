@@ -72,8 +72,11 @@ def test_factory_returning_non_dict_is_reported(monkeypatch):
 
 
 def test_kwarg_factories_are_combined_and_exempt_routes_return_none(monkeypatch):
-    route = _route("qa-probe-step", "api/v1/orgs/<slug:org>/p/<uuid:pipeline_id>/r/<uuid:run_id>",
-                   ("pipeline_id", "run_id"))
+    route = _route(
+        "qa-probe-step",
+        "api/v1/orgs/<slug:org>/p/<uuid:pipeline_id>/r/<uuid:run_id>",
+        ("pipeline_id", "run_id"),
+    )
     kwargs = {"pipeline_id": lambda w: {"pipeline_id": "p1"}, "run_id": lambda w: {"run_id": "r1"}}
     monkeypatch.setattr(isolation, "registry", lambda: ({}, kwargs, {}))
     assert factory_for(route)(_world()) == {"pipeline_id": "p1", "run_id": "r1"}

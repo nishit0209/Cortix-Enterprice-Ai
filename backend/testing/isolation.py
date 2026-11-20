@@ -111,12 +111,22 @@ def _registry_with_origins():
             if exc.name and (module_name.startswith(exc.name + ".") or exc.name == module_name):
                 continue
             raise
-        _merge(routes, origins["route"], getattr(mod, "ISOLATION_FACTORIES", {}), module_name, "ISOLATION_FACTORIES")
+        _merge(
+            routes,
+            origins["route"],
+            getattr(mod, "ISOLATION_FACTORIES", {}),
+            module_name,
+            "ISOLATION_FACTORIES",
+        )
         _merge(kwargs, origins["kwarg"], getattr(mod, "KWARG_FACTORIES", {}), module_name, "KWARG_FACTORIES")
-        _merge(exempt, origins["exempt"], getattr(mod, "ISOLATION_EXEMPT", {}), module_name, "ISOLATION_EXEMPT")
+        _merge(
+            exempt, origins["exempt"], getattr(mod, "ISOLATION_EXEMPT", {}), module_name, "ISOLATION_EXEMPT"
+        )
     for name, reason in exempt.items():
         if not str(reason or "").strip():
-            raise IsolationRegistryConflict(f"ISOLATION_EXEMPT[{name!r}] in {origins['exempt'][name]} needs a reason")
+            raise IsolationRegistryConflict(
+                f"ISOLATION_EXEMPT[{name!r}] in {origins['exempt'][name]} needs a reason"
+            )
     return routes, kwargs, exempt, origins
 
 
@@ -144,11 +154,11 @@ def _snippet(route, missing: list[str]) -> str:
         f"        def build():\n"
         f"            with world.tenant():\n"
         f"                return <create the resource in world.org>\n"
-        f"        obj = once(world, \"{app}.<resource>\", build)\n"
+        f'        obj = once(world, "{app}.<resource>", build)\n'
         f"        return {{{kw_lines}}}\n\n"
-        f"    ISOLATION_FACTORIES = {{\"{name}\": _factory}}\n"
-        f"    # or, shared by every route with that kwarg: KWARG_FACTORIES = {{\"{missing[0]}\": ...}}\n"
-        f"    # or, when no resource can exist: ISOLATION_EXEMPT = {{\"{name}\": \"<reason>\"}}"
+        f'    ISOLATION_FACTORIES = {{"{name}": _factory}}\n'
+        f'    # or, shared by every route with that kwarg: KWARG_FACTORIES = {{"{missing[0]}": ...}}\n'
+        f'    # or, when no resource can exist: ISOLATION_EXEMPT = {{"{name}": "<reason>"}}'
     )
 
 
@@ -206,7 +216,11 @@ def stale_registrations(route_names: set[str]) -> list[str]:
     routes, _kwargs, exempt = registry()
     problems = []
     for name in sorted(set(routes) - route_names):
-        problems.append(f"ISOLATION_FACTORIES[{name!r}] in {registration_origin('route', name)} matches no route")
+        problems.append(
+            f"ISOLATION_FACTORIES[{name!r}] in {registration_origin('route', name)} matches no route"
+        )
     for name in sorted(set(exempt) - route_names):
-        problems.append(f"ISOLATION_EXEMPT[{name!r}] in {registration_origin('exempt', name)} matches no route")
+        problems.append(
+            f"ISOLATION_EXEMPT[{name!r}] in {registration_origin('exempt', name)} matches no route"
+        )
     return problems

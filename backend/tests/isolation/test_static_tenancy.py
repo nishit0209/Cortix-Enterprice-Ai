@@ -105,7 +105,8 @@ def test_global_lookup_token_allowlist_is_exact_and_still_needed():
             continue
         field = model._meta.get_field(field_name)
         single_field_uniques = {
-            c.fields[0] for c in model._meta.constraints
+            c.fields[0]
+            for c in model._meta.constraints
             if c.__class__.__name__ == "UniqueConstraint" and len(getattr(c, "fields", ()) or ()) == 1
         }
         if not (field.unique or field_name in single_field_uniques):
@@ -119,7 +120,9 @@ def test_unique_allowlist_does_not_hide_other_fields(monkeypatch):
 
     name_field = ApiKey._meta.get_field("name")
     monkeypatch.setattr(name_field, "_unique", True)
-    monkeypatch.setitem(name_field.__dict__, "unique", True)  # Field.unique is a cached_property in Django 5.x
+    monkeypatch.setitem(
+        name_field.__dict__, "unique", True
+    )  # Field.unique is a cached_property in Django 5.x
     assert any(p.startswith("accounts.ApiKey.name:") for p in _unique_constraint_problems())
 
 

@@ -5,16 +5,26 @@ from __future__ import annotations
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 
-def upload_and_ingest(client, slug: str, filename: str, data: bytes, capture, *, name: str = "Dataset",
-                      classification: str = "synthetic", content_type: str = "text/csv") -> dict:
+def upload_and_ingest(
+    client,
+    slug: str,
+    filename: str,
+    data: bytes,
+    capture,
+    *,
+    name: str = "Dataset",
+    classification: str = "synthetic",
+    content_type: str = "text/csv",
+) -> dict:
     """POST /uploads + POST /datasets (ingest runs eagerly on commit). Returns the final Dataset JSON.
 
     `capture` is pytest-django's django_capture_on_commit_callbacks fixture. `client` must hold
     datasets.create (+ datasets.classify for synthetic/public, attested here).
     """
     base = f"/api/v1/orgs/{slug}"
-    up = client.post(f"{base}/uploads", {"file": SimpleUploadedFile(filename, data, content_type)},
-                     format="multipart")
+    up = client.post(
+        f"{base}/uploads", {"file": SimpleUploadedFile(filename, data, content_type)}, format="multipart"
+    )
     assert up.status_code == 201, up.content[:500]
     body = {"name": name, "upload_id": up.json()["id"], "classification": classification}
     if classification in ("synthetic", "public"):

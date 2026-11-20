@@ -24,7 +24,14 @@ class MemoryObjectStorage:
         from apps.core import storage
 
         self._check = storage._check_key
-        for name in ("put_object", "put_bytes", "get_object", "download_to", "delete_object", "presigned_get"):
+        for name in (
+            "put_object",
+            "put_bytes",
+            "get_object",
+            "download_to",
+            "delete_object",
+            "presigned_get",
+        ):
             monkeypatch.setattr(storage, name, getattr(self, name))
         monkeypatch.setattr(storage, "ensure_bucket", lambda: None)
         return self

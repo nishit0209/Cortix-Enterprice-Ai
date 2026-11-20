@@ -94,11 +94,23 @@ def test_fake_gemini_fixture_patches_the_service(fake_gemini):
 
 def test_engine_extension_kwargs_are_accepted_and_recorded():
     fake = FakeGeminiService().respond("nl2sql.generate", {"sql": "SELECT 1"})
-    fake.generate_structured(feature="nl2sql", prompt_key="nl2sql.generate", system="s", prompt="p", schema={},
-                             payload=PAYLOAD, tier="fast", user_id="u-1", priority="interactive")
+    fake.generate_structured(
+        feature="nl2sql",
+        prompt_key="nl2sql.generate",
+        system="s",
+        prompt="p",
+        schema={},
+        payload=PAYLOAD,
+        tier="fast",
+        user_id="u-1",
+        priority="interactive",
+    )
     assert fake.calls[0].extra == {"user_id": "u-1", "priority": "interactive"}
     fake.respond("bi.narrate", stream=["a", "b"])
-    assert fake.generate_text(feature="bi", prompt_key="bi.narrate", system="s", prompt="p", payload=PAYLOAD) == "ab"
+    assert (
+        fake.generate_text(feature="bi", prompt_key="bi.narrate", system="s", prompt="p", payload=PAYLOAD)
+        == "ab"
+    )
 
 
 def test_stream_is_checked_eagerly_like_the_real_engine():

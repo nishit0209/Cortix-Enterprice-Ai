@@ -15,6 +15,7 @@ import json
 
 import pytest
 
+from apps.core.tenancy.constants import TENANT_GUC
 from testing.client import api_client_for, requires_tenant_route, route_exists
 from testing.flows import job_outcome, upload_and_ingest
 
@@ -29,9 +30,17 @@ def pipelines(two_orgs, memory_storage, fake_redis, fake_embedder, django_captur
     if not route_exists(base):
         pytest.skip("pipelines API not implemented yet (Data Engineering, wave 2)")
     client = api_client_for(a.owner)
-    ds_a = upload_and_ingest(client, a.slug, "orders.csv", SAMPLE, django_capture_on_commit_callbacks, name="Orders")
-    ds_b = upload_and_ingest(api_client_for(b.owner), b.slug, "orders.csv", SAMPLE,
-                             django_capture_on_commit_callbacks, name="Beta orders")
+    ds_a = upload_and_ingest(
+        client, a.slug, "orders.csv", SAMPLE, django_capture_on_commit_callbacks, name="Orders"
+    )
+    ds_b = upload_and_ingest(
+        api_client_for(b.owner),
+        b.slug,
+        "orders.csv",
+        SAMPLE,
+        django_capture_on_commit_callbacks,
+        name="Beta orders",
+    )
 
     def versions(dataset_id: str) -> int:
         resp = client.get(f"/api/v1/orgs/{a.slug}/datasets/{dataset_id}/versions")
@@ -61,10 +70,17 @@ def pipelines(two_orgs, memory_storage, fake_redis, fake_embedder, django_captur
     def baseline() -> dict:
         return {
             "nodes": [
-                {"key": "src", "type": "source.dataset", "config": {"dataset_id": ds_a["id"], "version": "current"}},
+                {
+                    "key": "src",
+                    "type": "source.dataset",
+                    "config": {"dataset_id": ds_a["id"], "version": "current"},
+                },
                 {"key": "s1", "type": "transform.rename", "config": {"map": {"amount": "amount_inr"}}},
-                {"key": "dst", "type": "destination.dataset",
-                 "config": {"dataset_id": ds_a["id"], "mode": "new_version"}},
+                {
+                    "key": "dst",
+                    "type": "destination.dataset",
+                    "config": {"dataset_id": ds_a["id"], "mode": "new_version"},
+                },
             ],
             "edges": [["src", "s1"], ["s1", "dst"]],
         }
@@ -82,7 +98,11 @@ def _with_step(dag: dict, step: dict) -> dict:
 
 
 def _derive(expression: str) -> dict:
-    return {"key": "d1", "type": "transform.derive", "config": {"column": "derived", "expression": expression}}
+    return {
+        "key": "d1",
+        "type": "transform.derive",
+        "config": {"column": "derived", "expression": expression},
+    }
 
 
 def _refused(outcome: tuple[str, int, str | None]) -> bool:
@@ -103,7 +123,7 @@ HOSTILE_EXPRESSIONS = [
     "amount; DROP TABLE customers",
     "pl.col('amount').map_elements(eval)",
     "lambda x: x",
-    "current_setting('app.org_id')",
+    f"current_setting('{TENANT_GUC}')",
     "amount /* */ + (SELECT 1)",
 ]
 
@@ -138,12 +158,24 @@ def test_graph_structure_violations_are_rejected(pipelines):
     dangling = copy.deepcopy(base)
     dangling["edges"].append(["s1", "nowhere"])
     two_dst = copy.deepcopy(base)
-    two_dst["nodes"].append({"key": "dst2", "type": "destination.dataset",
-                             "config": {"dataset_id": pipelines.ds_a["id"], "mode": "new_version"}})
+    two_dst["nodes"].append(
+        {
+            "key": "dst2",
+            "type": "destination.dataset",
+            "config": {"dataset_id": pipelines.ds_a["id"], "mode": "new_version"},
+        }
+    )
     two_dst["edges"].append(["s1", "dst2"])
-    huge = {"nodes": [{"key": f"n{i}", "type": "transform.rename", "config": {"map": {}}} for i in range(5000)],
-            "edges": [[f"n{i}", f"n{i + 1}"] for i in range(4999)]}
-    for name, dag in (("cycle", cycle), ("dangling", dangling), ("two destinations", two_dst), ("huge", huge)):
+    huge = {
+        "nodes": [{"key": f"n{i}", "type": "transform.rename", "config": {"map": {}}} for i in range(5000)],
+        "edges": [[f"n{i}", f"n{i + 1}"] for i in range(4999)],
+    }
+    for name, dag in (
+        ("cycle", cycle),
+        ("dangling", dangling),
+        ("two destinations", two_dst),
+        ("huge", huge),
+    ):
         outcome = pipelines(dag)
         assert outcome[0] == "rejected" and outcome[1] in (400, 413, 422), f"{name}: {outcome}"
 
@@ -156,12 +188,15 @@ def test_dag_cannot_reference_another_orgs_dataset(pipelines):
         node = next(n for n in dag["nodes"] if n["key"] == node_key)
         node["config"]["dataset_id"] = other
         outcome = pipelines(dag)
-        assert outcome[0] in ("rejected", "run_refused", "run_failed"), f"{node_key} -> org B dataset: {outcome}"
+        assert outcome[0] in ("rejected", "run_refused", "run_failed"), (
+            f"{node_key} -> org B dataset: {outcome}"
+        )
         assert outcome[1] in (400, 404, 422, 202), outcome
 
 
 @pytest.mark.parametrize(
-    "name", ["../../etc/passwd", "..\\..\\orgs\\other\\x", "orgs/00000000-0000-0000-0000-000000000000/x", "\x00evil"]
+    "name",
+    ["../../etc/passwd", "..\\..\\orgs\\other\\x", "orgs/00000000-0000-0000-0000-000000000000/x", "\x00evil"],
 )
 def test_traversal_in_names_never_escapes_the_org_prefix(pipelines, name):
     dag = pipelines.baseline()
@@ -170,7 +205,9 @@ def test_traversal_in_names_never_escapes_the_org_prefix(pipelines, name):
     other_before = pipelines.storage.keys_for(pipelines.other.id)
     outcome = pipelines(dag, name=name)
     assert outcome[1] < 500
-    assert pipelines.storage.keys_for(pipelines.other.id) == other_before, "pipeline wrote into org B's prefix"
+    assert pipelines.storage.keys_for(pipelines.other.id) == other_before, (
+        "pipeline wrote into org B's prefix"
+    )
     allowed = (f"orgs/{pipelines.world.id}/", f"orgs/{pipelines.other.id}/")
     for key in pipelines.storage.objects:
         assert key.startswith(allowed), f"object outside every org prefix: {key}"

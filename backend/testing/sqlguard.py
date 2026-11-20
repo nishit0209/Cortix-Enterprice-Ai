@@ -139,8 +139,24 @@ def _statement_violations(trees: list) -> list[str]:
         problems.append(f"root is {type(tree).__name__}, not a SELECT")
     forbidden = tuple(
         getattr(exp, n)
-        for n in ("Insert", "Update", "Delete", "Merge", "Create", "Drop", "Alter", "Command", "Into", "Lock",
-                  "Set", "Transaction", "Copy", "TruncateTable", "Use", "Grant")
+        for n in (
+            "Insert",
+            "Update",
+            "Delete",
+            "Merge",
+            "Create",
+            "Drop",
+            "Alter",
+            "Command",
+            "Into",
+            "Lock",
+            "Set",
+            "Transaction",
+            "Copy",
+            "TruncateTable",
+            "Use",
+            "Grant",
+        )
         if hasattr(exp, n)
     )
     for node in tree.walk():
@@ -173,7 +189,8 @@ def _row_predicate_violations(tree, spec: dict) -> list[str]:
         phys = spec["tables"][logical].lower()
         deny_all = any(op == "in" and len(list(value or ())) == 0 for _c, op, value in conds)
         pred_cols = {
-            c.lower() for c, op, value in conds
+            c.lower()
+            for c, op, value in conds
             if not (op in ("in", "not_in") and len(list(value or ())) == 0)
         }
         for _t, select in _source_selects(tree, phys):
@@ -184,7 +201,9 @@ def _row_predicate_violations(tree, spec: dict) -> list[str]:
                 continue
             if not pred_cols:
                 continue
-            where_cols = {c.name.lower() for c in where.find_all(_column_type())} if where is not None else set()
+            where_cols = (
+                {c.name.lower() for c in where.find_all(_column_type())} if where is not None else set()
+            )
             if not pred_cols <= where_cols:
                 problems.append(f"row policy not applied to a reference of {phys}")
     return problems
@@ -236,10 +255,14 @@ def _mask_violations(tree, spec: dict) -> list[str]:
                     kind = masked[col.name.lower()]
                     rendered = projection.sql(dialect="postgres").lower()
                     markers = MASK_MARKERS.get(kind, ())
-                    if not markers or not any(m in rendered for m in markers) or isinstance(
-                        projection.unalias(), exp.Column
+                    if (
+                        not markers
+                        or not any(m in rendered for m in markers)
+                        or isinstance(projection.unalias(), exp.Column)
                     ):
-                        problems.append(f"masked column {logical}.{col.name} ({kind}) read raw: {projection.sql()}")
+                        problems.append(
+                            f"masked column {logical}.{col.name} ({kind}) read raw: {projection.sql()}"
+                        )
             for clause in ("group", "order", "having", "joins"):
                 part = select.args.get(clause)
                 for node in part if isinstance(part, list) else ([part] if part is not None else []):

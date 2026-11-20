@@ -22,7 +22,9 @@ pytestmark = [pytest.mark.django_db, requires_tenant_route("data-sources", "Data
 
 
 @pytest.fixture
-def source_api(two_orgs, settings, monkeypatch, fake_redis, canaries, caplog, django_capture_on_commit_callbacks):
+def source_api(
+    two_orgs, settings, monkeypatch, fake_redis, canaries, caplog, django_capture_on_commit_callbacks
+):
     a = two_orgs.a
     base = f"/api/v1/orgs/{a.slug}/data-sources"
     if not route_exists(base):
@@ -51,10 +53,17 @@ def source_api(two_orgs, settings, monkeypatch, fake_redis, canaries, caplog, dj
 
 def _create(source_api, canaries):
     body = {
-        "name": "Synthetic warehouse replica", "type": "postgresql",
-        "config": {"host": "db.example.test", "port": 5999, "dbname": ConnectSpy.PROBE_DB, "sslmode": "require",
-                   "schema": "public"},
-        "username": "nexora_ro", "password": canaries.db_password,
+        "name": "Synthetic warehouse replica",
+        "type": "postgresql",
+        "config": {
+            "host": "db.example.test",
+            "port": 5999,
+            "dbname": ConnectSpy.PROBE_DB,
+            "sslmode": "require",
+            "schema": "public",
+        },
+        "username": "nexora_ro",
+        "password": canaries.db_password,
     }
     resp = source_api("post", source_api.base, body)
     assert resp.status_code in (200, 201), resp.content[:300]
@@ -77,7 +86,9 @@ def test_password_is_never_returned_logged_or_published(source_api, canaries, ca
     source_api("patch", f"{source_api.base}/{source_id}", {"name": "Renamed replica"})
     tested = source_api("post", f"{source_api.base}/{source_id}/test", {})
     if tested.status_code == 202:
-        job = job_outcome(api_client_for(source_api.world.owner), source_api.world.slug, tested.json()["job_id"])
+        job = job_outcome(
+            api_client_for(source_api.world.owner), source_api.world.slug, tested.json()["job_id"]
+        )
         source_api.responses.append(json.dumps(job))
     source_api("get", f"/api/v1/orgs/{source_api.world.slug}/audit-events")
     assert source_api.spy.attempts, "the test never reached the connection step (spy saw nothing)"
@@ -94,9 +105,10 @@ def test_password_is_not_stored_in_plaintext_in_any_tenant_table(source_api, can
     found = []
     with db_tenant(source_api.world.id), connection.cursor() as cur:
         for table in tenant_tables():
-            cur.execute(f'SELECT count(*) FROM "{table}" t WHERE row_to_json(t)::text LIKE %s',  # noqa: S608
-                        [f"%{canaries.db_password}%"])
+            cur.execute(
+                f'SELECT count(*) FROM "{table}" t WHERE row_to_json(t)::text LIKE %s',  # noqa: S608
+                [f"%{canaries.db_password}%"],
+            )
             if cur.fetchone()[0]:
                 found.append(table)
     assert found == [], f"plaintext credential stored in {found}"
-

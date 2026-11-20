@@ -38,7 +38,9 @@ def sources(two_orgs, settings, monkeypatch, fake_redis, django_capture_on_commi
     base = f"/api/v1/orgs/{a.slug}/data-sources"
     if not route_exists(base):
         pytest.skip("POST /orgs/<org>/data-sources not implemented yet (Data Engineering, wave 2)")
-    settings.ALLOW_PRIVATE_DB_HOSTS = False  # test settings enable it for the local warehouse; prod default off
+    settings.ALLOW_PRIVATE_DB_HOSTS = (
+        False  # test settings enable it for the local warehouse; prod default off
+    )
     client = api_client_for(a.user("data_engineer"))
     resolver = Resolver().install(monkeypatch)
     spy = ConnectSpy().install(monkeypatch)
@@ -46,9 +48,17 @@ def sources(two_orgs, settings, monkeypatch, fake_redis, django_capture_on_commi
     def attempt(host: str) -> tuple[int, str | None]:
         """Create + test a source for `host`. Returns (status_of_create, refusal code or None)."""
         body = {
-            "name": f"probe {host}", "type": "postgresql",
-            "config": {"host": host, "port": 5999, "dbname": PROBE_DB, "sslmode": "require", "schema": "public"},
-            "username": "nexora_ro", "password": "synthetic-not-a-secret",
+            "name": f"probe {host}",
+            "type": "postgresql",
+            "config": {
+                "host": host,
+                "port": 5999,
+                "dbname": PROBE_DB,
+                "sslmode": "require",
+                "schema": "public",
+            },
+            "username": "nexora_ro",
+            "password": "synthetic-not-a-secret",
         }
         created = client.post(base, body, format="json")
         if created.status_code >= 400:
@@ -73,9 +83,23 @@ def sources(two_orgs, settings, monkeypatch, fake_redis, django_capture_on_commi
 
 
 LITERAL_HOSTS = [
-    "127.0.0.1", "127.1.2.3", "localhost", "0.0.0.0", "10.0.0.5", "172.16.4.2", "192.168.1.10",
-    "169.254.169.254", "100.64.0.1", "224.0.0.1", "::1", "::", "fe80::1", "fc00::1", "fd12:3456::1",
-    "::ffff:127.0.0.1", "::ffff:10.0.0.1",
+    "127.0.0.1",
+    "127.1.2.3",
+    "localhost",
+    "0.0.0.0",
+    "10.0.0.5",
+    "172.16.4.2",
+    "192.168.1.10",
+    "169.254.169.254",
+    "100.64.0.1",
+    "224.0.0.1",
+    "::1",
+    "::",
+    "fe80::1",
+    "fc00::1",
+    "fd12:3456::1",
+    "::ffff:127.0.0.1",
+    "::ffff:10.0.0.1",
 ]
 # Legacy/obfuscated IPv4 spellings that libc resolvers turn into 127.0.0.1. Refusing them as an invalid host is
 # as good as `connector_host_forbidden`; connecting is not.
@@ -108,8 +132,12 @@ def test_obfuscated_loopback_spellings_are_refused(sources, host):
 @pytest.mark.ac("P3-AC2")
 @pytest.mark.parametrize(
     ("name", "ip"),
-    [("db.internal.example.test", "10.20.30.40"), ("meta.example.test", "169.254.169.254"),
-     ("v6.example.test", "fd00::5"), ("loop.example.test", "127.0.0.1")],
+    [
+        ("db.internal.example.test", "10.20.30.40"),
+        ("meta.example.test", "169.254.169.254"),
+        ("v6.example.test", "fd00::5"),
+        ("loop.example.test", "127.0.0.1"),
+    ],
 )
 def test_names_resolving_to_private_addresses_are_refused(sources, name, ip):
     sources.resolver.answers[name] = [ip]
@@ -137,8 +165,17 @@ def test_dns_rebinding_is_defeated_by_ip_pinning(sources):
 
 
 def test_ssrf_helper_classification():
-    for ip in ("127.0.0.1", "10.0.0.1", "169.254.169.254", "100.64.0.1", "fe80::1", "fc00::1", "::ffff:10.0.0.1",
-               "224.0.0.1", "0.0.0.0"):
+    for ip in (
+        "127.0.0.1",
+        "10.0.0.1",
+        "169.254.169.254",
+        "100.64.0.1",
+        "fe80::1",
+        "fc00::1",
+        "::ffff:10.0.0.1",
+        "224.0.0.1",
+        "0.0.0.0",
+    ):
         assert _forbidden(ip), ip
     for ip in ("8.8.8.8", "2001:4860:4860::8888"):
         assert not _forbidden(ip), ip
@@ -149,8 +186,10 @@ def test_connect_spy_and_resolver_self_test(monkeypatch):
 
     spy = ConnectSpy().install(monkeypatch)
     resolver = Resolver({"x.example.test": ["8.8.8.8", "127.0.0.1"]}).install(monkeypatch)
-    for call in (lambda: psycopg.connect(host="h", hostaddr="8.8.8.8", dbname=PROBE_DB, connect_timeout=1),
-                 lambda: psycopg.Connection.connect(f"host=h dbname={PROBE_DB}")):
+    for call in (
+        lambda: psycopg.connect(host="h", hostaddr="8.8.8.8", dbname=PROBE_DB, connect_timeout=1),
+        lambda: psycopg.Connection.connect(f"host=h dbname={PROBE_DB}"),
+    ):
         with pytest.raises(psycopg.OperationalError, match="QA connect spy"):
             call()
     assert spy.targets() == ["8.8.8.8", "h"]

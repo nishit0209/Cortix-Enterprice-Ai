@@ -21,7 +21,11 @@ ADV = REPO / "testdata" / "generated" / "adversarial"
 GEN = REPO / "testdata" / "generated"
 REJECT_STATUSES = (400, 413, 415, 422)
 UPLOAD_REJECT_CODES = {
-    "upload_rejected", "upload_type_not_allowed", "upload_content_mismatch", "upload_zip_bomb", "upload_empty",
+    "upload_rejected",
+    "upload_type_not_allowed",
+    "upload_content_mismatch",
+    "upload_zip_bomb",
+    "upload_empty",
     "upload_too_large",
 }
 
@@ -147,7 +151,12 @@ def test_formula_cells_are_ingested_verbatim_as_text(uploader, django_capture_on
     with django_capture_on_commit_callbacks(execute=True):
         created = owner.post(
             datasets_url,
-            {"name": "Formula probe", "upload_id": up.json()["id"], "classification": "synthetic", "attest": True},
+            {
+                "name": "Formula probe",
+                "upload_id": up.json()["id"],
+                "classification": "synthetic",
+                "attest": True,
+            },
             format="json",
         )
     assert created.status_code in (201, 202), created.content[:300]

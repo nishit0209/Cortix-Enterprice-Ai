@@ -96,7 +96,12 @@ def _semantics(org_id, dataset_id):
 
 
 def test_signup_to_bi_answer_end_to_end(
-    memory_storage, fake_redis, fake_embedder, gated_fake_gemini, network_spy, django_capture_on_commit_callbacks
+    memory_storage,
+    fake_redis,
+    fake_embedder,
+    gated_fake_gemini,
+    network_spy,
+    django_capture_on_commit_callbacks,
 ):
     flow = Flow()
     gated_fake_gemini.respond("*", stream=["Revenue is concentrated in the North and West regions."])
@@ -112,8 +117,9 @@ def test_signup_to_bi_answer_end_to_end(
 
     # ---------------------------------------------------------------- 2. upload sales.csv
     data = SALES.read_bytes()
-    up = client.post(f"{base}/uploads", {"file": SimpleUploadedFile("sales.csv", data, "text/csv")},
-                     format="multipart")
+    up = client.post(
+        f"{base}/uploads", {"file": SimpleUploadedFile("sales.csv", data, "text/csv")}, format="multipart"
+    )
     assert up.status_code == 201, up.content[:500]
     assert up.json()["size_bytes"] == len(data)
     assert len(memory_storage.keys_for(org_id)) == 1
@@ -142,8 +148,10 @@ def test_signup_to_bi_answer_end_to_end(
     by_name = {c["name"]: c for c in columns}
     assert set(by_name) >= {"order_id", "order_date", "region", "revenue", "channel"}
     assert by_name["region"]["stats"]["null_pct"] > 0  # the 6 planted empty cells
-    top_regions = {str(t.get("value", t) if isinstance(t, dict) else t[0]) for t in
-                   by_name["region"]["stats"]["top_values"]}
+    top_regions = {
+        str(t.get("value", t) if isinstance(t, dict) else t[0])
+        for t in by_name["region"]["stats"]["top_values"]
+    }
     assert REGIONS <= top_regions
     assert by_name["revenue"]["data_type"] in ("numeric", "double precision", "bigint")
     quality = client.get(f"{base}/datasets/{dataset_id}/quality").json()
@@ -174,8 +182,12 @@ def test_signup_to_bi_answer_end_to_end(
     conv = client.post(f"{base}/bi/conversations", {"dataset_id": dataset_id, "title": "E2E"}, format="json")
     assert conv.status_code == 201, conv.content[:500]
     conv_id = conv.json()["id"]
-    resp = client.post(f"{base}/bi/conversations/{conv_id}/messages", {"question": QUESTION}, format="json",
-                       HTTP_ACCEPT="text/event-stream")
+    resp = client.post(
+        f"{base}/bi/conversations/{conv_id}/messages",
+        {"question": QUESTION},
+        format="json",
+        HTTP_ACCEPT="text/event-stream",
+    )
     assert resp.status_code == 200, getattr(resp, "content", b"")[:500]
     assert resp["Content-Type"].startswith("text/event-stream")
     events = parse_sse(read_stream(resp))
@@ -214,14 +226,20 @@ def test_signup_to_bi_answer_end_to_end(
     assert assistant[-1]["sql"]["source"] == "builder" and assistant[-1]["chart"]["x"] == "region"
 
     # JSON (synchronous) variant of the same endpoint
-    sync = client.post(f"{base}/bi/conversations/{conv_id}/messages", {"question": "top 3 regions by revenue"},
-                       format="json", HTTP_ACCEPT="application/json")
+    sync = client.post(
+        f"{base}/bi/conversations/{conv_id}/messages",
+        {"question": "top 3 regions by revenue"},
+        format="json",
+        HTTP_ACCEPT="application/json",
+    )
     assert sync.status_code == 200, sync.content[:500]
     msg = sync.json()
     assert msg["role"] == "assistant" and msg["sql"]["source"] == "builder"
     ranking = expected_result({**REGION_CHECK, "top": 3, "order": "desc"})
-    assert compare(ranking, _column_names(msg["result"]["columns"]),
-                   [tuple(r) for r in msg["result"]["rows"]]) == []
+    assert (
+        compare(ranking, _column_names(msg["result"]["columns"]), [tuple(r) for r in msg["result"]["rows"]])
+        == []
+    )
     flow.ok("bi question (JSON)")
 
     # ---------------------------------------------------------------- 7. query audit
@@ -255,8 +273,8 @@ def test_signup_to_bi_answer_end_to_end(
     other, other_org = _signup("e2e-intruder@example.test", "E2E Intruder")
     other_base = f"/api/v1/orgs/{other_org['slug']}"
     for path in (
-        f"{base}/bi/conversations/{conv_id}/messages",          # A's slug, not a member
-        f"{other_base}/bi/conversations/{conv_id}/messages",    # own slug, A's id (IDOR)
+        f"{base}/bi/conversations/{conv_id}/messages",  # A's slug, not a member
+        f"{other_base}/bi/conversations/{conv_id}/messages",  # own slug, A's id (IDOR)
         f"{base}/datasets/{dataset_id}",
         f"{other_base}/datasets/{dataset_id}",
         f"{base}/bi/query-history",

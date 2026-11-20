@@ -58,7 +58,9 @@ class ConnectSpy:
 
         monkeypatch.setattr(psycopg.Connection, "connect", classmethod(connect))
         # `psycopg.connect` is bound to the original classmethod at import time: patch it as well
-        monkeypatch.setattr(psycopg, "connect", lambda conninfo="", **kw: connect(psycopg.Connection, conninfo, **kw))
+        monkeypatch.setattr(
+            psycopg, "connect", lambda conninfo="", **kw: connect(psycopg.Connection, conninfo, **kw)
+        )
         return self
 
     def targets(self) -> list[str]:

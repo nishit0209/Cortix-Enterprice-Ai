@@ -166,7 +166,9 @@ def test_anonymous_never_gets_data(two_orgs, route, method):
     values = _values(route, b)
     path = route.build(org=b.slug, **values)
     resp = _call(api_client_for(None), method, path)
-    assert resp.status_code == 401, f"{method.upper()} {path} anonymous -> {resp.status_code}: {_body(resp)[:200]}"
+    assert resp.status_code == 401, (
+        f"{method.upper()} {path} anonymous -> {resp.status_code}: {_body(resp)[:200]}"
+    )
     assert _leaks(_body(resp), b.identifiers() | set(values.values())) == []
 
 

@@ -83,7 +83,13 @@ def test_attack_functions_and_catalogs_expect_terminal_codes():
 
 def test_w2_corpus_additions_are_present():
     counts = Counter(c["category"] for c in CASES)
-    for category in ("deny_all_predicate", "mask_bypass", "cte_shadowing", "set_operation", "unicode_identifiers"):
+    for category in (
+        "deny_all_predicate",
+        "mask_bypass",
+        "cte_shadowing",
+        "set_operation",
+        "unicode_identifiers",
+    ):
         assert counts[category] >= 5, (category, counts[category])
     ids = {c["id"] for c in CASES}
     assert {"inject-005", "inject-006", "inject-007", "inject-008"} <= ids
@@ -91,7 +97,9 @@ def test_w2_corpus_additions_are_present():
     assert deny.row_predicates["sales"].conditions == (("region", "in", ()),)
     assert build_policy("allow_all_notin").row_predicates["sales"].conditions == (("region", "not_in", ()),)
     assert {m.kind for m in build_policy("masked_multi").column_masks.values()} == {
-        "mask_partial", "mask_hash", "mask_null"
+        "mask_partial",
+        "mask_hash",
+        "mask_null",
     }
 
 
@@ -147,7 +155,11 @@ def test_oracle_flags_unsafe_rewrites(sql, policy, fragment):
     [
         ("SELECT 1; DROP TABLE org_qatest01.ds_101_v1", "default", "2 statements"),
         ("DELETE FROM org_qatest01.ds_101_v1", "default", "not a SELECT"),
-        ("SELECT region FROM org_qatest01.ds_101_v1 WHERE region IN (NULL)", "deny_all", "not rendered as FALSE"),
+        (
+            "SELECT region FROM org_qatest01.ds_101_v1 WHERE region IN (NULL)",
+            "deny_all",
+            "not rendered as FALSE",
+        ),
         (
             "SELECT phone FROM (SELECT phone FROM org_qatest01.ds_102_v1) AS c",
             "masked_multi",
@@ -211,7 +223,9 @@ def test_guard_verdict(case):
     result = VALIDATE(case_sql(case), build_policy(policy_name))
     expect = case["expect"]
     if not result.ok:
-        assert result.reject_code in GUARD_REJECT_CODES, f"{case['id']}: non-contract code {result.reject_code!r}"
+        assert result.reject_code in GUARD_REJECT_CODES, (
+            f"{case['id']}: non-contract code {result.reject_code!r}"
+        )
     if expect == "reject":
         assert result.ok is False, f"{case['id']} accepted: {result.executed_sql}"
         assert result.reject_code in case["codes"], (

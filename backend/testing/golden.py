@@ -171,10 +171,10 @@ def _filtered(check: dict, rows) -> list[dict]:
 
 @dataclass
 class Expected:
-    kind: str                         # scalar | mapping | ranking
-    value: Any = None                 # scalar
+    kind: str  # scalar | mapping | ranking
+    value: Any = None  # scalar
     mapping: dict = field(default_factory=dict)  # key -> value (group / series / compare)
-    order: list = field(default_factory=list)    # ranking: ordered keys
+    order: list = field(default_factory=list)  # ranking: ordered keys
 
 
 def expected_result(check: dict) -> Expected:
@@ -192,7 +192,8 @@ def expected_result(check: dict) -> Expected:
             reverse = check.get("order", "desc") == "desc"
             ordered = sorted(
                 (k for k in mapping if mapping[k] is not None),
-                key=lambda k: mapping[k], reverse=reverse,
+                key=lambda k: mapping[k],
+                reverse=reverse,
             )[: int(check["top"])]
             return Expected("ranking", mapping={k: mapping[k] for k in ordered}, order=ordered)
         return Expected("mapping", mapping=mapping)
@@ -201,10 +202,16 @@ def expected_result(check: dict) -> Expected:
         cur = unit_start(today(), unit)
         prev = shift_unit(cur, unit, -1)
         nxt = shift_unit(cur, unit, 1)
-        current = [r for r in rows if r["order_date"] and cur.isoformat() <= r["order_date"] < nxt.isoformat()]
-        previous = [r for r in rows if r["order_date"] and prev.isoformat() <= r["order_date"] < cur.isoformat()]
-        return Expected("mapping", mapping={"current_period": _metric(check, current),
-                                            "previous_period": _metric(check, previous)})
+        current = [
+            r for r in rows if r["order_date"] and cur.isoformat() <= r["order_date"] < nxt.isoformat()
+        ]
+        previous = [
+            r for r in rows if r["order_date"] and prev.isoformat() <= r["order_date"] < cur.isoformat()
+        ]
+        return Expected(
+            "mapping",
+            mapping={"current_period": _metric(check, current), "previous_period": _metric(check, previous)},
+        )
     raise ValueError(kind)
 
 
@@ -318,8 +325,10 @@ def compare(expected: Expected, columns: list[str], rows: list[tuple]) -> list[s
     want = {_key(k): v for k, v in expected.mapping.items()}
     problems = []
     if set(got) != set(want):
-        problems.append(f"keys differ: missing {sorted(map(str, set(want) - set(got)))}, "
-                        f"extra {sorted(map(str, set(got) - set(want)))}")
+        problems.append(
+            f"keys differ: missing {sorted(map(str, set(want) - set(got)))}, "
+            f"extra {sorted(map(str, set(got) - set(want)))}"
+        )
     for k in set(got) & set(want):
         if not _close(got[k], want[k]):
             problems.append(f"{k}: {got[k]!r} != {want[k]!r}")
@@ -342,15 +351,23 @@ def question_context():
     org = uuid.UUID("018f0000-0000-7000-8000-00000000e001")
     dataset_id = uuid.UUID("018f0000-0000-7000-8000-00000000e003")
     policy = QueryPolicy(
-        org_id=org, user_id=uuid.UUID("018f0000-0000-7000-8000-00000000e002"), dataset_id=dataset_id,
+        org_id=org,
+        user_id=uuid.UUID("018f0000-0000-7000-8000-00000000e002"),
+        dataset_id=dataset_id,
         tables={table: "org_golden.ds_sales_v1"},
         allowed_columns={table: frozenset(c["name"] for c in ds["columns"])},
-        row_cap=5000, fingerprint="golden",
+        row_cap=5000,
+        fingerprint="golden",
     )
     return QuestionContext(
-        org_id=org, user_id=policy.user_id, dataset_id=dataset_id, policy=policy,
-        columns_meta={table: columns}, metrics=tuple(ds.get("metrics") or ()),
-        dataset_name=ds["name"], dataset_classification="synthetic",
+        org_id=org,
+        user_id=policy.user_id,
+        dataset_id=dataset_id,
+        policy=policy,
+        columns_meta={table: columns},
+        metrics=tuple(ds.get("metrics") or ()),
+        dataset_name=ds["name"],
+        dataset_classification="synthetic",
     )
 
 
@@ -359,7 +376,7 @@ def question_context():
 class Outcome:
     id: str
     question: str
-    source: str            # builder | cassette | none
+    source: str  # builder | cassette | none
     correct: bool
     sql: str | None = None
     problems: list[str] = field(default_factory=list)
@@ -389,10 +406,12 @@ def cassette_sql(question: str, cassette: dict) -> str | None:
     from .fakes import FakeGeminiService
 
     fake = FakeGeminiService().respond(cassette.get("prompt_key", "nl2sql.generate"), cassette["response"])
-    with mock.patch.object(nl2sql_cache, "lookup_exact", return_value=None), \
-         mock.patch.object(nl2sql_cache, "lookup_semantic", return_value=None), \
-         mock.patch.object(nl2sql_services, "build_sql", return_value=None), \
-         mock.patch.object(nl2sql_services, "gemini", return_value=fake):
+    with (
+        mock.patch.object(nl2sql_cache, "lookup_exact", return_value=None),
+        mock.patch.object(nl2sql_cache, "lookup_semantic", return_value=None),
+        mock.patch.object(nl2sql_services, "build_sql", return_value=None),
+        mock.patch.object(nl2sql_services, "gemini", return_value=fake),
+    ):
         proposal = nl2sql_services.propose(question, question_context(), today=today())
     return proposal.sql
 
@@ -405,7 +424,9 @@ def evaluate(case: dict, *, use_cassettes: bool = False) -> Outcome:
         if cassette is not None:
             sql, source = cassette_sql(question, cassette), "cassette"
     if sql is None:
-        return Outcome(case["id"], question, "none", False, problems=["no SQL (builder declined, no cassette)"])
+        return Outcome(
+            case["id"], question, "none", False, problems=["no SQL (builder declined, no cassette)"]
+        )
     try:
         columns, rows = run_sql(sql)
     except Exception as exc:  # noqa: BLE001 - a failing query is an evaluation result, not a crash
@@ -446,10 +467,14 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - CLI conven
     rep = report(use_cassettes=args.with_cassettes)
     for o in rep["outcomes"]:
         mark = "OK  " if o.correct else ("MISS" if o.source == "none" else "FAIL")
-        print(f"{mark} {o.id:<6} [{o.source:<8}] {o.question}" + (f"  -> {o.problems[0]}" if o.problems else ""))
-    print(f"\nbuilder accuracy: {rep['builder_correct']}/{rep['total']} = {rep['builder_accuracy']:.1%}; "
-          f"answered {rep['answered']}, correct {rep['correct']} "
-          f"(precision when answered {rep['precision_when_answered']:.1%})")
+        print(
+            f"{mark} {o.id:<6} [{o.source:<8}] {o.question}" + (f"  -> {o.problems[0]}" if o.problems else "")
+        )
+    print(
+        f"\nbuilder accuracy: {rep['builder_correct']}/{rep['total']} = {rep['builder_accuracy']:.1%}; "
+        f"answered {rep['answered']}, correct {rep['correct']} "
+        f"(precision when answered {rep['precision_when_answered']:.1%})"
+    )
     return 0
 
 

@@ -56,14 +56,18 @@ def _docx(document_xml: str, *, extra: dict[str, bytes] | None = None) -> bytes:
 
 def _paragraphs(*texts: str) -> str:
     body = "".join(f"<w:p><w:r><w:t>{t}</w:t></w:r></w:p>" for t in texts)
-    return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-            f"<w:body>{body}</w:body></w:document>")
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{body}</w:body></w:document>"
+    )
 
 
 def _zip_bomb_docx() -> bytes:
     """Valid DOCX structure whose document part inflates from ~20 KB to 24 MiB (ratio ~1000)."""
-    return _docx(_paragraphs("Synthetic contract"), extra={"word/media/filler.xml": b"\0" * (24 * 1024 * 1024)})
+    return _docx(
+        _paragraphs("Synthetic contract"), extra={"word/media/filler.xml": b"\0" * (24 * 1024 * 1024)}
+    )
 
 
 def _xxe_docx(target_path: str) -> bytes:
@@ -97,8 +101,9 @@ def docs(two_orgs, memory_storage, fake_redis, fake_embedder, django_capture_on_
 
     def upload(name: str, data: bytes, content_type: str = DOCX, **fields):
         with django_capture_on_commit_callbacks(execute=True):
-            return client.post(base, {"file": SimpleUploadedFile(name, data, content_type), **fields},
-                               format="multipart")
+            return client.post(
+                base, {"file": SimpleUploadedFile(name, data, content_type), **fields}, format="multipart"
+            )
 
     def outcome(resp) -> str:
         """'rejected' (4xx or async rejection), 'ready' or another final status."""
@@ -116,7 +121,13 @@ def docs(two_orgs, memory_storage, fake_redis, fake_embedder, django_capture_on_
         detail = client.get(f"{base}/{doc['id']}").json()
         return "rejected" if detail.get("status") in ("rejected", "failed") else detail.get("status", "?")
 
-    upload.outcome, upload.client, upload.base, upload.world, upload.storage = outcome, client, base, a, memory_storage
+    upload.outcome, upload.client, upload.base, upload.world, upload.storage = (
+        outcome,
+        client,
+        base,
+        a,
+        memory_storage,
+    )
     return upload
 
 
@@ -192,7 +203,9 @@ def test_internal_document_text_never_reaches_gemini_under_synthetic_only(docs, 
     if not route_exists(f"{docs.base}/ask"):
         pytest.skip("POST /documents/ask not implemented yet")
     events = _ask(docs, "What is the retention period?")
-    assert "error" not in events or events["error"][0].get("code") in ("ai_policy_blocked",), events.get("error")
+    assert "error" not in events or events["error"][0].get("code") in ("ai_policy_blocked",), events.get(
+        "error"
+    )
     assert not any(canary in t for t in _sent_text(parts)), "internal document text was sent to Gemini"
     for record in parts["recorder"].records:
         if "DOCUMENT_TEXT" in record.payload_classes:
@@ -206,8 +219,12 @@ def test_synthetic_document_text_is_sent_only_with_a_declared_payload(docs, gate
     _engine, parts = gated_gemini_engine
     parts["transport"].default = FakeTransport.text("Synthetic answer.")
     marker = f"QA-SYNTH-MARKER-{secrets.token_hex(6)}"
-    resp = docs("synthetic.docx", _docx(_paragraphs(f"Synthetic policy text {marker}.")),
-                classification="synthetic", attest="true")
+    resp = docs(
+        "synthetic.docx",
+        _docx(_paragraphs(f"Synthetic policy text {marker}.")),
+        classification="synthetic",
+        attest="true",
+    )
     if docs.outcome(resp) != "ready":
         pytest.skip("documents cannot be uploaded as attested synthetic in this build")
     if not route_exists(f"{docs.base}/ask"):
@@ -216,6 +233,9 @@ def test_synthetic_document_text_is_sent_only_with_a_declared_payload(docs, gate
     if any(marker in text for text in _sent_text(parts)):
         body = resp.json()
         doc_ref = f"document:{body.get('document', body)['id']}"
-        declared = [r for r in parts["recorder"].records
-                    if r.status == "ok" and "DOCUMENT_TEXT" in r.payload_classes and doc_ref in r.payload_assets]
+        declared = [
+            r
+            for r in parts["recorder"].records
+            if r.status == "ok" and "DOCUMENT_TEXT" in r.payload_classes and doc_ref in r.payload_assets
+        ]
         assert declared, "document text was sent without declaring DOCUMENT_TEXT for that document"

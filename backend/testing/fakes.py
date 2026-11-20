@@ -107,7 +107,15 @@ class FakeGeminiService:
         return copy.deepcopy(value(prompt) if callable(value) else value)
 
     def generate_text(
-        self, *, feature: str, prompt_key: str, system: str, prompt: str, payload, tier: str = "fast", **extra: Any
+        self,
+        *,
+        feature: str,
+        prompt_key: str,
+        system: str,
+        prompt: str,
+        payload,
+        tier: str = "fast",
+        **extra: Any,
     ) -> str:
         self._record("generate_text", feature, prompt_key, system, prompt, payload, tier, None, extra)
         self._maybe_raise(prompt_key, feature)
@@ -120,7 +128,15 @@ class FakeGeminiService:
         return value if isinstance(value, str) else json.dumps(value)
 
     def stream(
-        self, *, feature: str, prompt_key: str, system: str, prompt: str, payload, tier: str = "fast", **extra: Any
+        self,
+        *,
+        feature: str,
+        prompt_key: str,
+        system: str,
+        prompt: str,
+        payload,
+        tier: str = "fast",
+        **extra: Any,
     ) -> Iterator[str]:
         # the real engine checks policy/quota eagerly, before the first chunk is requested
         self._record("stream", feature, prompt_key, system, prompt, payload, tier, None, extra)
@@ -148,7 +164,9 @@ class FakeGeminiService:
 
     # internals --------------------------------------------------------------------------------
     def _record(self, method, feature, prompt_key, system, prompt, payload, tier, schema, extra=None) -> None:
-        call = GeminiCall(method, feature, prompt_key, system, prompt, payload, tier, schema, dict(extra or {}))
+        call = GeminiCall(
+            method, feature, prompt_key, system, prompt, payload, tier, schema, dict(extra or {})
+        )
         if self.policy_check is not None:
             try:
                 self.policy_check(payload)

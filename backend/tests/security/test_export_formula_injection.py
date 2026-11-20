@@ -29,20 +29,31 @@ def _payload_notes() -> list[str]:
 
 
 @pytest.fixture
-def exported(two_orgs, memory_storage, fake_redis, fake_embedder, gated_fake_gemini,
-             django_capture_on_commit_callbacks):
+def exported(
+    two_orgs, memory_storage, fake_redis, fake_embedder, gated_fake_gemini, django_capture_on_commit_callbacks
+):
     a = two_orgs.a
     base = f"/api/v1/orgs/{a.slug}"
     if not (route_exists(f"{base}/bi/conversations") and route_exists(f"{base}/exports")):
         pytest.skip("BI conversations / exports not implemented yet (Backend bi)")
     gated_fake_gemini.respond("*", stream=["Counts per note."])
     client = api_client_for(a.owner)
-    ds = upload_and_ingest(client, a.slug, "formula_injection.csv", (ADV / "formula_injection.csv").read_bytes(),
-                           django_capture_on_commit_callbacks, name="Formula probe")
+    ds = upload_and_ingest(
+        client,
+        a.slug,
+        "formula_injection.csv",
+        (ADV / "formula_injection.csv").read_bytes(),
+        django_capture_on_commit_callbacks,
+        name="Formula probe",
+    )
     conv = client.post(f"{base}/bi/conversations", {"dataset_id": ds["id"]}, format="json")
     assert conv.status_code == 201, conv.content[:300]
-    msg = client.post(f"{base}/bi/conversations/{conv.json()['id']}/messages", {"question": "number of rows by note"},
-                      format="json", HTTP_ACCEPT="application/json")
+    msg = client.post(
+        f"{base}/bi/conversations/{conv.json()['id']}/messages",
+        {"question": "number of rows by note"},
+        format="json",
+        HTTP_ACCEPT="application/json",
+    )
     assert msg.status_code == 200, msg.content[:300]
     message = msg.json()
     assert message["result"] and message["result"]["rows"], message

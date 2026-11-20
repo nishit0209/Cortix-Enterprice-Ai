@@ -48,7 +48,7 @@ def test_golden_set_is_well_formed():
         for key in ("measure", "by"):
             if key in check:
                 assert check[key] in columns, (q["id"], check[key])
-        for col in (check.get("where") or {}):
+        for col in check.get("where") or {}:
             assert col in columns, (q["id"], col)
     assert sum(not q["builder"] for q in QUESTIONS) >= 3, "keep LLM-only questions for cassette evaluation"
 
@@ -72,14 +72,14 @@ def test_expected_answers_match_known_dataset_facts():
 # ------------------------------------------------------------------------------------------------ the runner
 def test_sqlite_translation_matches_postgres_semantics():
     sql = to_sqlite(
-        "SELECT DATE_TRUNC('week', \"order_date\") AS \"week\", PERCENTILE_CONT(0.5) WITHIN GROUP "
-        "(ORDER BY \"revenue\") AS m FROM \"sales\" WHERE \"order_date\" >= DATE '2026-11-16' GROUP BY 1"
+        'SELECT DATE_TRUNC(\'week\', "order_date") AS "week", PERCENTILE_CONT(0.5) WITHIN GROUP '
+        '(ORDER BY "revenue") AS m FROM "sales" WHERE "order_date" >= DATE \'2026-11-16\' GROUP BY 1'
     )
     lowered = sql.lower()
     assert "pg_date_trunc('week'" in lowered and "pg_percentile_cont(0.5" in lowered
     assert ">= '2026-11-16'" in sql  # DATE literal -> ISO text (the column holds ISO strings)
     columns, rows = run_sql(
-        "SELECT DATE_TRUNC('week', \"order_date\") AS \"week\", COUNT(*) AS n FROM \"sales\" "
+        'SELECT DATE_TRUNC(\'week\', "order_date") AS "week", COUNT(*) AS n FROM "sales" '
         "WHERE \"order_date\" >= DATE '2026-11-16' GROUP BY DATE_TRUNC('week', \"order_date\")"
     )
     assert columns == ["week", "n"]
@@ -90,7 +90,10 @@ def test_sqlite_translation_matches_postgres_semantics():
     ("sql", "fragment"),
     [
         ('SELECT "region", SUM("quantity") AS v FROM "sales" GROUP BY "region"', "!="),
-        ('SELECT "region", SUM("revenue") AS v FROM "sales" WHERE "region" IS NOT NULL GROUP BY "region"', "missing"),
+        (
+            'SELECT "region", SUM("revenue") AS v FROM "sales" WHERE "region" IS NOT NULL GROUP BY "region"',
+            "missing",
+        ),
         ('SELECT "channel", SUM("revenue") AS v FROM "sales" GROUP BY "channel"', "keys differ"),
     ],
 )
@@ -101,8 +104,9 @@ def test_compare_rejects_wrong_answers(sql, fragment):
 
 
 def test_compare_checks_ranking_order_and_scalars():
-    expected = expected_result({"type": "group", "agg": "sum", "measure": "revenue", "by": "region", "top": 3,
-                                "order": "desc"})
+    expected = expected_result(
+        {"type": "group", "agg": "sum", "measure": "revenue", "by": "region", "top": 3, "order": "desc"}
+    )
     asc = 'SELECT "region", SUM("revenue") AS v FROM "sales" GROUP BY "region" ORDER BY v ASC LIMIT 3'
     assert any("keys differ" in p or "ranking" in p for p in compare(expected, *run_sql(asc)))
     assert compare(Expected("scalar", value=10.0), ["v"], [(10.004,)]) == []
@@ -153,19 +157,32 @@ def test_golden_question(case):
         assert outcome.correct, f"builder answered {case['question']!r} wrongly: {outcome.problems}"
         return
     if cassette_for(case["id"]) is None:
-        pytest.skip(f"{case['id']}: needs the LLM path; no recorded cassette (AI/ML records them, never live)")
+        pytest.skip(
+            f"{case['id']}: needs the LLM path; no recorded cassette (AI/ML records them, never live)"
+        )
     outcome = evaluate(case, use_cassettes=True)
-    assert outcome.correct, f"cassette answer for {case['question']!r}: {outcome.problems} (sql: {outcome.sql})"
+    assert outcome.correct, (
+        f"cassette answer for {case['question']!r}: {outcome.problems} (sql: {outcome.sql})"
+    )
 
 
 def test_builder_accuracy_report(capsys):
     rep = report(use_cassettes=False)
     lines = [f"{'OK ' if o.correct else '-- '} {o.id} [{o.source}] {o.question}" for o in rep["outcomes"]]
     with capsys.disabled():
-        print("\n".join(["", "golden NL->SQL (builder only):", *lines,
-                         f"builder accuracy {rep['builder_correct']}/{rep['total']} = {rep['builder_accuracy']:.1%}, "
-                         f"precision when answered {rep['precision_when_answered']:.1%}"]))
+        print(
+            "\n".join(
+                [
+                    "",
+                    "golden NL->SQL (builder only):",
+                    *lines,
+                    f"builder accuracy {rep['builder_correct']}/{rep['total']} = {rep['builder_accuracy']:.1%}, "
+                    f"precision when answered {rep['precision_when_answered']:.1%}",
+                ]
+            )
+        )
     assert rep["builder_accuracy"] >= BUILDER_ACCURACY_FLOOR - 1e-9
     wrong = [o for o in rep["outcomes"] if o.source == "builder" and not o.correct]
     assert wrong == [], "the builder must decline rather than answer wrongly: " + "; ".join(
-        f"{o.id}: {o.problems}" for o in wrong)
+        f"{o.id}: {o.problems}" for o in wrong
+    )
