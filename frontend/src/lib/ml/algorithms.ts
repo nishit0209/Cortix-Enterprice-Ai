@@ -258,7 +258,8 @@ export function defaultParams(spec: AlgorithmSpec, overrides: Record<string, unk
   const out: Record<string, unknown> = {};
   for (const p of spec.params) {
     const o = overrides[p.key];
-    out[p.key] = o !== undefined && coerceParam(p, o).ok ? coerceParam(p, o).value : p.default;
+    const r = o !== undefined ? coerceParam(p, o) : null;
+    out[p.key] = r && r.ok ? r.value : p.default;
   }
   return out;
 }

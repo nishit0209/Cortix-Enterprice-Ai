@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { MlWorkspace } from "@/components/ml/ml-workspace";
 
 export default function MlPage() {
-  return <PlannedModule id="ml" />;
+  return <MlWorkspace />;
 }
