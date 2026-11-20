@@ -1,3 +1,9 @@
-from django.urls import path  # noqa: F401
+from rest_framework.routers import SimpleRouter
 
-urlpatterns: list = []
+from .views import PipelineRunViewSet, PipelineViewSet
+
+router = SimpleRouter(trailing_slash=False)
+router.register("pipelines", PipelineViewSet, basename="pipeline")
+router.register("pipeline-runs", PipelineRunViewSet, basename="pipeline-run")
+
+urlpatterns: list = [*router.urls]

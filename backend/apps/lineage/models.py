@@ -5,8 +5,8 @@ from apps.core.tenancy.models import TenantModel
 NODE_TYPES = [
     (t, t)
     for t in (
-        "data_source", "upload", "dataset", "dataset_version", "pipeline_version", "semantic_model", "saved_query",
-        "dashboard", "ml_model_version", "document",
+        "data_source", "upload", "dataset", "dataset_version", "pipeline", "pipeline_version", "pipeline_run",
+        "semantic_model", "saved_query", "dashboard", "ml_model_version", "document",
     )
 ]
 
