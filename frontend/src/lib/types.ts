@@ -213,7 +213,8 @@ export interface DatasetVersion {
   created_at: ISODate;
 }
 
-export type DatasetStatus = "pending" | "ingesting" | "profiling" | "ready" | "failed" | string;
+/** apps/datasets Dataset.status: processing | ready | failed | archived | deleted. */
+export type DatasetStatus = "processing" | "ready" | "failed" | "archived" | "deleted" | string;
 
 export interface Dataset {
   id: UUID;
@@ -453,7 +454,8 @@ export interface QueryHistoryItem {
   dataset: { id: UUID; name: string } | string | null;
   question: string | null;
   source: SqlSource;
-  verdict: "allowed" | "rejected" | "error" | "timeout" | "blocked_by_policy" | string;
+  /** apps/bi BiQueryAudit.verdict. */
+  verdict: "ok" | "rejected" | "error" | "blocked" | string;
   reject_code: string | null;
   executed_sql: string | null;
   row_count: number | null;

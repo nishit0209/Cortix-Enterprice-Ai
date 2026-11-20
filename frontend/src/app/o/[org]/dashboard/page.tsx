@@ -32,6 +32,7 @@ import { useQueryHistory } from "@/lib/queries/bi";
 import { datasetGrowth, dailyRequests, pctChange } from "@/lib/dashboard";
 import { SourceBadge } from "@/components/ask/sql-code";
 import { VerdictBadge } from "@/components/ask/query-history";
+import { isAllowedVerdict } from "@/lib/chat/error-copy";
 import { useDatasets } from "@/lib/queries/datasets";
 import { isUnavailableEndpoint } from "@/lib/errors";
 import { formatBytes, formatNumber, formatRelative, toPercentScore } from "@/lib/utils";
@@ -569,7 +570,7 @@ function RecentQuestions({ slug, q }: { slug: string; q: ReturnType<typeof useQu
                   {h.question ?? <span className="font-mono text-xs text-fg-muted">{h.executed_sql}</span>}
                 </span>
                 <SourceBadge source={h.source} />
-                {h.verdict !== "allowed" && <VerdictBadge verdict={h.verdict} />}
+                {!isAllowedVerdict(h.verdict) && <VerdictBadge verdict={h.verdict} />}
                 <span className="shrink-0 text-xs text-fg-subtle">{formatRelative(h.occurred_at)}</span>
               </li>
             ))}
