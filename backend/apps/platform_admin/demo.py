@@ -59,10 +59,10 @@ DATASET_NAMES = {
     "churn.csv": "Customer churn",
     "customers_crm.csv": "Customers (CRM)",
     "customers_web.csv": "Customers (web sign-ups)",
-    "customers_ground_truth.csv": "Customer identity ground truth",
+    "customers_ground_truth.csv": "Customers ground truth (identity)",
     "products_supplier_a.csv": "Products (supplier A)",
     "products_supplier_b.csv": "Products (supplier B)",
-    "products_ground_truth.csv": "Product master ground truth",
+    "products_ground_truth.csv": "Products ground truth (master)",
 }
 
 
@@ -342,7 +342,10 @@ def seed_demo(*, email: str = DEFAULT_EMAIL, password: str | None = None, org_na
     if user_created and not password:
         generated = generate_password()
         user, _ = ensure_user(email, password=generated)
-    note = "set from --password" if password else ("generated" if generated else "unchanged (use --password to set)")
+    if password:
+        note = "set from --password" if getattr(user, "password_changed", True) else "unchanged (matches --password)"
+    else:
+        note = "generated" if generated else "unchanged (use --password to set)"
 
     with eager_tasks(), acting_as(user.pk):
         found = _find_org(user.pk, org_name)

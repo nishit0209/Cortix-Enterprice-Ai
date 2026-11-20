@@ -31,7 +31,7 @@ PERMISSIONS: dict[str, str] = {
     "bi.chat": "Use conversational BI",
     "bi.sql": "Run manual (guarded) SQL",
     "dashboards.view": "View dashboards",
-    "dashboards.create": "Create/edit dashboards and saved queries",
+    "dashboards.create": "Legacy (no longer checked): saved-query and dashboard writes need dashboards.manage",
     "dashboards.manage": "Create, edit, share and delete dashboards and their widgets",
     "exports.create": "Export results and reports",
     # governance

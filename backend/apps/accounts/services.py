@@ -59,8 +59,10 @@ def find_user_by_email(email: str):
 def ensure_user(email: str, *, password: str | None = None, full_name: str = ""):
     """Get or create a user by email (idempotent; used by `manage.py seed_demo`). Returns (user, created).
 
-    A given `password` is validated with the configured password validators and set (also on an existing user);
-    without one an existing user's password is left untouched and a new user gets an unusable password."""
+    A given `password` is validated with the configured password validators and set (also on an existing user),
+    except when the existing user's password already equals it: then the stored hash is NOT re-hashed (a new salted
+    hash would needlessly invalidate the user's sessions). Without one an existing user's password is left untouched
+    and a new user gets an unusable password. `user.password_changed` tells the caller whether it was (re)set."""
     from django.contrib.auth.password_validation import validate_password
 
     from .models import User
@@ -70,12 +72,17 @@ def ensure_user(email: str, *, password: str | None = None, full_name: str = "")
     created = user is None
     if created:
         user = User(email=email, full_name=(full_name or "")[:150])
+    changed = False
     if password:
         validate_password(password, user)
-        user.set_password(password)
+        if created or not user.check_password(password):
+            user.set_password(password)
+            changed = True
     elif created:
         user.set_unusable_password()
-    user.save()
+    if created or changed:
+        user.save()
+    user.password_changed = changed
     return user, created
 
 

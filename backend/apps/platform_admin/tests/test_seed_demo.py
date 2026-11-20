@@ -97,6 +97,56 @@ def test_dataset_names():
     assert demo.dataset_name_for(Path("store_visits_2026.csv")) == "Store visits 2026"
 
 
+def test_every_dataset_name_contains_its_csv_stem():
+    """QA W3 request: the normalised dataset name contains the normalised file stem (testing.flows matching)."""
+    norm = lambda text: re.sub(r"[^a-z0-9]", "", text.lower())  # noqa: E731
+    files = [Path(name) for name in demo.DATASET_NAMES] + [Path("support_tickets.csv"), Path("orders.csv")]
+    for path in files:
+        assert norm(path.stem) in norm(demo.dataset_name_for(path)), path.name
+    assert demo.dataset_name_for(Path("support_tickets.csv")) == "Support tickets"
+
+
+class _FakeUser:
+    """Stands in for accounts.User in the ensure_user unit tests (no DB)."""
+
+    def __init__(self, password=None):
+        self.hash = None if password is None else f"h:{password}:1"
+        self.saves = 0
+        self.sets = 0
+        self.full_name = ""
+
+    def check_password(self, raw):
+        return self.hash is not None and self.hash.split(":")[1] == raw
+
+    def set_password(self, raw):
+        self.sets += 1
+        self.hash = f"h:{raw}:{self.sets + 1}"  # a NEW salted hash every time
+
+    def set_unusable_password(self):
+        self.hash = None
+
+    def save(self):
+        self.saves += 1
+
+
+@pytest.mark.parametrize("given, existing, rehashed", [
+    ("Same-Synthetic-Pass-1!", "Same-Synthetic-Pass-1!", False),
+    ("New-Synthetic-Pass-2!", "Old-Synthetic-Pass-1!", True),
+    (None, "Old-Synthetic-Pass-1!", False),
+])
+def test_ensure_user_never_rehashes_an_unchanged_password(monkeypatch, given, existing, rehashed):
+    from apps.accounts import services as accounts
+
+    user = _FakeUser(existing)
+    before = user.hash
+    monkeypatch.setattr(accounts, "find_user_by_email", lambda email: user)
+    monkeypatch.setattr("django.contrib.auth.password_validation.validate_password", lambda pw, u=None: None)
+    got, created = accounts.ensure_user("demo@example.test", password=given)
+    assert got is user and created is False
+    assert (user.hash != before) is rehashed and user.password_changed is rehashed
+    assert user.saves == (1 if rehashed else 0)
+
+
 def test_eager_tasks_switches_the_runner_and_restores_it(settings):
     settings.TASK_RUNNER = "thread"
     with demo.eager_tasks():
@@ -277,6 +327,8 @@ def test_seed_demo_end_to_end_idempotent_and_reset(tmp_path, settings, fake_embe
 
     again = _run(*args)
     assert "Password  : (unchanged (use --password to set))" in again and "existing)" in again
+    user.refresh_from_db()
+    stored_hash = user.password
     with tenant_context(org["id"]):
         assert [d.id for d in Dataset.objects.exclude(status="deleted")] == [sales.id]
         assert Dashboard.objects.get().id == dash.id and Conversation.objects.get().id == conv.id
@@ -285,7 +337,11 @@ def test_seed_demo_end_to_end_idempotent_and_reset(tmp_path, settings, fake_embe
     new_password = "Synthetic-Reset-Pass-2026!"
     _run(*args, "--reset", "--password", new_password)
     user.refresh_from_db()
-    assert user.check_password(new_password)
+    assert user.check_password(new_password) and user.password != stored_hash
+    stored_hash = user.password
+    _run(*args, "--password", new_password)  # the same password again: the stored hash is NOT re-salted
+    user.refresh_from_db()
+    assert user.password == stored_hash
     with tenant_context(org["id"]):
         assert Dataset.objects.get(id=sales.id).status == "deleted"
         (fresh,) = Dataset.objects.exclude(status="deleted")

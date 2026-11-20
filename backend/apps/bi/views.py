@@ -264,11 +264,15 @@ class SavedQueryPagination(DefaultCursorPagination):
 
 class SavedQueryViewSet(mixins.ListModelMixin, TenantGenericViewSet):
     """Own + shared saved queries. Only the owner can change or delete one. SQL is validated by the guard on
-    save (under the owner's policy) and re-validated under the RUNNER's policy on every run."""
+    save (under the owner's policy) and re-validated under the RUNNER's policy on every run.
+
+    Permission rule (W4, one rule for every saved-query write): reading and running need `dashboards.view`;
+    creating, changing and deleting need `dashboards.manage`, exactly like pinning an answer to a dashboard (which
+    also creates a SavedQuery). `dashboards.create` is a legacy codename that no route checks any more."""
 
     permission_classes = [IsAuthenticated, HasOrgPermission]
     required_permissions = {"list": "dashboards.view", "retrieve": "dashboards.view", "run": "dashboards.view",
-                            "*": "dashboards.create"}
+                            "*": "dashboards.manage"}
     serializer_class = SavedQuerySerializer
     pagination_class = SavedQueryPagination
     lookup_value_regex = UUID_RE

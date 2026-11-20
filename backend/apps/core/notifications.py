@@ -4,11 +4,13 @@ Producers (any app, inside the org's tenant context):
 
     from apps.core.notifications import notify, notify_permission
     notify([owner_id], "pipeline.run_failed", "Pipeline 'Daily sales' failed", "Step 'load' ...",
-           "/pipelines/<id>/runs/<run_id>")
+           "/data/pipelines/<id>/runs/<run_id>")
     notify_permission("org.settings.edit", "ai.quota_exhausted", "AI quota exhausted", "...", "/settings/ai")
 
 `notify` never raises for delivery problems (a notification must never fail the work that produced it); invalid
-arguments (no tenant context) still raise. Links are app-relative paths ("/datasets/<id>"), never absolute URLs.
+arguments (no tenant context) still raise. Links are app-relative UI ROUTES of the frontend (CONTRACT "More W3 as-built
+details"), never API paths or absolute URLs: "/data/pipelines/<id>/runs/<run_id>", "/datasets/<id>", "/settings/ai",
+"/settings/members".
 """
 
 from __future__ import annotations
