@@ -1,4 +1,4 @@
-"""W3 data sources (DB-backed: real Postgres under RLS; connector faked, storage faked, ingest real).
+﻿"""W3 data sources (DB-backed: real Postgres under RLS; connector faked, storage faked, ingest real).
 
 The catalog browser's request shapes (`table: "schema.table"`, `row_estimate`, connection `checks`) and the import
 notifications to the user who started the import.
@@ -65,7 +65,7 @@ def test_import_of_a_qualified_table_name_notifies_the_importer(env, django_capt
     with a.tenant():
         imp = SourceImport.objects.get(id=body["import"]["id"])
     assert imp.status == "succeeded" and imp.rows == 30
-    assert [n["kind"] for n in captured_notifications] == ["import.finished", "dataset.ready"]
+    assert [n["kind"] for n in captured_notifications] == ["import.finished", "dataset.ingest_finished"]
     finished, ready = captured_notifications
     assert finished["user_ids"] == ready["user_ids"] == [str(a.owner.pk)]
     assert finished["title"] == "Import of sales.orders finished"

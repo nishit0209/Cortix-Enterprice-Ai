@@ -1,4 +1,4 @@
-"""W3 pipelines (DB-backed: real Postgres under RLS + nexora_wh; storage faked, notify recorded).
+﻿"""W3 pipelines (DB-backed: real Postgres under RLS + nexora_wh; storage faked, notify recorded).
 
 Covers the frontend W2 requests (detail validate = dry run with per-node errors, preview `node_id` + `limit`,
 schedule `is_active`, UI step names, rule counts), owner notifications, data-stats KPIs and the dispatcher paths the
@@ -182,7 +182,7 @@ def test_successful_run_notifies_the_owner_and_carries_the_ui_fields(env, django
     assert run["quality_summary"]["rules_passed"] is not None and run["quality_summary"]["rules_failed"] is not None
     assert all(line["step_key"] == line["step"] for line in run["logs"])
     # one notification for the run; its output dataset does not notify separately
-    assert [n["kind"] for n in captured_notifications] == ["pipeline_run.succeeded"]
+    assert [n["kind"] for n in captured_notifications] == ["pipeline.run_succeeded"]
     (note,) = captured_notifications
     assert note["user_ids"] == [str(a.owner.pk)] and "Notify me" in note["title"]
     assert note["link"] == f"/o/{a.slug}/data/pipelines/{pid}/runs/{run['id']}"
@@ -193,7 +193,7 @@ def test_failed_run_notifies_the_owner(env, django_capture_on_commit_callbacks, 
     pid = create_pipeline(client, a, {"name": "Strict cast", "dag": dag(orders["id"], STRICT_CAST)})["id"]
     run_now(client, a, pid, django_capture_on_commit_callbacks)
     (note,) = captured_notifications
-    assert note["kind"] == "pipeline_run.failed" and note["user_ids"] == [str(a.owner.pk)]
+    assert note["kind"] == "pipeline.run_failed" and note["user_ids"] == [str(a.owner.pk)]
     assert "Strict cast" in note["title"] and "cast_failed" in note["body"]
 
 

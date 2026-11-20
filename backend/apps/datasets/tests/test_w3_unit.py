@@ -1,4 +1,4 @@
-"""W3 datasets (pure, no DB): notification helper, staged type casting equals a single pass, storage-agnostic errors."""
+﻿"""W3 datasets (pure, no DB): notification helper, staged type casting equals a single pass, storage-agnostic errors."""
 
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def test_notify_users_calls_the_core_service(fake_notify):
     u = uuid.uuid4()
     assert N.notify_users([u, None, str(u)], N.DATASET_READY, "T" * 300, "B" * 2000, "/o/acme/data/datasets/1")
     (ids, kind, title, body, link), = fake_notify
-    assert ids == [u] and kind == "dataset.ready" and len(title) == N.TITLE_MAX and len(body) == N.BODY_MAX
+    assert ids == [u] and kind == "dataset.ingest_finished" and len(title) == N.TITLE_MAX and len(body) == N.BODY_MAX
     assert link == "/o/acme/data/datasets/1"
 
 
@@ -140,5 +140,5 @@ def test_large_text_column_still_infers_text_and_numbers_still_infer_numbers():
     n = 20_000
     text = pl.Series("v", [f"SKU-{i}" for i in range(n)], dtype=pl.String)
     assert I.infer_plan(text).pg_type == "text"
-    money = pl.Series("v", [f"₹{i * 1000 + 50:,}.50" for i in range(1, n)], dtype=pl.String)
+    money = pl.Series("v", [f"â‚¹{i * 1000 + 50:,}.50" for i in range(1, n)], dtype=pl.String)
     assert I.infer_plan(money).pg_type == "numeric"

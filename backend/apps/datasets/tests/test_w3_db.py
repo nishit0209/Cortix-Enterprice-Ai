@@ -1,4 +1,4 @@
-"""W3 datasets (DB-backed: real Postgres under RLS + nexora_wh; storage faked).
+﻿"""W3 datasets (DB-backed: real Postgres under RLS + nexora_wh; storage faked).
 
 Ingestion notifications go to the uploader (ready / failed / blocked by a quality gate), the ingest-finished signal
 is delivered once per terminal job, data-stats carries the connector source counts, and - once the Backend
@@ -47,7 +47,7 @@ def test_a_ready_dataset_notifies_its_uploader(ctx, django_capture_on_commit_cal
     resp, ds = ingest(client, org_a, "customers.csv", csv_bytes(SAMPLE_CUSTOMERS), django_capture_on_commit_callbacks)
     assert ds["status"] == "ready", ds["last_error"]
     (note,) = captured_notifications
-    assert note["kind"] == "dataset.ready" and note["user_ids"] == [str(alice.pk)]
+    assert note["kind"] == "dataset.ingest_finished" and note["user_ids"] == [str(alice.pk)]
     assert note["title"] == "Dataset 'Customers' is ready"
     assert note["body"].startswith("Version 1: 40 rows, quality score ")
     assert note["link"] == f"/o/{org_a.slug}/data/datasets/{ds['id']}"
@@ -71,7 +71,7 @@ def test_a_failed_ingestion_notifies_its_uploader(ctx, django_capture_on_commit_
     resp, ds = ingest(client, org_a, "bad.csv", b"a,b\n1,2\n3,4,5,6\n", django_capture_on_commit_callbacks, name="Bad")
     assert ds["status"] == "failed"
     (note,) = captured_notifications
-    assert note["kind"] == "dataset.failed" and note["user_ids"] == [str(alice.pk)]
+    assert note["kind"] == "dataset.ingest_failed" and note["user_ids"] == [str(alice.pk)]
     assert note["title"] == "Ingesting 'Bad' failed" and "(malformed_file)" in note["body"]
     (signal,) = finished
     assert signal["ok"] is False and signal["code"] == "malformed_file"
@@ -90,7 +90,7 @@ def test_a_version_blocked_by_a_quality_gate_is_reported(ctx, django_capture_on_
         assert client.post(url(org_a, f"datasets/{ds['id']}/versions"), {"upload_id": up["id"]},
                            format="json").status_code == 202
     kinds = [n["kind"] for n in captured_notifications]
-    assert kinds == ["dataset.ready", "dataset.failed"]
+    assert kinds == ["dataset.ingest_finished", "dataset.ingest_failed"]
     blocked = captured_notifications[-1]
     assert blocked["title"] == "Dataset 'Customers' was not published"
     assert "Version 2 failed 1 blocking quality rule(s)" in blocked["body"]
@@ -135,6 +135,6 @@ def test_real_notifications_service_stores_rows(ctx, django_capture_on_commit_ca
     client, alice, org_a, *_ = ctx
     _resp, ds = ingest(client, org_a, "customers.csv", csv_bytes(SAMPLE_CUSTOMERS), django_capture_on_commit_callbacks)
     with tenant_context(org_a.id):
-        rows = list(notification_model.objects.filter(kind="dataset.ready").values("user_id", "title", "link"))
+        rows = list(notification_model.objects.filter(kind="dataset.ingest_finished").values("user_id", "title", "link"))
     assert len(rows) == 1 and str(rows[0]["user_id"]) == str(alice.pk)
     assert rows[0]["link"] == f"/o/{org_a.slug}/data/datasets/{ds['id']}"
