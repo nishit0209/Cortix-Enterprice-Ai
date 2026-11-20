@@ -268,6 +268,24 @@ def update_document(doc: Document, *, title: str | None = None, request=None) ->
     return doc
 
 
+def document_download_url(doc: Document, *, expires_s: int = 600) -> str | None:
+    """Signed, expiring link to the original upload. The caller has already checked `documents.view`.
+
+    Refuses keys outside the current org's prefix (defence in depth: a row can never point at another org's
+    object). Returns None when the key is missing/invalid or storage cannot sign."""
+    key = doc.storage_key or ""
+    if not key:
+        return None
+    try:
+        if storage.key_org_id(key) != doc.org_id:
+            log.warning("documents: %s storage key is outside its org prefix; no download link", doc.id)
+            return None
+        return storage.presigned_get(key, expires_s=expires_s, filename=doc.filename or None)
+    except (*_STORAGE_ERRORS, ValueError):
+        log.warning("documents: could not sign a download link for %s", doc.id, exc_info=True)
+        return None
+
+
 def delete_document(doc: Document, *, request=None) -> None:
     audit.record("document.delete", target=doc, request=request,
                  metadata={"filename": doc.filename, "sha256": doc.sha256})
