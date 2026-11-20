@@ -1,4 +1,4 @@
-import { type APIRequestContext, type Page, test as base, expect } from "@playwright/test";
+import { type APIRequestContext, type Locator, type Page, test as base, expect } from "@playwright/test";
 import path from "node:path";
 
 /** Synthetic identity for one test run (reserved example.test domain; never a real person). */
@@ -145,10 +145,29 @@ export async function askQuestion(page: Page, question: string): Promise<void> {
   await box.press("Enter");
 }
 
-/** The answer renders its SQL and a result containing the 5 sales regions (deterministic builder path). */
+/** The latest Ask AI answer (frontend W3 AnswerCard: `<article aria-label="NEXORA answer">`). */
+export function lastAnswer(page: Page): Locator {
+  return page.getByRole("article", { name: "NEXORA answer" }).last();
+}
+
+/**
+ * The answer renders its SQL and a result containing the 5 sales regions (deterministic builder path).
+ * As built (frontend W3): the SQL transparency panel is a disclosure that starts COLLAPSED (its body is only
+ * mounted when open) and a chartable result opens on the Chart tab, so the test opens the "SQL" disclosure and
+ * switches to the "Table" tab like a user would, all inside the latest answer.
+ */
 export async function expectSqlAndRegions(page: Page): Promise<void> {
-  await expect(page.getByText(/\bselect\b[\s\S]*\bfrom\b/i).first()).toBeVisible({ timeout: 90_000 });
-  const table = page.getByRole("table").last();
+  const answer = lastAnswer(page);
+  await expect(answer).toBeVisible({ timeout: 30_000 });
+  await expect(answer).toHaveAttribute("aria-busy", "false", { timeout: 90_000 }); // streaming finished
+  const sqlToggle = answer.getByRole("button", { name: /^SQL/ }).first();
+  await expect(sqlToggle).toBeVisible({ timeout: 30_000 });
+  if ((await sqlToggle.getAttribute("aria-expanded")) !== "true") await sqlToggle.click();
+  await expect(sqlToggle).toHaveAttribute("aria-expanded", "true");
+  await expect(answer.getByText(/\bselect\b[\s\S]*\bfrom\b/i).first()).toBeVisible();
+
+  await answer.getByRole("tab", { name: "Table", exact: true }).click();
+  const table = answer.getByRole("table").last();
   await expect(table).toBeVisible({ timeout: 30_000 });
   for (const region of REGIONS) {
     await expect(table.getByRole("cell", { name: region, exact: true }).first()).toBeVisible();

@@ -53,8 +53,19 @@ test.describe("W3: dashboards and notifications", () => {
     await page.getByRole("option", { name: /new dashboard/i }).click();
     await dialog.getByLabel("New dashboard name").fill("E2E Pins");
     await dialog.getByLabel("Widget title").fill("Revenue by region (pinned)");
+    // Show the widget as a table: its rows are then asserted cell by cell on the dashboard page (a chart's axis
+    // labels may be thinned out by the chart library, so they are not a reliable oracle).
+    await dialog.getByRole("combobox", { name: "Widget type" }).click();
+    await page.getByRole("option", { name: /^Table/ }).click();
     await dialog.getByRole("button", { name: /^pin$/i }).click();
-    await expect(dialog).toBeHidden({ timeout: 30_000 });
+    // As built (frontend W3 PinDialog): the dialog stays open on a success screen with "Close" and
+    // "Open dashboard" instead of closing itself.
+    await expect(dialog.getByText("The answer is on your dashboard.")).toBeVisible({ timeout: 30_000 });
+    const open = dialog.getByRole("link", { name: "Open dashboard" });
+    await expect(open).toHaveAttribute("href", new RegExp(`^/o/${slug}/dashboards/[0-9a-f-]{36}$`));
+    const href = (await open.getAttribute("href"))!;
+    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(dialog).toBeHidden();
 
     // The API agrees: one new dashboard with exactly one widget whose data is re-executed by the guard.
     const boards = itemsOf<{ id: string; title: string; widget_count: number }>(
@@ -62,22 +73,29 @@ test.describe("W3: dashboards and notifications", () => {
     );
     const board = boards.find((b) => b.title === "E2E Pins");
     expect(board, JSON.stringify(boards)).toBeDefined();
+    expect(href.endsWith(`/dashboards/${board!.id}`), `${href} vs ${board!.id}`).toBe(true);
     expect(board!.widget_count).toBe(1);
     const detail = await (await page.request.get(`/api/v1/orgs/${slug}/dashboards/${board!.id}`)).json();
     const widget = detail.widgets[0];
     expect(widget.title).toBe("Revenue by region (pinned)");
+    expect(widget.kind).toBe("table");
+    expect(widget.saved_query_id, "pinning an answer creates a SavedQuery").toBeTruthy();
     const data = await page.request.get(`/api/v1/orgs/${slug}/dashboards/${board!.id}/widgets/${widget.id}/data`);
     expect(data.status()).toBe(200);
     const body = await data.json();
     expect(body.row_count).toBeGreaterThanOrEqual(REGIONS.length);
     expect(body.refreshed_at).toBeTruthy();
 
-    // The dashboard page renders the widget with its live rows.
+    // The dashboard page (reached from the list) renders the widget with its live rows.
     await page.goto(`/o/${slug}/dashboards`);
     await page.getByRole("link", { name: /E2E Pins/ }).first().click();
-    await expect(page.getByText("Revenue by region (pinned)").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page).toHaveURL(new RegExp(`/o/${slug}/dashboards/${board!.id}$`));
+    const tile = page.getByRole("region", { name: "Revenue by region (pinned)" });
+    await expect(tile).toBeVisible({ timeout: 30_000 });
+    const table = tile.getByRole("table");
+    await expect(table).toBeVisible({ timeout: 30_000 });
     for (const region of REGIONS) {
-      await expect(page.getByText(region, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+      await expect(table.getByRole("cell", { name: region, exact: true }).first()).toBeVisible();
     }
   });
 
