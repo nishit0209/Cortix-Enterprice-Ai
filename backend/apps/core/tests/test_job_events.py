@@ -137,6 +137,129 @@ def test_a_row_resets_the_poll_interval():
     assert sleeps == [0.5, 0.75, 0.5]  # back to the base interval after a row arrived
 
 
+def test_sync_db_stream_matches_the_async_one():
+    """WSGI twin: identical frames, back-off, keep-alives and lifetime."""
+    def run(make):
+        clock, sleeps = FakeClock(), []
+        pages = [[], [], [], [(1, "status", {"progress": 5})], [], [(2, "done", {"status": "ok"})]]
+
+        def fetch(org_id, job_id, after):
+            return pages.pop(0) if pages else []
+
+        def sleep(seconds):
+            sleeps.append(seconds)
+            clock.now += seconds * 20  # idle long enough to need a keep-alive
+
+        return make(fetch, sleep, clock), sleeps
+
+    def make_sync(fetch, sleep, clock):
+        return list(sse.stream_db_events_sync("org", "job", 0, fetch=fetch, sleep=sleep, clock=clock,
+                                              heartbeat_s=15, poll_s=0.5))
+
+    def make_async(fetch, sleep, clock):
+        async def afetch(*args):
+            return fetch(*args)
+
+        async def asleep(seconds):
+            sleep(seconds)
+
+        return _collect(sse.stream_db_events("org", "job", 0, fetch=afetch, sleep=asleep, clock=clock,
+                                             heartbeat_s=15, poll_s=0.5))
+
+    sync_frames, sync_sleeps = run(make_sync)
+    async_frames, async_sleeps = run(make_async)
+    assert sync_frames == async_frames and sync_sleeps == async_sleeps
+    assert sync_frames[0] == "retry: 3000\n\n" and ":hb\n\n" in sync_frames
+    assert [f.split("\n")[0] for f in sync_frames if f.startswith("id:")] == ["id: 1", "id: 2"]
+
+    clock = FakeClock()
+
+    def idle_sleep(seconds):
+        clock.now += seconds
+
+    idle = list(sse.stream_db_events_sync("org", "job", 0, max_lifetime_s=40, fetch=lambda *a: [], sleep=idle_sleep,
+                                          clock=clock, heartbeat_s=15, poll_s=0.5))
+    assert idle == ["retry: 3000\n\n", ":hb\n\n", ":hb\n\n"] and clock.now >= 40  # expires like the async one
+
+
+def test_sync_redis_stream_resumes_and_ends_after_done():
+    class Client:
+        def __init__(self):
+            self.calls = []
+            self.replies = [
+                [],  # idle -> keep-alive
+                [(b"k", [(b"5-0", {b"event": b"status", b"data": b'{"progress": 1}'})])],
+                [(b"k", [(b"6-0", {b"event": b"done", b"data": b'{"status": "succeeded"}'}),
+                         (b"7-0", {b"event": b"log", b"data": b"{}"})])],
+            ]
+
+        def xread(self, streams, block=None, count=None):
+            self.calls.append(dict(streams))
+            return self.replies.pop(0)
+
+    client = Client()
+    frames = list(sse.stream_events_sync("k", "4-0", client=client))
+    assert frames == ["retry: 3000\n\n", ":hb\n\n", 'id: 5-0\nevent: status\ndata: {"progress": 1}\n\n',
+                      'id: 6-0\nevent: done\ndata: {"status": "succeeded"}\n\n']  # nothing after done
+    assert client.calls == [{"k": "4-0"}, {"k": "4-0"}, {"k": "5-0"}]
+
+
+def _call_view(request, monkeypatch, settings, backend):
+    from types import SimpleNamespace
+
+    from asgiref.sync import async_to_sync
+
+    settings.JOB_EVENTS_BACKEND = backend
+    user = SimpleNamespace(is_authenticated=True, pk=uuid4())
+
+    async def auser():
+        return user
+
+    request.auser = auser
+    monkeypatch.setattr(sse, "_check_access", lambda *_a: str(uuid4()))
+    return async_to_sync(sse.job_events)(request, "acme", uuid4())
+
+
+@pytest.mark.parametrize("backend", ["db", "redis"])
+def test_wsgi_requests_get_a_sync_stream_and_asgi_requests_an_async_one(backend, monkeypatch, settings):
+    """Django buffers a mismatched iterator whole (no live frames, no keep-alives), so each server type gets its own."""
+    from django.test import AsyncRequestFactory, RequestFactory
+
+    wsgi = _call_view(RequestFactory().get("/events"), monkeypatch, settings, backend)
+    assert wsgi.status_code == 200 and not wsgi.is_async
+    assert hasattr(wsgi.streaming_content, "__next__")
+    asgi = _call_view(AsyncRequestFactory().get("/events"), monkeypatch, settings, backend)
+    assert asgi.status_code == 200 and asgi.is_async
+    assert hasattr(asgi.streaming_content, "__aiter__")
+    for resp in (wsgi, asgi):
+        assert resp["Content-Type"] == "text/event-stream" and resp["X-Accel-Buffering"] == "no"
+        resp.close()
+
+
+def test_wsgi_db_stream_delivers_frames_live_before_done(monkeypatch, settings):
+    """Under runserver (WSGI) the first frames reach the client while the job is still running."""
+    from django.test import RequestFactory
+
+    published: list[tuple[int, str, dict]] = [(1, "status", {"progress": 10})]
+    polls = []
+
+    def fetch(org_id, job_id, after):
+        polls.append(after)
+        if len(polls) > 5:  # a buffering iterator would poll until done/lifetime: fail fast instead of hanging
+            raise AssertionError("the stream is being consumed ahead of the client")
+        return [r for r in published if r[0] > after]
+
+    monkeypatch.setattr(sse, "_fetch_db_events", fetch)
+    resp = _call_view(RequestFactory().get("/events"), monkeypatch, settings, "db")
+    frames = iter(resp)  # what the WSGI server does: pull one chunk at a time
+    assert next(frames) == b"retry: 3000\n\n"
+    assert next(frames).startswith(b"id: 1\nevent: status")  # before the job has finished
+    published.append((2, "done", {"status": "succeeded"}))
+    assert next(frames).startswith(b"id: 2\nevent: done")
+    assert next(frames, None) is None
+    assert polls == [0, 1]  # one poll per page, driven by the client's reads
+
+
 # ================================================================================================ DB: publish
 @pytest.mark.django_db
 def test_publish_assigns_per_job_sequence_numbers(org, owner, db_events):
@@ -262,8 +385,16 @@ def test_sse_replays_after_last_event_id(org, owner, db_events):
 @pytest.mark.django_db
 def test_sse_on_the_db_backend_is_member_and_org_scoped(org, other_org, owner, db_events):
     job = _published_job(org, owner)
-    viewer = member_of(org, "viewer")
-    assert client_for(viewer).get(_events_url(org, job.id)).status_code == 200  # members may follow org jobs
+    # same visibility as GET /jobs/<id>: a member follows only their own jobs unless they hold jobs.view_all
+    assert client_for(member_of(org, "viewer")).get(_events_url(org, job.id)).status_code == 404
+    analyst = member_of(org, "analyst")
+    assert client_for(analyst).get(_events_url(org, job.id)).status_code == 404
+    resp = client_for(member_of(org, "auditor")).get(_events_url(org, job.id))  # auditor: jobs.view_all
+    assert resp.status_code == 200 and [e.event for e in parse_sse(read_stream(resp))][-1] == "done"
+    with tenant_context(org.id):
+        own = jobs.create_job("unit.own", user_id=analyst.pk)
+        jobs.finish(own.id, result={"rows": 1})
+    assert client_for(analyst).get(_events_url(org, own.id)).status_code == 200  # their own job
     assert client_for(None).get(_events_url(org, job.id)).status_code == 401
     with tenant_context(other_org.id):
         from apps.orgs.models import Membership
