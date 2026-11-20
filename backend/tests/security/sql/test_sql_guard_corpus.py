@@ -205,6 +205,75 @@ def test_oracle_accepts_correct_deny_all_and_mask_rewrites():
     assert oracle_violations(_accepted(masked, salt="s"), "masked_multi") == []
 
 
+# W3: the approved mask_null rendering (SECURITY_ARCHITECTURE §5 table, CONTRACT "W2 as-built additions").
+_MASKED_SOURCE = (
+    "SELECT * FROM (SELECT c.customer_id, c.city FROM (SELECT customer_id, {city} AS city "
+    "FROM org_qatest01.ds_102_v1 AS _src) AS c) AS _q LIMIT 1001"
+)
+
+
+@pytest.mark.parametrize(
+    "city",
+    [
+        'CASE WHEN FALSE THEN "_src"."city" END',
+        "CASE WHEN false THEN city END",
+        "CAST(NULL AS TEXT)",
+        "NULL",
+    ],
+)
+def test_oracle_accepts_the_approved_mask_null_renderings(city):
+    assert oracle_violations(_accepted(_MASKED_SOURCE.format(city=city)), "masked_multi") == []
+
+
+@pytest.mark.parametrize(
+    "city",
+    [
+        "CASE WHEN TRUE THEN city END",
+        "CASE WHEN 1 = 0 THEN city END",
+        "CASE WHEN NOT TRUE THEN city END",
+        "CASE WHEN FALSE THEN city ELSE city END",
+        "CASE WHEN FALSE THEN NULL ELSE city END",
+        "CASE WHEN FALSE THEN city WHEN TRUE THEN city END",
+        "CASE WHEN customer_id > 0 THEN city END",
+        "CASE city WHEN FALSE THEN city END",
+        "COALESCE(CASE WHEN FALSE THEN city END, city)",
+        "CASE WHEN FALSE THEN city END || city",
+        "city",
+        "upper(city)",
+    ],
+)
+def test_oracle_flags_every_other_mask_null_shape(city):
+    problems = oracle_violations(_accepted(_MASKED_SOURCE.format(city=city)), "masked_multi")
+    assert any("city" in p and "raw" in p for p in problems), (city, problems)
+
+
+def test_oracle_mask_null_exemption_is_per_reference_in_every_clause():
+    """The approved wrapper is safe wherever it sits; a raw sibling reference is still caught."""
+    ok = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 ORDER BY CASE WHEN FALSE THEN city END) AS c"
+    )
+    assert oracle_violations(_accepted(ok), "masked_multi") == []
+    leaky = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 ORDER BY city) AS c"
+    )
+    assert any("used raw in ORDER" in p for p in oracle_violations(_accepted(leaky), "masked_multi"))
+    filtered = (
+        "SELECT c.customer_id FROM (SELECT customer_id, CASE WHEN FALSE THEN city END AS city "
+        "FROM org_qatest01.ds_102_v1 WHERE city = 'Pune') AS c"
+    )
+    assert any("filtered raw in WHERE" in p for p in oracle_violations(_accepted(filtered), "masked_multi"))
+
+
+def test_oracle_mask_null_wrapper_does_not_excuse_other_mask_kinds():
+    """`CASE WHEN FALSE THEN phone END` is not a mask_partial rendering: phone must carry repeat()/right()."""
+    sql = (
+        "SELECT c.phone FROM (SELECT CASE WHEN FALSE THEN phone END AS phone FROM org_qatest01.ds_102_v1) AS c"
+    )
+    assert any("phone" in p and "read raw" in p for p in oracle_violations(_accepted(sql), "masked_multi"))
+
+
 # ------------------------------------------------------------------------------------------- guard verdicts
 def _params():
     for c in CASES:
