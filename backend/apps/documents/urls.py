@@ -1,3 +1,8 @@
-from django.urls import path  # noqa: F401
+from rest_framework.routers import SimpleRouter
 
-urlpatterns: list = []
+from .views import DocumentViewSet
+
+router = SimpleRouter(trailing_slash=False)
+router.register("documents", DocumentViewSet, basename="document")
+
+urlpatterns: list = [*router.urls]

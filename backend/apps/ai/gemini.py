@@ -196,3 +196,24 @@ class GenaiTransport:
             raise
         except Exception as exc:  # noqa: BLE001
             raise self._translate(exc) from exc
+
+    def list_models(self) -> list[dict]:
+        """Model catalogue visible to the configured credentials (metadata only; NO generation call).
+
+        Returns [{"id": "gemini-...", "display_name", "actions": [...], "input_token_limit",
+        "output_token_limit"}]; ids have the "models/" (or Vertex "publishers/google/models/") prefix stripped."""
+        client = self._get_client()
+        out: list[dict] = []
+        try:
+            for m in client.models.list():
+                name = str(getattr(m, "name", "") or "")
+                out.append({
+                    "id": name.rsplit("/", 1)[-1],
+                    "display_name": getattr(m, "display_name", None),
+                    "actions": list(getattr(m, "supported_actions", None) or []),
+                    "input_token_limit": getattr(m, "input_token_limit", None),
+                    "output_token_limit": getattr(m, "output_token_limit", None),
+                })
+        except Exception as exc:  # noqa: BLE001
+            raise self._translate(exc) from exc
+        return out

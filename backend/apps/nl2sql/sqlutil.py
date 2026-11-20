@@ -15,20 +15,17 @@ import sqlglot
 from sqlglot import exp
 from sqlglot.errors import ParseError, TokenError
 
+from nexora.contracts import GUARD_REJECT_CODES, REPAIRABLE_REJECT_CODES
+
 MAX_LIMIT = 1000
 SLOT_SENTINEL = "__nx_slot_{}__"
 _SENTINEL_RE = re.compile(r"'__nx_slot_([a-z0-9_]+)__'")
 
-SECURITY_CODES = frozenset({
-    "forbidden_construct", "forbidden_function", "system_catalog", "cte_shadowing", "forbidden_type",
-    "system_column", "whole_row_reference", "command_not_allowed", "multiple_statements",
-    "plan_relation_not_allowed", "roundtrip_mismatch", "too_large",
-})
-# Guard / local codes for which ONE repair call is allowed (model mistakes, never security rejections).
-REPAIRABLE_CODES = frozenset({
-    "parse_error", "not_select", "column_not_allowed", "table_not_allowed", "unknown_column", "unknown_table",
-    "ambiguous_column", "type_error", "invalid_sql", "execution_error", "cost_exceeded",
-})
+# ONE vocabulary with apps.sqlguard (nexora.contracts, SECURITY_ARCHITECTURE §5.1). The local pre-check below
+# only emits codes from GUARD_REJECT_CODES. REPAIRABLE codes may get ONE repair call (model mistakes); every other
+# guard code is a SECURITY rejection and is terminal. Unknown codes are refused by repair() (allowlist).
+REPAIRABLE_CODES = REPAIRABLE_REJECT_CODES
+SECURITY_CODES = GUARD_REJECT_CODES - REPAIRABLE_REJECT_CODES
 _SYSTEM_TABLE_RE = re.compile(r"^(pg_|information_schema)", re.I)
 _SYSTEM_COLUMNS = frozenset({"ctid", "xmin", "xmax", "cmin", "cmax", "tableoid", "oid"})
 _FORBIDDEN_NODES: tuple[type, ...] = tuple(
@@ -65,14 +62,14 @@ def parse_select(sql: str) -> tuple[exp.Expression | None, SqlIssue | None]:
         return None, SqlIssue("multiple_statements", "exactly one statement is allowed")
     ast = statements[0]
     if isinstance(ast, exp.Command):
-        return None, SqlIssue("command_not_allowed", "commands are not allowed")
+        return None, SqlIssue("forbidden_clause", "commands are not allowed")
     if not isinstance(ast, exp.Query):
         return None, SqlIssue("not_select", "only SELECT queries are allowed")
     for node in ast.walk():
         if _FORBIDDEN_NODES and isinstance(node, _FORBIDDEN_NODES):
-            return None, SqlIssue("forbidden_construct", f"{type(node).__name__} is not allowed")
+            return None, SqlIssue("forbidden_clause", f"{type(node).__name__} is not allowed")
         if isinstance(node, (exp.Placeholder, exp.Parameter)):
-            return None, SqlIssue("forbidden_construct", "parameters/placeholders are not allowed")
+            return None, SqlIssue("forbidden_clause", "parameters/placeholders are not allowed")
     return ast, None
 
 
@@ -104,10 +101,10 @@ def validate_against_context(ast: exp.Expression, tables: Mapping[str, object],
     for t in referenced_tables(ast):
         if t.catalog or t.db:
             if _SYSTEM_TABLE_RE.match(t.db or "") or _SYSTEM_TABLE_RE.match(t.name or ""):
-                return SqlIssue("system_catalog", f"system relation {t.sql()} is not allowed")
+                return SqlIssue("system_object", f"system relation {t.sql()} is not allowed")
             return SqlIssue("table_not_allowed", f"schema-qualified table {t.sql()} is not allowed")
         if _SYSTEM_TABLE_RE.match(t.name):
-            return SqlIssue("system_catalog", f"system relation {t.name} is not allowed")
+            return SqlIssue("system_object", f"system relation {t.name} is not allowed")
         if t.name.lower() not in logical:
             return SqlIssue("table_not_allowed", f"unknown table {t.name}")
         used_tables.add(logical[t.name.lower()])
@@ -121,7 +118,7 @@ def validate_against_context(ast: exp.Expression, tables: Mapping[str, object],
             continue
         low = name.lower()
         if low in _SYSTEM_COLUMNS:
-            return SqlIssue("system_column", f"system column {name} is not allowed")
+            return SqlIssue("system_object", f"system column {name} is not allowed")
         if low not in allowed and low not in aliases:
             return SqlIssue("column_not_allowed", f"unknown column {name}")
     return None
