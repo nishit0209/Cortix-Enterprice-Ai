@@ -9,10 +9,12 @@ class ConnectorsConfig(AppConfig):
 
     def ready(self) -> None:
         from apps.core.registry import register_asset_exists
+        from apps.datasets.services import register_stats_provider
         from apps.lineage.services import register_node_resolver
 
         from . import lineage_nodes
-        from .services import source_exists
+        from .services import source_exists, stats
 
         register_node_resolver("data_source", lineage_nodes.resolve_sources)
         register_asset_exists("data_source", source_exists)
+        register_stats_provider(stats)
