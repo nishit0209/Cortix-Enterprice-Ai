@@ -12,14 +12,16 @@ from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
-from pgvector.django import HnswIndex, VectorField
 
+from apps.ai.vectors import EmbeddingField
 from apps.core.tenancy.models import TenantModel
 
 CLASSIFICATIONS = [("synthetic", "synthetic"), ("public", "public"), ("internal", "internal"),
                    ("confidential", "confidential")]
 ATTESTED_CLASSIFICATIONS = frozenset({"synthetic", "public"})
 STATUSES = [("processing", "processing"), ("ready", "ready"), ("failed", "failed")]
+# none: no chunks; complete: every chunk has a vector; pending: some chunks wait for the local embedding model.
+EMBEDDING_STATUSES = [("none", "none"), ("complete", "complete"), ("pending", "pending")]
 DOC_TYPES = [(t, t) for t in ("invoice", "contract", "resume", "report", "policy", "other")]
 PAGE_METHODS = [(m, m) for m in ("text", "ocr", "ocr_unavailable", "ocr_failed", "empty")]
 ENTITY_KINDS = [(k, k) for k in ("email", "phone", "date", "amount", "pan", "gstin", "aadhaar", "org")]
@@ -48,6 +50,7 @@ class Document(TenantModel):
     ocr_pages = models.IntegerField(default=0)
     ocr_unavailable_pages = models.IntegerField(default=0)
     chunk_count = models.IntegerField(default=0)
+    embedding_status = models.CharField(max_length=10, choices=EMBEDDING_STATUSES, default="none")
     summary = models.TextField(blank=True, default="")  # extractive summary (local)
     uploaded_by = models.UUIDField(null=True, blank=True)
     last_job_id = models.UUIDField(null=True, blank=True)
@@ -90,7 +93,11 @@ class DocumentChunk(TenantModel):
     page_to = models.IntegerField()
     section = models.CharField(max_length=500, blank=True, default="")
     token_count = models.IntegerField(default=0)
-    embedding = VectorField(dimensions=settings.EMBEDDING_DIM, null=True, blank=True)
+    # vector(dim) with pgvector, double precision[] without it (apps.ai.vectors). HNSW index: migration, pgvector only.
+    embedding = EmbeddingField(dim=settings.EMBEDDING_DIM, null=True, blank=True)
+    # True while the chunk still needs a vector (the local embedding model was not available when it was
+    # processed); the `ai.reembed_pending` job fills it in later. Search uses full-text for such chunks.
+    embedding_pending = models.BooleanField(default=False)
     search_vector = SearchVectorField(null=True, blank=True)  # to_tsvector('simple', text)
 
     class Meta:
@@ -99,8 +106,8 @@ class DocumentChunk(TenantModel):
             models.UniqueConstraint(fields=["org", "document", "ordinal"], name="doc_chunk_uniq"),
         ]
         indexes = [
-            HnswIndex(name="doc_chunk_emb_hnsw", fields=["embedding"], m=16, ef_construction=64,
-                      opclasses=["vector_cosine_ops"]),
+            models.Index(fields=["org", "document"], name="doc_chunk_pending_idx",
+                         condition=models.Q(embedding_pending=True)),
             GinIndex(fields=["search_vector"], name="doc_chunk_fts_gin"),
         ]
 
