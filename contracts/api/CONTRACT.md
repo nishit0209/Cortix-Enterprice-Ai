@@ -125,3 +125,59 @@
 - `token {text}`;
 - `done {message_id}`;
 - `error {code, detail}`.
+
+## Local runtime: PostgreSQL only, no Docker (binding from W3, Integrator 2026-11-20)
+
+The product must run fully with only a local PostgreSQL that the user creates (`scripts/bootstrap_local_db.py`), plus
+`manage.py runserver` / `uvicorn` and `npm run dev`. Redis, S3/MinIO and pgvector are OPTIONAL accelerators.
+
+**Every screen shows data from the database. There are no hardcoded or mock datasets in the UI.** Demo content comes only from `manage.py seed_demo`, which goes through the real services.
+
+### Settings
+
+All settings below are in `nexora/settings/base.py`.
+
+| Setting | Values | Default |
+|---|---|---|
+| `REDIS_URL` | URL, or empty | empty |
+| `TASK_RUNNER` | `thread` / `celery` / `eager` | `thread` without Redis; tests use `eager` |
+| `TASK_RUNNER_THREADS` | integer | |
+| `JOB_EVENTS_BACKEND` | `db` / `redis` | |
+| `LOCAL_SCHEDULER` | boolean | |
+| `STORAGE_BACKEND` | `fs` / `s3` | `fs` without S3 |
+| `LOCAL_STORAGE_DIR` | path | |
+| `STORAGE_URL_SIGNING_KEY` | secret | |
+| `VECTOR_BACKEND` | `pgvector` / `array` / `auto` | |
+| `ML_MAX_TRAIN_ROWS` | integer | |
+| `ML_MAX_TRAIN_SECONDS` | integer | |
+
+`CACHES` is the Django `DatabaseCache` (table `nexora_cache`) when there is no Redis.
+
+### Backend (`apps.core`): one implementation, used by every app
+
+- **Tasks.** Calling `.delay()` / `.apply_async()` on `TenantTask` (and on a non-tenant `NexoraTask` base for ops tasks) honours `TASK_RUNNER`:
+  - `celery`: normal Celery.
+  - `eager`: inline.
+  - `thread`: submit to a process-wide `ThreadPoolExecutor(TASK_RUNNER_THREADS)`. Each run gets fresh DB connections (`close_old_connections` before and after), runs inside `tenant_context(org_id)` with the actor restored, and honours retries/backoff.
+
+  Callers never branch on the runner.
+- **Job events.** `core.jobs.publish()` writes `core.JobEvent` rows when `JOB_EVENTS_BACKEND=db`.
+  - Row columns: `org_id`, `job_id`, `seq`, `event`, `data`, `created_at`; RLS-protected and append-only.
+  - The SSE view polls the rows. `Last-Event-ID` = `seq`, and the keep-alive protocol is unchanged.
+  - Old events are purged by a periodic task.
+- **Storage.** `core.storage` keeps its public API and adds a filesystem backend under `LOCAL_STORAGE_DIR/<key>`, with the same key validation.
+  - `presigned_get` returns a signed, expiring URL `/api/v1/files/<token>`, served by a streaming view that enforces the expiry and returns an RFC 6266 `Content-Disposition`.
+- **Periodic jobs.** `core.scheduler.register_periodic(name, every_seconds, fn)`.
+  - With `LOCAL_SCHEDULER=True`, the server process runs one daemon thread. A Postgres advisory lock (`pg_try_advisory_lock`) ensures only one process ticks.
+  - With Celery, the same registry feeds beat.
+  - Pipelines' schedule dispatcher, retention and job-event purge register here.
+- **Health.** `/health` reports `redis: not_configured` and `storage: fs` instead of failing.
+- **Demo data.** `manage.py seed_demo [--email --password --org]` creates a demo user and org, then ingests the synthetic `testdata/generated/*.csv` through the real dataset services. Ingestion triggers profiling, quality, the warehouse load and the semantic layer, so the dashboard, BI, C360, P360 and ML have real DB rows.
+  - It is idempotent. It prints the login credentials.
+
+### AI/ML (`apps.ai`): vector fallback
+
+- `apps.ai.vectors.EmbeddingField(dim)`: `db_type` is `vector(dim)` when the effective backend is pgvector, otherwise `double precision[]`.
+- Migrations create the `vector` extension and HNSW indexes ONLY when the backend is pgvector (RunPython that checks `pg_available_extensions`).
+- `apps.ai.vectors.nearest(queryset, field, query_vec, k, *, max_scan=20000)` returns the k nearest by cosine. It uses SQL cosine distance on pgvector, otherwise it loads at most `max_scan` candidate vectors (already org/dataset-filtered) and ranks them with numpy.
+- `nl2sql` cache and `documents` chunks MUST use these. W1/W2 migrations that hard-code `pgvector` may be rewritten in place, because no environment has applied them yet.

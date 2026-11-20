@@ -102,9 +102,10 @@ def _db(url_var: str, default: str, *, owner: bool = False) -> dict:
     return cfg
 
 
-_APP_URL = "postgres://nexora_app:nexora_app_dev@localhost:5433/nexora_app"
-_MIG_URL = "postgres://nexora_migrator:nexora_migrator_dev@localhost:5433/nexora_app"
-_OPS_URL = "postgres://nexora_ops:nexora_ops_dev@localhost:5433/nexora_app"
+# Defaults target a plain local PostgreSQL on 5432 (scripts/bootstrap_local_db.py writes the real URLs to .env).
+_APP_URL = "postgres://nexora_app:nexora_app_dev@localhost:5432/nexora_app"
+_MIG_URL = "postgres://nexora_migrator:nexora_migrator_dev@localhost:5432/nexora_app"
+_OPS_URL = "postgres://nexora_ops:nexora_ops_dev@localhost:5432/nexora_app"
 
 DATABASES = {
     "default": (
@@ -120,9 +121,9 @@ DATABASES = {
 DATABASES["ops"]["TEST"] = {"MIRROR": "default"}
 DATABASES["durable"]["TEST"] = {"MIRROR": "default"}
 DATABASE_ROUTERS: list[str] = []
-WH_DATABASE_URL_LOADER = env("WH_DATABASE_URL_LOADER", default="postgres://wh_loader:wh_loader_dev@localhost:5433/nexora_wh")
+WH_DATABASE_URL_LOADER = env("WH_DATABASE_URL_LOADER", default="postgres://wh_loader:wh_loader_dev@localhost:5432/nexora_wh")
 WH_DATABASE_URL_EXECUTOR = env(
-    "WH_DATABASE_URL_EXECUTOR", default="postgres://wh_executor:wh_loader_dev@localhost:5433/nexora_wh"
+    "WH_DATABASE_URL_EXECUTOR", default="postgres://wh_executor:wh_loader_dev@localhost:5432/nexora_wh"
 )
 # Test runs isolate warehouse objects per agent/test session with this schema prefix ("org_" in prod).
 WH_SCHEMA_PREFIX = env("WH_SCHEMA_PREFIX", default="org_")
@@ -184,12 +185,26 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
 }
 
-# --- Redis / Celery -------------------------------------------------------------------------------
-REDIS_URL = env("REDIS_URL", default="redis://localhost:6380/0")
-CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL}}
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+# --- Runtime: LOCAL (PostgreSQL only, no Docker) vs FULL (Redis + MinIO + Celery workers) ---------------
+# PostgreSQL is the ONLY required service. Redis, S3/MinIO and pgvector are optional; when absent the app uses the
+# local fallbacks below (contract: contracts/api/CONTRACT.md "Local runtime").
+REDIS_URL = env("REDIS_URL", default="")  # empty => no Redis
+# TASK_RUNNER: "thread" = background tasks run in an in-process thread pool (local, no broker);
+#              "celery" = real Celery workers (needs REDIS_URL); "eager" = inline (tests).
+TASK_RUNNER = env("TASK_RUNNER", default="celery" if REDIS_URL else "thread")
+TASK_RUNNER_THREADS = env.int("TASK_RUNNER_THREADS", default=4)
+# JOB_EVENTS_BACKEND: "redis" (Redis Streams) or "db" (core.JobEvent rows; SSE polls the DB).
+JOB_EVENTS_BACKEND = env("JOB_EVENTS_BACKEND", default="redis" if REDIS_URL else "db")
+# LOCAL_SCHEDULER: when no Celery beat runs, an in-process thread ticks the scheduled-pipeline dispatcher every minute.
+LOCAL_SCHEDULER = env.bool("LOCAL_SCHEDULER", default=TASK_RUNNER != "celery")
+if REDIS_URL:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": REDIS_URL}}
+else:
+    # `manage.py createcachetable` creates it (shared across processes; used by throttles + AI quota counters).
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "nexora_cache"}}
+CELERY_BROKER_URL = REDIS_URL or "memory://"
+CELERY_RESULT_BACKEND = REDIS_URL or None
+CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=TASK_RUNNER == "eager")
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
@@ -197,7 +212,12 @@ CELERY_TASK_SOFT_TIME_LIMIT = 60 * 30
 CELERY_TIMEZONE = "UTC"
 
 # --- Object storage --------------------------------------------------------------------------------
-S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", default="http://localhost:9000")
+# STORAGE_BACKEND: "fs" (local directory LOCAL_STORAGE_DIR; default when S3_ENDPOINT_URL is empty) or "s3".
+S3_ENDPOINT_URL = env("S3_ENDPOINT_URL", default="")
+STORAGE_BACKEND = env("STORAGE_BACKEND", default="s3" if S3_ENDPOINT_URL else "fs")
+LOCAL_STORAGE_DIR = Path(env("LOCAL_STORAGE_DIR", default="") or (REPO_DIR / "var" / "storage"))
+# Signs short-lived download URLs served by the API when STORAGE_BACKEND=fs.
+STORAGE_URL_SIGNING_KEY = env("STORAGE_URL_SIGNING_KEY", default=SECRET_KEY)
 S3_ACCESS_KEY = env("S3_ACCESS_KEY", default="nexora")
 S3_SECRET_KEY = env("S3_SECRET_KEY", default="nexora_minio_dev")
 S3_BUCKET = env("S3_BUCKET", default="nexora")
@@ -228,6 +248,12 @@ DEV_AGENT_RPD = env.int("DEV_AGENT_RPD", default=40)
 EMBEDDING_PROVIDER = env("EMBEDDING_PROVIDER", default="local")
 EMBEDDING_MODEL = env("EMBEDDING_MODEL", default="intfloat/multilingual-e5-base")
 EMBEDDING_DIM = env.int("EMBEDDING_DIM", default=768)
+# VECTOR_BACKEND: "pgvector" (vector column + HNSW, SQL cosine) or "array" (double precision[] + cosine ranked in
+# numpy; for PostgreSQL builds without pgvector, e.g. stock Windows installs). "auto" = detect the extension.
+VECTOR_BACKEND = env("VECTOR_BACKEND", default="auto")
+# ML artifacts (trained models) live in object storage under orgs/<id>/ml/; CPU-only training limits:
+ML_MAX_TRAIN_ROWS = env.int("ML_MAX_TRAIN_ROWS", default=500_000)
+ML_MAX_TRAIN_SECONDS = env.int("ML_MAX_TRAIN_SECONDS", default=900)
 
 # --- Connectors / SQL guard ---------------------------------------------------------------------------
 ALLOW_PRIVATE_DB_HOSTS = env.bool("ALLOW_PRIVATE_DB_HOSTS", default=False)

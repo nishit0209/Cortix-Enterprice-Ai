@@ -38,3 +38,7 @@ Thumbs.db
 
 # Claude local settings
 .claude/settings.local.json
+
+# local runtime data (fs storage, ML artifacts, pytest storage)
+var/
+backend/.pytest_storage/
