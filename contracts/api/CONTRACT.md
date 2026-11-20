@@ -313,3 +313,59 @@ Clients treat 410 as "request a fresh link". **This replaces the earlier mission
 - **Golden cassettes:** format `nexora.cassette.v1`, stored as `<dir>/<id>.json` or `<dir>/nl2sql/<id>.json`, with `id`, `question` and a required `response` object.
   - Written by `manage.py record_cassettes --out <dir>`, which needs `GEMINI_API_KEY`.
   - Read by QA through `NEXORA_CASSETTES_DIR`.
+
+## W4 additions (binding for W4; Integrator 2026-11-20)
+
+These docs are binding for W4:
+- **Routes:** `docs/API_SPECIFICATION.md` Phase 9 (ML), Phase 6 (Customer 360), Phase 7 (Product 360), Phase 5 governance/usage rows, and Phase 11 (platform).
+- **ML design:** `docs/ML_ARCHITECTURE.md`.
+- **Data model:** `docs/DATABASE_SCHEMA.md`.
+
+Where those docs and this section differ, this section wins.
+
+### Permissions
+
+The Backend seeds these permissions into the system roles, as with the others.
+
+| Area | Permissions |
+|---|---|
+| ML | `ml.view`, `ml.manage`, `ml.promote`. `ml.predict` is also an **API-key scope**. |
+| Customer 360 | `customers.view`, `customers.manage`, `customers.review` |
+| Product 360 | `products.view`, `products.manage`, `products.review` |
+
+Grants per role:
+- **Owner and Admin:** all of them.
+- **Analyst:** `view` + `manage` + `review`, and `ml.promote` only for Admin/Owner.
+- **Viewer:** `*.view`.
+
+Platform routes require `User.is_platform_admin` and use the `ops` alias. They **never return tenant data rows**.
+
+### Promotion (W4)
+
+- `POST …/ml/models/{id}/versions/{v}/promote {stage: staging|production|archived}` requires `ml.promote`, is audited, and returns 200 with the version.
+- Only one `production` version per model; the previous one becomes `archived`.
+- Approval gating arrives with automation in W6. The route stays the same; it will then return 202 plus an approval id when a policy requires approval.
+
+### Cross-app Python services (exact names; parallel agents code against them)
+
+- **`apps.datasets.services.load_current_frame(dataset_id, columns=None) -> polars.DataFrame`** (exists).
+  - ML and C360/P360 MUST first compute `apps.governance.services.effective_policy(user_id, dataset_id, tables, columns_by_table, privilege="query")`.
+  - Only the user's ALLOWED, unmasked columns may become features or source fields. Masked or denied columns are excluded and listed as `excluded_by_policy`.
+- **NEW, Data Engineering: `apps.datasets.services.publish_frame(*, name, frame, user_id, classification="internal", attest=False, dataset_id=None, description="", source="ml") -> DatasetVersion`.**
+  - Goes through the normal upload/ingest path, so profiling, quality, warehouse and semantic all run.
+  - `dataset_id` adds a new version.
+  - Records lineage from the given `source`.
+  - Synchronous when `TASK_RUNNER` is `eager`; otherwise returns after enqueueing, with the job id on the version.
+- **NEW, AI/ML, for C360 scoring in W5: `apps.ml.services.predict_frame(model_id, frame, *, version=None, explain=False) -> polars.DataFrame`.**
+  - Returns the input columns plus `prediction` and, for classifiers, `probability` (plus `explanation` JSON when `explain`).
+  - Raises `apps.ml.services.ModelNotReady` when there is no production/staging version.
+- **Embeddings for Product 360:** `apps.ai.embeddings.embed_passages(texts)` / `embed_query(text)` / `embedding_available()`, plus `apps.ai.vectors.EmbeddingField` / `nearest(...)`. When the model is unavailable, fall back to full text and say so (`search_mode`).
+
+### Safety rules for ML
+
+- **Artifacts:** stored ONLY through `apps.core.storage` under `orgs/<org_id>/ml/…`, with a sha256 recorded on the version.
+- **Loading:** artifacts are loaded only after the sha256 matches and only from the org's own prefix. Never load uploaded or user-supplied pickles.
+- **Training:** runs as a `TenantTask` on queue `ml`, honouring `ML_MAX_TRAIN_ROWS` and `ML_MAX_TRAIN_SECONDS` (stratified sample above the cap, recorded on the experiment), with job progress events.
+- **Determinism:** a `random_state` is recorded on every experiment.
+- **Explanations:** local SHAP (TreeExplainer for tree models, LinearExplainer for linear models, a permutation fallback); bounded to the first 1,000 rows.
+- **Gemini** is used only for the optional EDA/metrics narration, through `GeminiService` and the policy gate. Never row values on the free tier.
