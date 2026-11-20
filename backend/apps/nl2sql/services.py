@@ -4,6 +4,10 @@
     repair(question, bad_sql, reject_code, ctx)   -> SqlProposal  (one repair after a NON-security rejection)
     store_verified(question, sql, ctx)            -> promote a thumbs-up answer into the cache
     remember(question, sql, ctx, source=...)      -> cache a guard-approved, executed answer (unverified)
+    context_from_semantics(semantics, policy, ...) -> QuestionContext built from a W2 DatasetSemantics
+
+Cache scope: (org, dataset_version_id) when the caller passes `dataset_version_id=` or `semantics=` (a
+nexora.contracts.DatasetSemantics for the same dataset), otherwise (org, dataset_id).
 
 Resolution order: exact cache -> semantic cache -> deterministic builder -> Gemini (`nl2sql.generate`, one
 call returning sql + explanation + assumptions + chart_hint + clarification) -> at most one repair.
@@ -13,6 +17,7 @@ The Gemini payload is SCHEMA on dataset:<id>; the policy gate inside apps.ai dec
 from __future__ import annotations
 
 import logging
+import re
 from datetime import date
 from uuid import UUID
 
@@ -20,7 +25,15 @@ from django.utils import timezone
 
 from apps.ai.exceptions import AIInvalidOutput, AIPolicyBlocked, AIQuotaExhausted, AIUnavailable
 from apps.ai.services import gemini, get_prompt, request_trace
-from nexora.contracts import ChartHint, PayloadClass, PayloadManifest, QuestionContext, SqlProposal
+from nexora.contracts import (
+    ChartHint,
+    DatasetSemantics,
+    PayloadClass,
+    PayloadManifest,
+    QueryPolicy,
+    QuestionContext,
+    SqlProposal,
+)
 
 from . import cache
 from .builder import build_sql
@@ -67,6 +80,56 @@ def _none(reason: str, ids=(), explanation: str | None = None) -> SqlProposal:
 
 def _allowed(ctx: QuestionContext) -> dict:
     return {t: ctx.policy.allowed_columns.get(t, frozenset()) for t in ctx.policy.tables}
+
+
+def resolve_version(ctx: QuestionContext, *, dataset_version_id: UUID | None = None,
+                    semantics: DatasetSemantics | None = None) -> UUID | None:
+    """Cache scope version: an explicit `dataset_version_id` wins, else `semantics.dataset_version_id`.
+    Semantics for a different dataset than the question context is a caller bug and is refused."""
+    if semantics is not None:
+        if semantics.dataset_id != ctx.dataset_id:
+            raise ValueError("DatasetSemantics belongs to a different dataset than the QuestionContext")
+        if dataset_version_id is not None and dataset_version_id != semantics.dataset_version_id:
+            raise ValueError("dataset_version_id does not match DatasetSemantics.dataset_version_id")
+        return semantics.dataset_version_id
+    return dataset_version_id
+
+
+def context_from_semantics(semantics: DatasetSemantics, policy: QueryPolicy, *, user_id: UUID,
+                           history: tuple[dict, ...] = ()) -> QuestionContext:
+    """Build a QuestionContext from DatasetSemantics + the user's effective QueryPolicy.
+
+    Only tables present in the policy and only the user's ALLOWED columns are described (columns_meta is
+    filtered here; DatasetSemantics lists all columns). Metrics are kept only when every column they mention
+    by name is allowed somewhere in the policy (best effort, conservative)."""
+    if policy.dataset_id != semantics.dataset_id:
+        raise ValueError("QueryPolicy belongs to a different dataset than DatasetSemantics")
+    allowed_by_table = {t: frozenset(c.lower() for c in policy.allowed_columns.get(t, frozenset()))
+                        for t in policy.tables}
+    columns_meta: dict[str, tuple[dict, ...]] = {}
+    for table in policy.tables:
+        allowed = allowed_by_table.get(table, frozenset())
+        meta = semantics.columns_meta.get(table) or tuple(
+            {"name": c, "type": "", "semantic_type": "", "role": "", "description": "", "synonyms": []}
+            for c in semantics.columns_by_table.get(table, ()))
+        columns_meta[table] = tuple(dict(m) for m in meta if str(m.get("name", "")).lower() in allowed)
+    all_allowed = frozenset().union(*allowed_by_table.values()) if allowed_by_table else frozenset()
+    all_columns = {str(c).lower() for cols in semantics.columns_by_table.values() for c in cols}
+    metrics = []
+    for metric in semantics.metrics:
+        expression = str(metric.get("expression", "")).lower()
+        mentioned = {c for c in all_columns if c and c in _identifiers(expression)}
+        if mentioned <= all_allowed:
+            metrics.append(dict(metric))
+    return QuestionContext(
+        org_id=policy.org_id, user_id=user_id, dataset_id=semantics.dataset_id, policy=policy,
+        history=tuple(history), columns_meta=columns_meta, metrics=tuple(metrics),
+        dataset_name=semantics.dataset_name, dataset_classification=semantics.classification,
+    )
+
+
+def _identifiers(expression: str) -> set[str]:
+    return set(re.findall(r"[a-z_][a-z0-9_]*", expression))
 
 
 def _chart(data: dict | None, sql_ast) -> ChartHint | None:
@@ -149,8 +212,9 @@ def _ai_failure(exc: Exception) -> str:
 
 
 def propose(question: str, ctx: QuestionContext, *, today: date | None = None,
-            dataset_version_id: UUID | None = None) -> SqlProposal:
+            dataset_version_id: UUID | None = None, semantics: DatasetSemantics | None = None) -> SqlProposal:
     """NL2SQL.propose — never raises for AI unavailability; returns source='none' + blocked_reason instead."""
+    dataset_version_id = resolve_version(ctx, dataset_version_id=dataset_version_id, semantics=semantics)
     question = (question or "").strip()
     if not question:
         return SqlProposal(sql=None, source="none", clarification="Please type a question about this dataset.")
@@ -235,8 +299,10 @@ def repair(question: str, bad_sql: str, reject_code: str, ctx: QuestionContext, 
 
 def remember(question: str, sql: str, ctx: QuestionContext, *, source: str = "llm",
              explanation: str | None = None, assumptions: tuple[str, ...] = (), chart_hint: ChartHint | None = None,
-             today: date | None = None, dataset_version_id: UUID | None = None):
+             today: date | None = None, dataset_version_id: UUID | None = None,
+             semantics: DatasetSemantics | None = None):
     """Cache an answer that passed the guard and executed (unverified). Returns the cache row or None."""
+    dataset_version_id = resolve_version(ctx, dataset_version_id=dataset_version_id, semantics=semantics)
     try:
         return cache.store(question, sql, ctx, slots=extract_slots(question, _today(today)), source=source,
                            explanation=explanation, assumptions=assumptions, chart_hint=chart_hint,
@@ -248,8 +314,10 @@ def remember(question: str, sql: str, ctx: QuestionContext, *, source: str = "ll
 
 def store_verified(question: str, sql: str, ctx: QuestionContext, *, explanation: str | None = None,
                    assumptions: tuple[str, ...] = (), chart_hint: ChartHint | None = None,
-                   today: date | None = None, dataset_version_id: UUID | None = None):
+                   today: date | None = None, dataset_version_id: UUID | None = None,
+                   semantics: DatasetSemantics | None = None):
     """Promote a verified (thumbs-up) answer into the cache. Raises ValueError for SQL outside the policy."""
+    dataset_version_id = resolve_version(ctx, dataset_version_id=dataset_version_id, semantics=semantics)
     return cache.store(question, sql, ctx, slots=extract_slots(question, _today(today)), source="verified",
                        verified=True, explanation=explanation, assumptions=assumptions, chart_hint=chart_hint,
                        user_id=ctx.user_id, dataset_version_id=dataset_version_id)

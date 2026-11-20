@@ -230,7 +230,7 @@ def test_multi_table_uses_reasoning_tier(tenant, key):
 def test_public_repair_refuses_security_codes(tenant, key):
     engine, p = build_engine()
     with override_gemini(engine):
-        for code in ("forbidden_function", "system_catalog", "multiple_statements", "whole_row_reference",
+        for code in ("forbidden_function", "system_object", "multiple_statements", "recursive_cte", "timeout",
                      "something_unknown"):
             out = services.repair(NOVEL, "SELECT pg_sleep(10)", code, make_ctx(), today=TODAY)
             assert out.sql is None and out.blocked_reason == "not_repairable"

@@ -115,9 +115,9 @@ def test_sql_literal_quoting_in_bind():
     ("SELECT FROM WHERE (", "parse_error"),
     ("SELECT 1; SELECT 2", "multiple_statements"),
     ("DELETE FROM sales", "not_select"),
-    ("SELECT * INTO evil FROM sales", "forbidden_construct"),
-    ("SELECT * FROM sales FOR UPDATE", "forbidden_construct"),
-    ("SELECT * FROM sales WHERE id = :p", "forbidden_construct"),
+    ("SELECT * INTO evil FROM sales", "forbidden_clause"),
+    ("SELECT * FROM sales FOR UPDATE", "forbidden_clause"),
+    ("SELECT * FROM sales WHERE id = :p", "forbidden_clause"),
 ])
 def test_parse_select_rejections(sql, code):
     ast, issue = parse_select(sql)
@@ -134,11 +134,11 @@ ALLOWED = {"sales": frozenset({"region", "amount", "order_date"})}
     ("WITH t AS (SELECT region, amount FROM sales) SELECT region, SUM(amount) FROM t GROUP BY region", None),
     ("SELECT customer_email FROM sales", "column_not_allowed"),
     ("SELECT * FROM customers", "table_not_allowed"),
-    ("SELECT * FROM pg_catalog.pg_user", "system_catalog"),
-    ("SELECT * FROM pg_user", "system_catalog"),
-    ("SELECT * FROM information_schema.tables", "system_catalog"),
+    ("SELECT * FROM pg_catalog.pg_user", "system_object"),
+    ("SELECT * FROM pg_user", "system_object"),
+    ("SELECT * FROM information_schema.tables", "system_object"),
     ("SELECT * FROM other_schema.sales", "table_not_allowed"),
-    ("SELECT ctid FROM sales", "system_column"),
+    ("SELECT ctid FROM sales", "system_object"),
 ])
 def test_validate_against_context(sql, code):
     ast, issue = parse_select(sql)

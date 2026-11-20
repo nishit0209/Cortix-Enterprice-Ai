@@ -178,3 +178,127 @@ def test_ai_usage_endpoint_and_permissions(api_client, org_a, fake_engine):
     api_client.force_authenticate(viewer)
     assert api_client.get(f"/api/v1/orgs/{org.slug}/ai/usage").status_code == 403
     assert api_client.get(f"/api/v1/orgs/{org.slug}/ai/status").status_code == 200
+
+
+# ------------------------------------------------------------------------------- W2: durable log alias
+@pytest.mark.django_db(transaction=True, databases="__all__")
+def test_blocked_log_row_survives_rolled_back_request(monkeypatch, settings):
+    """A request transaction that rolls back (view let AIPolicyBlocked propagate) keeps its AIRequestLog row."""
+    from django.db import connections
+
+    from apps.ai.recorder import log_alias
+
+    if "durable" not in connections.databases:
+        pytest.skip("settings define no 'durable' DB alias (Integrator request: add it to settings.test)")
+    import apps.core.registry as registry
+    from apps.ai.engine import GeminiEngine
+    from apps.ai.quota import QuotaLimiter
+    from apps.ai.testing import FakeRedis
+
+    settings.GEMINI_API_KEY = "test-key-NOT-REAL"
+    settings.GEMINI_TIER = "free"
+    monkeypatch.setattr(registry, "_classifiers", {"dataset": lambda uid: "internal"})
+    owner = User.objects.create_user("owner.durable@example.test", "pw-Owner-123456")
+    org = create_organization(name="Synthetic Durable Org", owner=owner)
+    transport = FakeTransport()
+    redis = FakeRedis()
+    engine = GeminiEngine(transport_factory=lambda: transport, limiter=QuotaLimiter(lambda: redis))
+
+    class RequestFailed(Exception):
+        pass
+
+    with pytest.raises(RequestFailed):
+        with tenant_context(org.id):
+            assert log_alias() == "durable"
+            AIOrgConfig.objects.create(daily_request_budget=9)  # rolled back with the request
+            try:
+                engine.generate_structured(feature="nl2sql", prompt_key="nl2sql.generate", system="s", prompt="p",
+                                           schema={"type": "object"},
+                                           payload=PayloadManifest({PayloadClass.SCHEMA: (f"dataset:{uuid4()}",)}))
+            except AIPolicyBlocked as exc:
+                raise RequestFailed() from exc
+    with tenant_context(org.id):
+        assert AIOrgConfig.objects.count() == 0
+        log = AIRequestLog.objects.get()
+        assert log.status == "blocked_by_policy"
+        assert AIUsageDaily.objects.get().blocked == 1
+    assert transport.total_calls == 0
+
+
+# ------------------------------------------------------------------- W2: gate against the merged consent impl
+def _gate_engine():
+    from apps.ai.engine import GeminiEngine
+    from apps.ai.quota import QuotaLimiter
+    from apps.ai.testing import FakeRedis
+
+    transport = FakeTransport(default=FakeTransport.json({"ok": True}))
+    redis = FakeRedis()
+    return GeminiEngine(transport_factory=lambda: transport, limiter=QuotaLimiter(lambda: redis)), transport
+
+
+def _schema_call(engine, ref):
+    return engine.generate_structured(feature="nl2sql", prompt_key="nl2sql.generate", system="s", prompt="p",
+                                      schema={"type": "object"}, payload=PayloadManifest({PayloadClass.SCHEMA: (ref,)}))
+
+
+@pytest.fixture
+def real_dataset(monkeypatch, settings):
+    import apps.core.registry as registry
+
+    settings.GEMINI_API_KEY = "test-key-NOT-REAL"
+    settings.GEMINI_TIER = "free"
+    monkeypatch.setattr(registry, "_classifiers", {"dataset": lambda uid: "internal"})
+    return f"dataset:{uuid4()}"
+
+
+def test_consented_schema_only_allows_schema_then_revoke_blocks(org_a, real_dataset):
+    from apps.orgs import ai_consent
+    from apps.orgs.services import ai_policy_state, grant_ai_consent, revoke_ai_consent
+
+    owner, org = org_a
+    engine, transport = _gate_engine()
+    with tenant_context(org.id):
+        with pytest.raises(AIPolicyBlocked):
+            _schema_call(engine, real_dataset)  # default synthetic_only
+        grant_ai_consent(policy="schema_only", consent_text_version=ai_consent.current_version(),
+                         acknowledged=True, actor=owner)
+        assert ai_policy_state() == {"policy": "schema_only", "consent_valid": True}
+        assert _schema_call(engine, real_dataset) == {"ok": True}
+        with pytest.raises(AIPolicyBlocked):  # VALUES still refused under schema_only
+            engine.generate_structured(feature="bi", prompt_key="bi.narrate", system="s", prompt="p",
+                                       schema={"type": "object"},
+                                       payload=PayloadManifest({PayloadClass.VALUES: (real_dataset,)}))
+        revoke_ai_consent(actor=owner)
+        with pytest.raises(AIPolicyBlocked):
+            _schema_call(engine, real_dataset)
+    assert transport.total_calls == 1
+
+
+def test_consent_text_version_change_invalidates_consent(org_a, real_dataset, settings):
+    from apps.orgs import ai_consent
+    from apps.orgs.services import ai_policy_state, grant_ai_consent
+
+    owner, org = org_a
+    engine, transport = _gate_engine()
+    with tenant_context(org.id):
+        grant_ai_consent(policy="schema_only", consent_text_version=ai_consent.current_version(),
+                         acknowledged=True, actor=owner)
+        settings.AI_CONSENT_TEXT_VERSION = f"{ai_consent.current_version()}-next"
+        assert ai_policy_state()["consent_valid"] is False
+        with pytest.raises(AIPolicyBlocked) as exc:
+            _schema_call(engine, real_dataset)
+        assert exc.value.extra["effective_policy"] == "synthetic_only"
+    assert transport.total_calls == 0
+
+
+def test_paid_policy_stored_on_free_tier_is_refused(org_a, real_dataset):
+    from apps.orgs.models import Organization
+
+    _, org = org_a
+    engine, transport = _gate_engine()
+    with tenant_context(org.id):
+        Organization.objects.filter(id=org.id).update(ai_data_policy="full")  # manual DB edit
+        with pytest.raises(AIPolicyBlocked) as exc:
+            _schema_call(engine, real_dataset)
+        assert exc.value.extra["effective_policy"] == "synthetic_only"
+    assert transport.total_calls == 0
