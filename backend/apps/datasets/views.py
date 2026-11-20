@@ -172,7 +172,8 @@ class DatasetViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGen
             raise ValidationError({"limit": ["Must be an integer."]}) from exc
         if limit < 1 or limit > services.PREVIEW_MAX:
             raise ValidationError({"limit": [f"Must be between 1 and {services.PREVIEW_MAX}."]})
-        return Response(services.preview(dataset, limit=limit, version_no=self._version_param(request)))
+        return Response(services.preview(dataset, user_id=request.user.pk, limit=limit,
+                                          version_no=self._version_param(request)))
 
     @action(detail=True, methods=["get", "post"])
     def versions(self, request, *args, **kwargs):

@@ -5,8 +5,12 @@ Datasets:  create_dataset(name=..., upload_id=..., ...)           -> (Dataset, J
            add_version(dataset, upload_id=..., ...)               -> Job
            get_dataset(id) / set_classification / update_dataset / soft_delete
 Ingest:    run_ingest(...)  (body of the `ingest_dataset` Celery task)
-Data:      version_columns(version), load_version_frame(version), load_current_frame(dataset_id), preview(...)
-Other:     dataset_classification(id) (registered asset classifier), data_stats(), parse_as_type(series, pg_type)
+Data:      version_columns(version), load_version_frame(version), load_current_frame(dataset_id),
+           preview(dataset, user_id=..., ...)  (governed: column deny/mask + row policies via the SQL guard)
+Schema:    logical_table_name(dataset), version_schema(dataset, version) -> (tables, columns_by_table)
+Registry:  dataset_classification(id), dataset_exists(id), dataset_schema(id)   (apps.core.registry providers)
+Other:     data_stats(), parse_as_type(series, pg_type)
+Signals:   apps.datasets.signals.dataset_version_published (sent when a version becomes current)
 """
 
 from __future__ import annotations
@@ -17,7 +21,8 @@ import os
 import re
 import shutil
 import tempfile
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace as dc_replace
 from typing import Any
 from uuid import UUID
 
@@ -50,6 +55,7 @@ from .ingest.analyze import AnalyzedTable, analyze
 from .ingest.errors import IngestError
 from .ingest.profiling import schema_drift
 from .models import ATTESTED_CLASSIFICATIONS, CLASSIFICATIONS, Dataset, DatasetColumn, DatasetVersion, Upload
+from .naming import logical_table_name as _logical_name
 
 log = logging.getLogger(__name__)
 
@@ -251,6 +257,32 @@ def dataset_classification(asset_id: UUID) -> str:
     return value or "confidential"
 
 
+def dataset_exists(asset_id: UUID) -> bool:
+    """Registered with apps.core.registry (asset_exists('dataset', id)); deleted datasets do not exist."""
+    return Dataset.objects.filter(id=asset_id).exclude(status="deleted").exists()
+
+
+def logical_table_name(dataset: Dataset) -> str:
+    """The SQL name users and NL->SQL write for this dataset (see apps.datasets.naming)."""
+    return _logical_name(dataset.slug)
+
+
+def version_schema(dataset: Dataset, version: DatasetVersion) -> tuple[dict[str, str], dict[str, tuple[str, ...]]]:
+    """({logical: "schema.table"}, {logical: (all column names in ordinal order)}) of one ready version."""
+    logical = logical_table_name(dataset)
+    columns = tuple(
+        DatasetColumn.objects.filter(version_id=version.id).order_by("ordinal").values_list("name", flat=True)
+    )
+    return {logical: warehouse.physical_table(version)}, {logical: columns}
+
+
+def dataset_schema(dataset_id: UUID) -> tuple[Mapping[str, str], Mapping[str, tuple[str, ...]]]:
+    """Registered with apps.core.registry.register_dataset_schema_provider: the current version's tables and
+    columns. Raises NotFound (unknown/deleted) or DatasetNotReady (no ready current version)."""
+    dataset = get_dataset(dataset_id)
+    return version_schema(dataset, require_ready_version(dataset))
+
+
 # ---------------------------------------------------------------------------------------------------
 # versions & data access
 # ---------------------------------------------------------------------------------------------------
@@ -301,19 +333,56 @@ def load_current_frame(dataset_id, columns: Sequence[str] | None = None) -> pl.D
     return load_version_frame(require_ready_version(dataset), columns)
 
 
-def preview(dataset: Dataset, *, limit: int = 100, version_no: int | None = None) -> dict:
+def _quote_ident(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def preview(dataset: Dataset, *, user_id, limit: int = 100, version_no: int | None = None) -> dict:
+    """First rows of a version AS THE USER MAY SEE THEM: governance column deny (columns omitted), masks
+    (applied at the source) and row policies, executed through the SQL guard as the org's reader role.
+
+    Raises DatasetAccessDenied (404) when the dataset ACL refuses `read`, DatasetNotReady (409)."""
+    from apps.governance.services import effective_policy
+    from apps.sqlguard import services as sqlguard
+    from apps.sqlguard.exceptions import GuardError
+    from nexora.contracts import QueryTarget
+
     version = require_ready_version(dataset, version_no)
     limit = max(1, min(int(limit), PREVIEW_MAX))
     cols = version_columns(version)
-    result = warehouse.preview_rows(version.org_id, version.wh_table, [c["name"] for c in cols], limit=limit)
+    tables, columns_by_table = version_schema(dataset, version)
+    logical = next(iter(tables))
+    policy = effective_policy(user_id, dataset.id, tables, columns_by_table, privilege="read")
+    policy = dc_replace(policy, row_cap=limit)
+    allowed = policy.allowed_columns.get(logical, frozenset())
+    visible = [c for c in cols if c["name"] in allowed]
+    body = {"version": version.version, "columns": [], "rows": [], "row_count": 0, "truncated": False}
+    if not visible:
+        return body
+    masks = {c: m for (t, c), m in policy.column_masks.items() if t == logical}
+    statement = "SELECT {} FROM {} LIMIT {}".format(  # noqa: S608 - identifiers quoted; re-validated by the guard
+        ", ".join(_quote_ident(c["name"]) for c in visible), _quote_ident(logical), int(limit)
+    )
+    checked = sqlguard.validate(statement, policy)
+    if not checked.ok:
+        log.error("preview SQL rejected by the guard: %s %s", checked.reject_code, checked.message)
+        raise GuardError(checked.message, code=checked.reject_code or "invalid_sql")
+    result = sqlguard.execute(checked, policy, QueryTarget(kind="warehouse", org_id=version.org_id))
     types = {c["name"]: c["data_type"] for c in cols}
-    return {
-        "version": version.version,
-        "columns": [{"name": m.name, "type": types.get(m.name, m.type), "masked": m.masked} for m in result.columns],
+
+    def col_type(name: str) -> str:
+        mask = masks.get(name)
+        if mask is not None and mask.kind in ("mask_hash", "mask_partial"):
+            return "text"
+        return types.get(name, "text")
+
+    body.update({
+        "columns": [{"name": m.name, "type": col_type(m.name), "masked": m.name in masks} for m in result.columns],
         "rows": rows_to_jsonable(result.rows),
         "row_count": result.row_count,
         "truncated": result.truncated,
-    }
+    })
+    return body
 
 
 def parse_as_type(series: pl.Series, pg_type: str) -> pl.Series:
@@ -498,6 +567,8 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
             }
             audit.record("dataset.version.ready", target=version, metadata=result)
             jobs.finish(job_id, result=result)
+        if not blocking:
+            _notify_version_published(org, dataset.id, version.id)
         return result
     except IngestError as exc:
         _fail(org, dataset_id, upload_id, version_id, job_id, exc.code, exc.message, exc.detail)
@@ -510,6 +581,22 @@ def run_ingest(*, org_id, dataset_id, upload_id, job_id, options: dict | None = 
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
     return None
+
+
+def _notify_version_published(org: UUID, dataset_id, version_id) -> None:
+    """Send dataset_version_published in its own short tenant step; receivers never fail the ingestion."""
+    from .signals import dataset_version_published
+
+    try:
+        with tenant_step(org):
+            responses = dataset_version_published.send_robust(
+                sender=Dataset, org_id=org, dataset_id=dataset_id, version_id=version_id
+            )
+        for receiver, response in responses:
+            if isinstance(response, Exception):
+                log.error("dataset_version_published receiver %r failed: %s", receiver, response)
+    except Exception:  # noqa: BLE001 - downstream refresh must never fail a finished ingestion
+        log.exception("dataset_version_published could not be delivered dataset=%s", dataset_id)
 
 
 _UPLOAD_REJECT_CODES = {"upload_empty", "upload_type_not_allowed", "upload_content_mismatch", "upload_zip_bomb",
