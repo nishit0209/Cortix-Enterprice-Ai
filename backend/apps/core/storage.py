@@ -3,7 +3,8 @@
 Backends (`settings.STORAGE_BACKEND`, read at call time; CONTRACT "Local runtime"):
     "s3"  S3 / MinIO (boto3)
     "fs"  a local directory: objects live at LOCAL_STORAGE_DIR/<key>. Writes are atomic (temp file in the same
-          directory + os.replace). `presigned_get` returns a signed, expiring `/api/v1/files/<token>` URL served by
+          directory + os.replace; on Windows read handles are opened share-delete, so an object can be
+          overwritten while a download streams it). `presigned_get` returns a signed, expiring `/api/v1/files/<token>` URL served by
           `apps.core.urls_public` (TimestampSigner keyed by STORAGE_URL_SIGNING_KEY, max_age = expiry).
 
 Public API (identical for both backends):
@@ -20,6 +21,7 @@ handle `(BotoCoreError, ClientError)` behave the same with the filesystem backen
 
 from __future__ import annotations
 
+import ctypes
 import functools
 import io
 import mimetypes
@@ -27,6 +29,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, BinaryIO
 from uuid import UUID
@@ -164,7 +167,7 @@ def _fs_write(path: Path, fileobj: BinaryIO) -> None:
             shutil.copyfileobj(fileobj, out, length=1024 * 1024)
             out.flush()
             os.fsync(out.fileno())
-        os.replace(tmp, path)
+        _replace_with_retry(tmp, path)
     except BaseException as exc:
         try:
             os.unlink(tmp)
@@ -175,9 +178,101 @@ def _fs_write(path: Path, fileobj: BinaryIO) -> None:
         raise
 
 
+# os.replace onto a file that another handle holds open fails on Windows with PermissionError (WinError 5/32)
+# unless EVERY open handle was opened with FILE_SHARE_DELETE. Python's open() never passes it, so on Windows the
+# backend opens its read handles through CreateFileW with FILE_SHARE_READ | WRITE | DELETE (`_open_shared`): an
+# overwrite while a download streams then succeeds (the reader keeps the old bytes, later reads get the new ones),
+# exactly like POSIX rename semantics. Handles held by OTHER processes (antivirus, indexers, an editor) are still
+# out of our control: `_replace_with_retry` retries with a short back-off before giving up with StorageError.
+REPLACE_RETRY_DELAYS_S = (0.01, 0.025, 0.05, 0.1, 0.2, 0.4)
+
+
+def _replace_with_retry(src: str, dst: Path, *, delays=REPLACE_RETRY_DELAYS_S, sleep=time.sleep) -> None:
+    """os.replace(src, dst). On Windows a PermissionError (the target is open) falls back to a POSIX-semantics
+    rename, which succeeds while every open handle is share-delete, then retries with a short back-off."""
+    for delay in (*delays, None):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            try:
+                _posix_rename_nt(src, dst)
+                return
+            except OSError:
+                if delay is None:
+                    raise
+            sleep(delay)
+
+
+def _kernel32():
+    from ctypes import wintypes
+
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID, wintypes.DWORD,
+                              wintypes.DWORD, wintypes.HANDLE]
+    k.CreateFileW.restype = wintypes.HANDLE
+    k.SetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+    k.SetFileInformationByHandle.restype = wintypes.BOOL
+    k.CloseHandle.argtypes = [wintypes.HANDLE]
+    return k
+
+
+_INVALID_HANDLE = ctypes.c_void_p(-1).value
+_SHARE_ALL = 0x1 | 0x2 | 0x4  # FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
+
+
+def _posix_rename_nt(src: str, dst: Path) -> None:
+    """SetFileInformationByHandle(FileRenameInfoEx, REPLACE_IF_EXISTS | POSIX_SEMANTICS) (Windows 10 1809+):
+    replaces `dst` even while share-delete readers hold it open; they keep reading the old bytes."""
+    k = _kernel32()
+    delete_access, synchronize, open_existing, normal = 0x00010000, 0x00100000, 3, 0x80
+    handle = k.CreateFileW(str(src), delete_access | synchronize, _SHARE_ALL, None, open_existing, normal, None)
+    if handle in (None, _INVALID_HANDLE):
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        name = os.path.abspath(str(dst))
+        nbytes = len(name) * 2
+        # FILE_RENAME_INFO (x64): Flags DWORD @0, RootDirectory HANDLE @8, FileNameLength DWORD @16, FileName @20
+        header = 8 + ctypes.sizeof(ctypes.c_void_p) + 4
+        size = header + nbytes + 2
+        buf = ctypes.create_string_buffer(size)
+        ctypes.c_uint32.from_buffer(buf, 0).value = 0x1 | 0x2
+        ctypes.c_uint32.from_buffer(buf, header - 4).value = nbytes
+        ctypes.memmove(ctypes.addressof(buf) + header, ctypes.create_unicode_buffer(name), nbytes + 2)
+        if not k.SetFileInformationByHandle(handle, 22, buf, size):  # 22 = FileRenameInfoEx
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        k.CloseHandle(handle)
+
+
+def _open_shared(path: Path) -> BinaryIO:
+    """open(path, "rb"), but on Windows with FILE_SHARE_DELETE so the object can be replaced or deleted while
+    this handle is open."""
+    if os.name != "nt":
+        return open(path, "rb")  # noqa: SIM115 - the caller owns the handle
+    import msvcrt
+
+    generic_read, open_existing, normal = 0x80000000, 3, 0x80
+    kernel32 = _kernel32()
+    handle = kernel32.CreateFileW(str(path), generic_read, _SHARE_ALL, None, open_existing, normal, None)
+    if handle in (None, _INVALID_HANDLE):
+        err = ctypes.get_last_error()
+        if err in (2, 3):  # ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND
+            raise FileNotFoundError(2, "The object does not exist.", str(path))
+        raise OSError(None, ctypes.FormatError(err), str(path), err)
+    try:
+        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except OSError:
+        kernel32.CloseHandle(handle)
+        raise
+    return os.fdopen(fd, "rb")
+
+
 def _fs_open(path: Path) -> BinaryIO:
     try:
-        return open(path, "rb")  # noqa: SIM115 - the caller owns the handle
+        return _open_shared(path)
     except FileNotFoundError as exc:
         raise StorageObjectNotFound("The object does not exist.") from exc
     except OSError as exc:
