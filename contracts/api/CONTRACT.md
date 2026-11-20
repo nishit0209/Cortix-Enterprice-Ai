@@ -181,3 +181,90 @@ All settings below are in `nexora/settings/base.py`.
 - Migrations create the `vector` extension and HNSW indexes ONLY when the backend is pgvector (RunPython that checks `pg_available_extensions`).
 - `apps.ai.vectors.nearest(queryset, field, query_vec, k, *, max_scan=20000)` returns the k nearest by cosine. It uses SQL cosine distance on pgvector, otherwise it loads at most `max_scan` candidate vectors (already org/dataset-filtered) and ranks them with numpy.
 - `nl2sql` cache and `documents` chunks MUST use these. W1/W2 migrations that hard-code `pgvector` may be rewritten in place, because no environment has applied them yet.
+
+## W2 as-built additions (binding from W3; full shapes in `coordination/handoffs/w2/*.md`)
+
+The handoff files below are part of this contract. Agents must keep these routes and shapes stable and must only add fields.
+
+### `data_pipelines.md`: data sources
+
+- `GET`/`PATCH`/`DELETE /data-sources/{id}`.
+- `GET /data-sources/{id}/imports`.
+- `POST /import` also accepts `{columns?, classification?, schema?, mode, cursor_column?, dataset_id?, attest?}`.
+- Error code `connector_role_not_readonly`.
+
+### `data_pipelines.md`: pipelines
+
+- `POST /pipelines/validate` returns per-node errors that name the node id.
+- `GET /pipelines/{id}/versions`.
+- `GET`/`PUT`/`DELETE /pipelines/{id}/schedule`.
+- `POST /pipelines/{id}/preview` takes an optional `node_id` and `limit`.
+- `GET /pipeline-runs`.
+- Run detail, `POST /pipeline-runs/{id}/retry`.
+
+### `ai_ml.md`: documents
+
+- Documents API: upload (202 + job), list/detail/delete, pages, chunks, entities, tables, `search?q=`, `ask`, `summary`.
+- `ask` returns `mode: "generative" | "extractive"`, a `reason` when extractive, and citations `[{document_id, page, chunk_id, quote}]`.
+
+### `backend.md`: BI
+
+- The routes are exactly those in the W3 section above.
+- SSE clients must ignore `:` keep-alive lines.
+- The JSON fallback is the same POST without `Accept: text/event-stream`.
+- A persisted assistant `Message` carries the same fields as the SSE events, so a dropped stream can be recovered via `GET /bi/conversations/{id}/messages`.
+
+### `data_engineering.md`: semantic layer
+
+- `GET`/`PATCH` semantic model of a dataset; metrics CRUD.
+- `dataset_semantics()` returns `DatasetSemantics` exactly.
+
+### Guard masks
+
+- `mask_null` is rendered `CASE WHEN FALSE THEN col END`, which is type-preserving and never reads the column. QA's oracle must accept this rendering (SECURITY_ARCHITECTURE §5 table).
+
+## W3 additions (binding for W3; Integrator 2026-11-20)
+
+### Dashboards (Backend `bi`)
+
+All routes are under `/orgs/{org}/`. `Dashboard` and `DashboardWidget` are TenantModels with RLS. Permissions: `dashboards.view` and `dashboards.manage`.
+
+| Method | Path | Body | Response / notes |
+|---|---|---|---|
+| GET | `/dashboards` | – | `[{id, title, description, is_default, widget_count, updated_at}]` |
+| POST | `/dashboards` | `{title, description?}` | |
+| GET | `/dashboards/{id}` | – | `{..., widgets:[{id, title, kind: chart\|table\|kpi\|text, saved_query_id?, chart, layout:{x,y,w,h}, text?}]}` |
+| PATCH | `/dashboards/{id}` | title/description/`is_default`/`layout[]` (bulk positions) | |
+| DELETE | `/dashboards/{id}` | – | |
+| POST | `/dashboards/{id}/widgets` | `{title, kind, saved_query_id? \| message_id?, chart?, layout, text?}` | `message_id` pins an Ask-AI answer: it creates a `SavedQuery` from the audited `executed_sql`. |
+| PATCH | `/dashboards/{id}/widgets/{wid}` | | |
+| DELETE | `/dashboards/{id}/widgets/{wid}` | | |
+| GET | `/dashboards/{id}/widgets/{wid}/data` | – | `{columns, rows, row_count, truncated, chart, refreshed_at}`. Re-runs the saved query through `sqlguard.validate` + `execute` under the **viewer's** policy. It never serves stored rows. |
+
+Each data refresh is audited (`BiQueryAudit` source `dashboard`).
+
+### Notifications (Backend `core`)
+
+`core.Notification` is a TenantModel. Its fields are `user_id`, `kind`, `title`, `body`, `link`, `read_at` and `created_at`.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/orgs/{org}/notifications?unread=1` | cursor-paginated |
+| POST | `/orgs/{org}/notifications/{id}/read` | |
+| POST | `/orgs/{org}/notifications/read-all` | |
+
+Producers call `apps.core.notifications.notify(user_ids, kind, title, body, link)`. Producers:
+- pipeline run failed/succeeded (owner);
+- import or ingestion finished/failed;
+- document processed;
+- invitation accepted;
+- AI quota exhausted (org admins).
+
+### AI quota UX (AI/ML `ai`)
+
+- `GET /orgs/{org}/ai/status` adds `{quota: {state: ok|low|exhausted, resets_at, used_today, limit_today}, configured: bool, tier}`.
+- The BI `error` event for `ai_quota_exhausted` includes `resets_at`.
+
+### Isolation fixtures
+
+Every app with tenant routes that take resource kwargs MUST ship `apps/<app>/tests/isolation.py` factories. `testing.isolation.MissingIsolationFixture` is a failing test.

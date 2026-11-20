@@ -90,7 +90,7 @@
 
 | Mask | Expression |
 |---|---|
-| `mask_null` | `NULL::<type>` |
+| `mask_null` | `CASE WHEN FALSE THEN col END` (as built in W2, Integrator-approved). This is a type-preserving NULL: the planner folds it to a typed `NULL` constant and never reads `col`. It is used because `QueryPolicy` carries no column types. A plain `NULL::<type>` is equivalent where the type is known. |
 | `mask_hash` | `encode(sha256(convert_to(col::text || <org salt param>,'UTF8')),'hex')` (an allowlisted internal function, inserted only by the rewriter) |
 | `mask_partial` | `repeat('*', greatest(length(col)-4,0)) || right(col,4)` (inserted by the rewriter; users cannot call `repeat` themselves) |
 

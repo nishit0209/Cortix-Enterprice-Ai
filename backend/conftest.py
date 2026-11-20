@@ -18,7 +18,7 @@ pytest_plugins = ["testing.fixtures"]
 def _app_credentials() -> tuple[str, str]:
     import environ
 
-    url = os.environ.get("DATABASE_URL_APP", "postgres://nexora_app:nexora_app_dev@localhost:5433/nexora_app")
+    url = os.environ.get("DATABASE_URL_APP", "postgres://nexora_app:nexora_app_dev@localhost:5432/nexora_app")
     cfg = environ.Env.db_url_config(url)
     return cfg["USER"], cfg["PASSWORD"]
 

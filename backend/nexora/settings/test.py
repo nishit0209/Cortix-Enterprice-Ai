@@ -6,7 +6,7 @@ under real Row-Level Security. Parallel agents isolate themselves with PYTEST_DB
 """
 
 from .base import *  # noqa: F403
-from .base import _MIG_URL, _OPS_URL, _db, env
+from .base import _APP_URL, _MIG_URL, _OPS_URL, _db, env
 
 _suffix = env("PYTEST_DB_SUFFIX", default="main")
 
@@ -18,6 +18,10 @@ DATABASES["default"]["CONN_MAX_AGE"] = 0
 DATABASES["default"]["TEST"] = {"NAME": f"test_nexora_{_suffix}"}
 DATABASES["ops"]["CONN_MAX_AGE"] = 0
 DATABASES["ops"]["TEST"] = {"MIRROR": "default"}
+# Durable AI-log alias (see base.py). Mirrors default in tests; conftest switches it to the app role with default.
+DATABASES["durable"] = _db("DATABASE_URL_APP", _APP_URL)  # app role (RLS), like production
+DATABASES["durable"]["CONN_MAX_AGE"] = 0
+DATABASES["durable"]["TEST"] = {"MIRROR": "default"}  # set_as_test_mirror copies only NAME -> keeps app role
 
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 TASK_RUNNER = "eager"

@@ -1,46 +1,51 @@
 # Feature Status
 
-> Maintained by the Integrator. **A module becomes Working only when its acceptance tests pass on `main`.**
-> Statuses:
-> - **Working**: implemented and tested.
-> - **Prototype**: implemented, but with limited tests or scale.
+> Maintained by the Integrator. **A module becomes Working only when its acceptance tests pass on `main`, including the DB-backed ones.**
+>
+> **Statuses:**
+> - **Working**: implemented, with tests passing.
+> - **Prototype**: implemented, but DB/integration tests not yet executed, or limited scale.
 > - **Mock**: UI or demo data only.
 > - **Planned**: not built.
 >
-> **Last integration: wave 1 merged (2026-11-17).** On `main`:
-> - Backend non-DB tests: 890 passed, 122 skipped (waiting on W2 features), 5 strict-xfail (known defects).
-> - 2 failures: one needs the database; the other is `test_tenant_unique_constraints_include_org`, a test-allowlist issue (see below).
-> - **708 DB-backed tests have not run**, because Docker/Postgres was not available on the dev machine.
-> - Frontend: typecheck, lint, 48/48 unit tests and `next build` are all green.
+> **Last integration: wave 2 merged (2026-11-20). Results on `main`:**
+> - **Backend pytest:**
+>   - 1,860 passed and 5 skipped.
+>   - 10 failed: 1 needs the DB; 9 are SQL-corpus `mask_null` oracle disagreements, an approved rendering (see issue 2 below).
+>   - **1,358 DB-backed tests have not run**, because no database exists yet.
+> - **Static checks:** ruff, `manage.py check`, `makemigrations --check`, import-linter (2/2 contracts) and the conventions check are all green.
+> - **Frontend:** lint, typecheck, 120/120 vitest and `next build` (37 routes) are green.
 >
-> No module below is **Working** until its DB-backed tests pass.
+> **Runtime target (user decision 2026-11-20):** a plain local PostgreSQL only, with no Docker. The user creates the DB at the end with `scripts/bootstrap_local_db.py`. Redis, MinIO and pgvector are optional; their fallbacks land in W3.
 
 | Area | Module | Status | Evidence / notes |
 |---|---|---|---|
-| Foundation | Monorepo, Docker Compose, Django project, all apps pre-wired, Celery queues | Prototype | Compose not yet verified running (Docker not running) |
-| Foundation | Tenancy core (`app.org_id` RLS, fail-closed managers, `TenantAPIView`, `TenantTask`) | Prototype | QA found 4 defects (open, W2 Backend): `MakeAppendOnly` `%` placeholder blocks `migrate`; GUC not restored after a nested `tenant_context`; actor leak in `TenantTask`; rollback poisons an outer transaction. |
-| Foundation | Audit log, jobs + SSE (Redis Streams), object storage helpers | Prototype | QA found 2 storage defects (open): path traversal in the key prefix check; Content-Disposition injection. |
-| Foundation | CI (conventions, ownership, ruff, import-linter, pytest, frontend, gitleaks) | Prototype | Workflow written; not run on GitHub (no remote) |
-| W1 | Auth (signup, login, lockout, sessions, CSRF, TOTP MFA), orgs, members, invitations, roles, API keys | Prototype | Backend. 13 unit tests pass; 64 API tests written, not yet run (no DB). |
-| W1 | AI data policy (default `synthetic_only`, consent ledger for `schema_only`, tier gate, revoke) | Prototype | Backend + AI/ML. 306 policy-gate tests pass; 20 consent API tests not yet run (no DB). |
-| W1 | Governance policy engine (`effective_policy`, ACL, column masks, row predicates) | Prototype | Backend. 44 pure policy-compute tests pass; 19 API tests not yet run. |
-| W1 | File ingestion (CSV, Excel, JSON), schema/type inference, profiling, PII detection | Prototype | Data Engineering. 203 pure tests pass; 21 API tests not yet run. |
-| W1 | Quality rules + score, duplicate detection, warehouse loader (schema per org), lineage | Prototype | Data Engineering. Engine tests pass; 26 DB tests not yet run. |
-| W1 | Gemini service (quota limiter, circuit breaker, redaction, request log, policy gate) | Prototype | AI/ML. Unit tests pass with a fake transport; **no live Gemini call made** (no API key). |
-| W1 | Local multilingual embeddings (`multilingual-e5-base`) | Prototype | Interface tested with a fake model; model not downloaded or run. |
-| W1 | NL→SQL engine (exact and semantic cache, deterministic builder, Gemini proposal + repair), local insights | Prototype | AI/ML. 172 unit tests pass; 7 pgvector cache tests not yet run. |
-| W2 | PostgreSQL connector, pipelines, scheduler, semantic layer, SQL guard + executor | Planned | Wave 2 |
-| W3 | Conversational BI end to end (chat SSE, charts, exports, query history) | Planned | Wave 3. Needs `GEMINI_API_KEY` for the live LLM path. |
-| W4 | Governance UI, analytics, admin console | Planned | |
-| W5 | Customer 360, Product 360, Document Intelligence | Planned | |
-| W6 | ML workspace, workflow automation | Planned | |
-| W7 | Hardening, performance, production readiness | Planned | |
-| UI | Design system, app shell (sidebar, org switcher, command menu, notifications, themes), auth screens, dashboard, datasets, AI-policy + members settings, audit | Prototype | Frontend. 48 unit tests, typecheck, lint and build are green; **not yet exercised against the real backend**. |
-| QA | Isolation suite, SQL attack corpus + fuzzing, AI-policy tests, upload/secret/storage tests, synthetic testdata, Playwright + k6 scaffolds | Prototype | QA. 122 SQL-guard tests skip until `sqlguard.validate` lands (W2). |
+| Foundation | Monorepo, Django project, apps pre-wired, CI workflow | Prototype | CI not run on GitHub (no remote yet, by user choice). |
+| Foundation | Local PostgreSQL bootstrap (`scripts/bootstrap_local_db.py`), local-runtime settings | Prototype | Script written. Not run yet (the user creates the DB at the end). |
+| Foundation | Tenancy core (RLS `app.org_id`, fail-closed managers, `TenantAPIView`, `TenantTask`) | Prototype | All 6 W1 QA defects fixed (W2 Backend). Repro tests need the DB. |
+| Foundation | Local runtime fallbacks (thread task runner, DB job events, fs storage, local scheduler, vector fallback) | Planned | W3. |
+| Auth/Orgs | Signup, login, lockout, MFA, orgs, members, invitations, roles, API keys (password re-auth) | Prototype | Unit tests pass. API tests need the DB. |
+| AI policy | `synthetic_only` default, `schema_only` consent ledger, tier gate, payload-class gate | Prototype | Gate unit tests pass. Consent DB tests not run. |
+| Governance | `effective_policy`, ACLs, column masks, row predicates, append-only AccessHistory | Prototype | Pure policy tests pass. API tests need the DB. |
+| Data Eng | Upload (CSV/Excel/JSON), schema inference, profiling, PII, quality score, warehouse loader | Prototype | 505 owned pure tests pass. 74 DB tests not run. |
+| Data Eng | Semantic layer (auto-generated models, metrics, `DatasetSemantics`) | Prototype | Generation unit-tested. API needs the DB. |
+| Data Eng | SQL guard (validate/rewrite, masks, row predicates, EXPLAIN check) + read-only executor | Prototype | Corpus: everything passes except 9 `mask_null` oracle cases (approved rendering; QA updates the oracle in W3). Execute tests need the DB. |
+| Data Eng | PostgreSQL connector (SSRF pinning, read-only role check, encrypted creds, introspect, import) | Prototype | 102 unit tests pass. 25 DB/live tests not run. |
+| Data Eng | Pipelines (validated DAG, 13 Polars steps, safe derive, runner + retries, cron schedules, preview), lineage | Prototype | 127 unit tests pass. API/runner DB tests not run. |
+| AI | Gemini service (quota, breaker, redaction, durable request log), `verify_gemini` command | Prototype | Unit tests with a fake transport. **No live call** (no API key yet). |
+| AI | NL→SQL (exact/semantic cache, deterministic builder, Gemini proposal + repair), local insights | Prototype | 169 unit tests pass. Builder-only golden accuracy is 43/48 (89.6%). |
+| BI | Conversational BI orchestration (chat SSE/JSON, guard, audit, manual SQL, history, feedback, exports, insights, saved queries) | Prototype | 44 unit tests with fakes. 29 API tests need the DB. |
+| Documents | Upload safety, extraction + OCR (eng/hin/guj), chunking, local embeddings, hybrid search, policy-gated Q&A with citations, summaries | Prototype | 85 unit tests pass. 17 API tests not run. Tesseract binary optional. |
+| UI | Design system, shell, auth, dashboard, datasets, settings, audit | Prototype | Builds. Not yet run against the live backend. |
+| UI | Ask AI workspace, SQL editor, history; sources, pipeline builder, runs, lineage, quality, semantic; documents | Prototype | 120 vitest tests. Not yet run against the live backend. |
+| W3 | Dashboards + widgets, notifications, quota UX, `seed_demo`, no-mock UI audit | Planned | Wave 3. |
+| W4 | ML workspace (real training/prediction on CPU), governance UI, admin console | Planned | |
+| W5 | Customer 360, Product 360, document intelligence completion | Planned | |
+| W6 | Workflow automation with approvals, usage analytics | Planned | |
+| W7 | Hardening, performance, final manual setup/test guide | Planned | |
 
-## Open integration issues (carried into wave 2)
-1. **Unique tokens across orgs.** `test_tenant_unique_constraints_include_org` flags `ApiKey.prefix` and `Invitation.token_hash`. These are intentionally unique across all orgs, because they are looked up before the tenant is known via SECURITY DEFINER functions. QA should add an explicit allowlist.
-2. **Fixes owned by Backend:** the six core defects above. `MakeAppendOnly` is a blocker for every DB test.
-3. **Asset classifier (Data Engineering).** Register `register_asset_classifier('dataset', …)`, `register_asset_exists` and `register_dataset_schema_provider`.
-4. **Reject codes (Data Engineering → AI/ML).** Align the `sqlguard` reject codes with the nl2sql `REPAIRABLE_CODES` and SECURITY_ARCHITECTURE §5.1.
-5. **AI request log (AI/ML).** Write `AIRequestLog` through the new `durable` DB alias.
+## Open integration issues (carried into W3)
+1. **No database run yet.** Every DB-backed suite is unexecuted. This is the main risk until the user creates the local DB.
+2. **SQL-corpus oracle.** The guard renders `mask_null` as `CASE WHEN FALSE THEN col END`. That form is approved: it is type-preserving and never reads the column. QA updates its oracle in W3.
+3. **Isolation fixtures.** `test_every_resource_route_has_an_isolation_factory` lists routes in several apps without factories. Each owner adds them in W3.
+4. **Live paths not exercised:** Gemini (no key yet), OCR (Tesseract optional), and the e5 embedding model (downloaded on first use; a W3 fallback is added).

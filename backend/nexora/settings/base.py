@@ -257,6 +257,15 @@ ML_MAX_TRAIN_SECONDS = env.int("ML_MAX_TRAIN_SECONDS", default=900)
 
 # --- Connectors / SQL guard ---------------------------------------------------------------------------
 ALLOW_PRIVATE_DB_HOSTS = env.bool("ALLOW_PRIVATE_DB_HOSTS", default=False)
+CONNECTOR_CONNECT_TIMEOUT_S = env.int("CONNECTOR_CONNECT_TIMEOUT_S", default=10)
+CONNECTOR_STATEMENT_TIMEOUT_S = env.int("CONNECTOR_STATEMENT_TIMEOUT_S", default=30)
+CONNECTOR_DENY_CIDRS = env.list("CONNECTOR_DENY_CIDRS", default=[]) or None  # extra denied ranges (recommended in prod)
+PIPELINE_MAX_ROWS = env.int("PIPELINE_MAX_ROWS", default=50_000_000)
+PIPELINE_HEARTBEAT_TIMEOUT_S = env.int("PIPELINE_HEARTBEAT_TIMEOUT_S", default=900)
+PIPELINE_MIN_SCHEDULE_INTERVAL_S = env.int("PIPELINE_MIN_SCHEDULE_INTERVAL_S", default=300)
+# --- Documents ----------------------------------------------------------------------------------------
+DOCUMENT_MAX_UPLOAD_BYTES = env.int("DOCUMENT_MAX_UPLOAD_BYTES", default=50 * 1024 * 1024)
+DOCUMENT_MAX_PAGES = env.int("DOCUMENT_MAX_PAGES", default=500)
 NL2SQL_ROW_CAP = env.int("NL2SQL_ROW_CAP", default=1000)
 NL2SQL_BYTE_CAP = env.int("NL2SQL_BYTE_CAP", default=5 * 1024 * 1024)
 NL2SQL_TIMEOUT_S = env.int("NL2SQL_TIMEOUT_S", default=15)

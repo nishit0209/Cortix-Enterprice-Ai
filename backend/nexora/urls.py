@@ -5,6 +5,8 @@ Public/auth routes:    /api/v1/...              -> `apps.accounts.urls_public`, 
 Platform routes:       /api/v1/platform/...     -> `apps.platform_admin.urls`
 """
 
+from importlib.util import find_spec
+
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView
 
@@ -43,3 +45,7 @@ urlpatterns = [
     path("api/v1/platform/", include("apps.platform_admin.urls")),
     path("api/v1/orgs/<slug:org>/", include(tenant_patterns)),
 ]
+
+# Local runtime (W3): signed, expiring file downloads for STORAGE_BACKEND=fs -> /api/v1/files/<token>
+if find_spec("apps.core.urls_public"):
+    urlpatterns.append(path("api/v1/", include("apps.core.urls_public")))
