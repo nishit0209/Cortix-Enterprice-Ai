@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { QualityOverview } from "@/components/quality/quality-overview";
 
 export default function QualityPage() {
-  return <PlannedModule id="quality" />;
+  return <QualityOverview />;
 }

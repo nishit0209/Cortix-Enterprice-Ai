@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { DocumentsView } from "@/components/documents/documents-view";
 
 export default function DocumentsPage() {
-  return <PlannedModule id="documents" />;
+  return <DocumentsView />;
 }

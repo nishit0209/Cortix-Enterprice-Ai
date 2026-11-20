@@ -69,17 +69,15 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
                 {can("bi.chat") && (
                   <Command.Item className={itemCls} value="ask ai question" onSelect={() => run(() => router.push(orgHref(slug, "/ask")))}>
                     <Sparkles /> Ask AI
-                    <FeatureStatusBadge status="planned" className="ml-auto" />
                   </Command.Item>
                 )}
                 {can("pipelines.view") && (
                   <Command.Item
                     className={itemCls}
                     value="new pipeline"
-                    onSelect={() => run(() => router.push(orgHref(slug, "/data/pipelines")))}
+                    onSelect={() => run(() => router.push(orgHref(slug, "/data/pipelines?new=1")))}
                   >
                     <Workflow /> New pipeline
-                    <FeatureStatusBadge status="planned" className="ml-auto" />
                   </Command.Item>
                 )}
                 {can("members.manage") && (

@@ -1,5 +1,10 @@
-import { PlannedModule } from "@/components/planned-module";
+import { Suspense } from "react";
+import { LineageView } from "@/components/lineage/lineage-view";
 
 export default function LineagePage() {
-  return <PlannedModule id="lineage" />;
+  return (
+    <Suspense fallback={null}>
+      <LineageView />
+    </Suspense>
+  );
 }

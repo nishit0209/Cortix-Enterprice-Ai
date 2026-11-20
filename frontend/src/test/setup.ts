@@ -36,3 +36,7 @@ class RO {
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
 if (!Element.prototype.hasPointerCapture) Element.prototype.hasPointerCapture = () => false;
 if (!Element.prototype.releasePointerCapture) Element.prototype.releasePointerCapture = () => {};
+
+// jsdom logs "Not implemented" for scrolling APIs; the chat thread and log panes call them.
+window.scrollTo = (() => {}) as typeof window.scrollTo;
+if (!Element.prototype.scrollTo) Element.prototype.scrollTo = () => {};

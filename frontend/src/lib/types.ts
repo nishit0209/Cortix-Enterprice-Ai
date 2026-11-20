@@ -309,6 +309,8 @@ export interface DataStats {
   pipelines_active: number;
   runs_7d: { succeeded: number; failed: number };
   storage_bytes: number;
+  /** Optional: previous-period values for KPI deltas when the backend provides them. */
+  previous?: Partial<Pick<DataStats, "datasets" | "rows_total" | "avg_quality" | "pipelines_active">> | null;
 }
 
 /* ---------- AI (W3) ---------- */
@@ -320,6 +322,14 @@ export interface AiStatus {
   org_budget: { limit: number; used: number };
   breaker: "closed" | "open_minute" | "open_day";
   resets_at: ISODate | null;
+  /* W1 as-built additions (optional so older backends still type-check). */
+  stored_policy?: AIDataPolicy;
+  consent_valid?: boolean;
+  policy_downgrade_reason?: string | null;
+  token_budget?: { limit: number; used: number } | null;
+  user_budget?: { limit: number; used: number } | null;
+  budget_resets_at?: ISODate | null;
+  limiter_available?: boolean;
 }
 
 export interface Insight {
@@ -327,4 +337,371 @@ export interface Insight {
   title: string;
   text: string;
   dataset_id: UUID | null;
+}
+
+/** GET /orgs/{org}/ai/usage?days= (W1 as-built). */
+export interface AiUsage {
+  range: { from: string; to: string; days: number; timezone: string };
+  totals: { requests: number; input_tokens: number; output_tokens: number; cached_tokens: number; blocked: number; errors: number };
+  daily: Array<{ day: string; model: string; requests: number; input_tokens: number; output_tokens: number; blocked: number; errors: number }>;
+}
+
+/* ---------- Conversational BI (W3) ---------- */
+
+export type ChatStage = "authorizing" | "resolving" | "generating" | "validating" | "executing" | "explaining";
+export type SqlSource = "cache_exact" | "cache_semantic" | "builder" | "llm" | "manual" | "none" | string;
+export type ChartType = "bar" | "line" | "area" | "pie" | "scatter" | "table" | "kpi";
+
+export interface ChartHint {
+  type: ChartType | string;
+  x?: string | null;
+  y?: string | string[] | null;
+  series?: string | null;
+}
+
+/** Result columns arrive as `{name,type,masked}` objects (or bare names from older payloads). */
+export interface ResultColumn {
+  name: string;
+  type?: string;
+  masked?: boolean;
+}
+
+export interface ChatResult {
+  columns: Array<ResultColumn | string>;
+  rows: unknown[][];
+  row_count: number;
+  truncated: boolean;
+}
+
+export interface ChatInsight {
+  kind: string;
+  text: string;
+}
+
+export interface Conversation {
+  id: UUID;
+  title: string;
+  dataset_id: UUID;
+  created_at: ISODate;
+  last_message_at: ISODate | null;
+}
+
+export interface ChatMessage {
+  id: UUID;
+  role: "user" | "assistant";
+  content: string;
+  status: string;
+  error_code: string | null;
+  created_at: ISODate;
+  sql: { raw: string | null; executed: string | null; source: SqlSource } | null;
+  result: ChatResult | null;
+  chart: ChartHint | null;
+  insights: ChatInsight[];
+  assumptions: string[];
+  /** Optional extras some backends send. */
+  error_detail?: string | null;
+  suggestions?: string[];
+  feedback?: "up" | "down" | null;
+  duration_ms?: number | null;
+}
+
+/** Chat SSE events (CONTRACT.md W3). */
+export interface ChatEventMap {
+  status: { stage: ChatStage; source?: SqlSource };
+  sql: { raw_sql: string | null; executed_sql: string | null; source: SqlSource; query_audit_id?: string | null; assumptions?: string[] };
+  result: ChatResult & { chart?: ChartHint | null; chart_spec?: ChartHint | null };
+  insight: ChatInsight;
+  token: { text: string };
+  done: { message_id: UUID; ai_requests_used?: number };
+  error: { code: string; detail?: string | null; resets_at?: string | null; reject_code?: string | null; executed_sql?: string | null; title?: string };
+}
+
+export interface ManualQueryResult {
+  executed_sql: string;
+  columns: Array<ResultColumn | string>;
+  rows: unknown[][];
+  row_count: number;
+  truncated: boolean;
+  duration_ms?: number;
+}
+
+export interface QueryHistoryItem {
+  id: UUID;
+  occurred_at: ISODate;
+  user_email: string | null;
+  dataset: { id: UUID; name: string } | string | null;
+  question: string | null;
+  source: SqlSource;
+  verdict: "allowed" | "rejected" | "error" | "timeout" | "blocked_by_policy" | string;
+  reject_code: string | null;
+  executed_sql: string | null;
+  row_count: number | null;
+  duration_ms: number | null;
+}
+
+/* ---------- Data sources (W2) ---------- */
+
+export interface DataSourceConfig {
+  host: string;
+  port: number;
+  dbname: string;
+  sslmode: string;
+  schema?: string;
+}
+
+export interface DataSource {
+  id: UUID;
+  name: string;
+  type: "postgresql" | string;
+  config: DataSourceConfig;
+  username?: string;
+  status: "active" | "error" | "disabled" | string;
+  verified_readonly?: boolean;
+  last_tested_at?: ISODate | null;
+  last_test_result?: { ok?: boolean; code?: string; message?: string; checks?: SourceCheck[] } | null;
+  created_at: ISODate;
+  updated_at?: ISODate;
+}
+
+export interface SourceCheck {
+  key: string;
+  ok: boolean;
+  message?: string;
+}
+
+export interface CreateDataSourceRequest {
+  name: string;
+  type: "postgresql";
+  config: DataSourceConfig;
+  username: string;
+  password: string;
+}
+
+export interface IntrospectColumn {
+  name: string;
+  type: string;
+  nullable?: boolean;
+}
+
+export interface IntrospectTable {
+  name: string;
+  schema: string;
+  row_estimate?: number | null;
+  columns: IntrospectColumn[];
+}
+
+export interface IntrospectSchema {
+  name: string;
+  tables: IntrospectTable[];
+}
+
+/* ---------- Pipelines (W2) ---------- */
+
+export interface PipelineDagNode {
+  id: string;
+  type: string;
+  config: Record<string, unknown>;
+  position?: { x: number; y: number };
+  label?: string;
+}
+
+export interface PipelineDag {
+  nodes: PipelineDagNode[];
+  edges: Array<{ from: string; to: string; port?: "left" | "right" }>;
+  settings?: Record<string, unknown>;
+}
+
+export interface PipelineSchedule {
+  cron: string;
+  timezone: string;
+  is_active?: boolean;
+  next_run_at?: ISODate | null;
+}
+
+export interface PipelineRunStep {
+  step_key: string;
+  step_type?: string;
+  status: string;
+  started_at?: ISODate | null;
+  finished_at?: ISODate | null;
+  rows_in?: number | null;
+  rows_out?: number | null;
+  error?: { code?: string; message?: string } | string | null;
+  metrics?: Record<string, unknown> | null;
+}
+
+export interface PipelineRun {
+  id: UUID;
+  pipeline_id?: UUID;
+  status: string;
+  trigger?: string;
+  attempt: number;
+  started_at: ISODate | null;
+  finished_at: ISODate | null;
+  duration_ms: number | null;
+  rows_in: number | null;
+  rows_out: number | null;
+  rows_rejected: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  quality_summary: { score?: number | null; rules_passed?: number; rules_failed?: number; blocking_failures?: number } | null;
+  steps: PipelineRunStep[];
+  created_at?: ISODate;
+  job_id?: UUID | null;
+}
+
+export interface Pipeline {
+  id: UUID;
+  name: string;
+  description?: string;
+  status: string;
+  dag: PipelineDag | null;
+  schedule: PipelineSchedule | null;
+  last_run: PipelineRun | null;
+  version?: number | null;
+  created_at?: ISODate;
+  updated_at?: ISODate;
+}
+
+export interface RunLogLine {
+  ts: ISODate;
+  level: "debug" | "info" | "warning" | "error" | string;
+  step_key?: string | null;
+  message: string;
+}
+
+/* ---------- Lineage (W2) ---------- */
+
+export interface LineageNode {
+  id: string;
+  type: string;
+  label: string;
+}
+
+export interface LineageGraph {
+  nodes: LineageNode[];
+  edges: Array<{ from: string; to: string; label?: string | null }>;
+}
+
+/* ---------- Semantic layer (W2) ---------- */
+
+export type SemanticRole = "dimension" | "measure" | "time" | "id" | "attribute";
+
+export interface SemanticColumn {
+  id?: UUID;
+  column_name: string;
+  display_name: string;
+  description: string;
+  synonyms: string[];
+  role: SemanticRole | string;
+  default_agg?: string | null;
+  exposed_to_ai?: boolean;
+}
+
+export interface SemanticTable {
+  id?: UUID;
+  alias: string;
+  display_name: string;
+  description: string;
+  columns: SemanticColumn[];
+}
+
+export interface MetricDefinition {
+  id?: UUID;
+  key: string;
+  name: string;
+  expression: string;
+  description: string;
+  synonyms: string[];
+}
+
+export interface SemanticModel {
+  id: UUID;
+  dataset_id: UUID;
+  name: string;
+  version?: number;
+  status: "draft" | "published" | string;
+  tables: SemanticTable[];
+  metrics: MetricDefinition[];
+}
+
+/* ---------- Documents (AI/ML) ---------- */
+
+export interface DocumentItem {
+  id: UUID;
+  title: string;
+  filename: string;
+  mime?: string;
+  size_bytes: number;
+  classification: Classification;
+  status: string;
+  page_count: number | null;
+  doc_type?: string | null;
+  languages?: string[] | null;
+  summary?: string | null;
+  summary_source?: "extractive" | "gemini" | null;
+  error?: string | null;
+  created_at: ISODate;
+  last_job_id?: UUID | null;
+}
+
+export interface DocumentPage {
+  page_no: number;
+  text: string;
+  ocr_used?: boolean;
+  ocr_confidence?: number | null;
+  lang?: string | null;
+}
+
+export interface DocumentChunk {
+  id: UUID;
+  ordinal: number;
+  page_from: number;
+  page_to: number;
+  section_path?: string | null;
+  text: string;
+  token_count?: number;
+}
+
+export interface DocumentEntity {
+  id: UUID;
+  page_no: number | null;
+  entity_type: string;
+  value: string;
+  normalized_value?: string | null;
+  confidence?: number | null;
+  source?: string | null;
+}
+
+export interface DocumentTable {
+  id: UUID;
+  page_no: number;
+  table_index: number;
+  data: { columns?: string[]; rows?: unknown[][] } | unknown[][];
+}
+
+export interface DocumentSearchHit {
+  chunk_id: UUID;
+  document_id: UUID;
+  document_title?: string;
+  page_from: number;
+  page_to?: number;
+  text: string;
+  score?: number;
+}
+
+export interface DocumentCitation {
+  document_id: UUID;
+  document_title?: string;
+  page: number;
+  chunk_id?: UUID;
+  text?: string;
+}
+
+export interface DocumentAnswer {
+  answer: string;
+  mode: "generative" | "extractive" | string;
+  citations: DocumentCitation[];
+  reason?: string | null;
+  not_found?: boolean;
 }
