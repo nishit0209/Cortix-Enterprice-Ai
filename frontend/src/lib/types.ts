@@ -330,6 +330,18 @@ export interface AiStatus {
   user_budget?: { limit: number; used: number } | null;
   budget_resets_at?: ISODate | null;
   limiter_available?: boolean;
+  models?: Record<string, { model: string; breaker: string; resets_at: ISODate | null }>;
+  /* W3 AI quota UX. */
+  quota?: AiQuota | null;
+}
+
+export type AiQuotaState = "ok" | "low" | "exhausted";
+
+export interface AiQuota {
+  state: AiQuotaState;
+  resets_at: ISODate | null;
+  used_today: number;
+  limit_today: number;
 }
 
 export interface Insight {
@@ -437,6 +449,97 @@ export interface QueryHistoryItem {
   executed_sql: string | null;
   row_count: number | null;
   duration_ms: number | null;
+  purpose?: string;
+  message_id?: UUID | null;
+  conversation_id?: UUID | null;
+  dataset_id?: UUID;
+  truncated?: boolean;
+}
+
+/* ---------- Saved queries + dashboards (W3) ---------- */
+
+export interface SavedQuery {
+  id: UUID;
+  name: string;
+  description: string;
+  dataset_id: UUID;
+  question: string;
+  sql: string;
+  chart: ChartHint | null;
+  is_shared: boolean;
+  owner_id: UUID;
+  created_at: ISODate;
+  updated_at: ISODate;
+}
+
+export interface DashboardSummary {
+  id: UUID;
+  title: string;
+  description: string;
+  is_default: boolean;
+  widget_count: number;
+  updated_at: ISODate;
+  /** Shared dashboards are visible to every member with dashboards.view; only the owner edits. */
+  is_shared?: boolean;
+  owner_id?: UUID;
+  created_at?: ISODate;
+}
+
+export type WidgetKind = "chart" | "table" | "kpi" | "text";
+
+export interface WidgetLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface DashboardWidget {
+  id: UUID;
+  title: string;
+  kind: WidgetKind;
+  saved_query_id?: UUID | null;
+  chart?: ChartHint | null;
+  layout: WidgetLayout;
+  text?: string | null;
+  dataset_id?: UUID | null;
+}
+
+export interface Dashboard extends DashboardSummary {
+  widgets: DashboardWidget[];
+}
+
+export interface WidgetData {
+  columns: Array<ResultColumn | string>;
+  rows: unknown[][];
+  row_count: number;
+  truncated: boolean;
+  chart: ChartHint | null;
+  refreshed_at: ISODate;
+  query_audit_id?: UUID;
+  dataset_id?: UUID;
+}
+
+export interface CreateWidgetRequest {
+  title: string;
+  kind: WidgetKind;
+  saved_query_id?: UUID;
+  message_id?: UUID;
+  chart?: ChartHint | null;
+  layout: WidgetLayout;
+  text?: string;
+}
+
+/* ---------- Notifications (W3) ---------- */
+
+export interface AppNotification {
+  id: UUID;
+  kind: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: ISODate | null;
+  created_at: ISODate;
 }
 
 /* ---------- Data sources (W2) ---------- */
@@ -459,6 +562,9 @@ export interface DataSource {
   verified_readonly?: boolean;
   last_tested_at?: ISODate | null;
   last_test_result?: { ok?: boolean; code?: string; message?: string; checks?: SourceCheck[] } | null;
+  last_error?: { code?: string; message?: string } | null;
+  has_password?: boolean;
+  introspected_at?: ISODate | null;
   created_at: ISODate;
   updated_at?: ISODate;
 }
@@ -486,6 +592,7 @@ export interface IntrospectColumn {
 export interface IntrospectTable {
   name: string;
   schema: string;
+  kind?: string;
   row_estimate?: number | null;
   columns: IntrospectColumn[];
 }
@@ -505,29 +612,53 @@ export interface PipelineDagNode {
   label?: string;
 }
 
+/** Backend DAG wire format (`apps/pipelines/dag.py` DagIn): linear chain, unknown keys rejected. */
 export interface PipelineDag {
   nodes: PipelineDagNode[];
-  edges: Array<{ from: string; to: string; port?: "left" | "right" }>;
-  settings?: Record<string, unknown>;
+  edges: Array<{ from: string; to: string }>;
+}
+
+/** POST /pipelines/validate → per-node issues (node id or null for graph-level problems). */
+export interface PipelineValidation {
+  valid: boolean;
+  errors: Array<{ node: string | null; field: string; code: string; message: string }>;
+  order: string[];
+  schemas: Record<string, Array<{ name: string; type: string }> | null>;
+}
+
+/** POST /pipelines/{id}/preview (synchronous, read-only). */
+export interface PipelinePreview {
+  ok: boolean;
+  columns: Array<{ name: string; type?: string }>;
+  rows: unknown[][];
+  row_count: number;
+  source_rows?: number;
+  rows_rejected?: number;
+  steps: PipelineRunStep[];
+  error?: { code: string; message: string; node: string | null };
 }
 
 export interface PipelineSchedule {
   cron: string;
   timezone: string;
-  is_active?: boolean;
+  enabled?: boolean;
   next_run_at?: ISODate | null;
+  last_enqueued_at?: ISODate | null;
+  last_run_id?: UUID | null;
 }
 
+/** One step metric of a run (backend `engine.StepMetric`). */
 export interface PipelineRunStep {
-  step_key: string;
-  step_type?: string;
+  id: string;
+  type: string;
   status: string;
   started_at?: ISODate | null;
   finished_at?: ISODate | null;
   rows_in?: number | null;
   rows_out?: number | null;
+  rows_rejected?: number | null;
+  duration_ms?: number | null;
   error?: { code?: string; message?: string } | string | null;
-  metrics?: Record<string, unknown> | null;
 }
 
 export interface PipelineRun {
@@ -545,7 +676,15 @@ export interface PipelineRun {
   error_code: string | null;
   error_message: string | null;
   quality_summary: { score?: number | null; rules_passed?: number; rules_failed?: number; blocking_failures?: number } | null;
-  steps: PipelineRunStep[];
+  /** Only the run detail carries steps/attempts/logs; list rows are summaries. */
+  steps?: PipelineRunStep[];
+  number?: number;
+  max_attempts?: number;
+  version?: number;
+  parent_run_id?: UUID | null;
+  next_attempt_at?: ISODate | null;
+  output_dataset_id?: UUID | null;
+  logs?: RunLogLine[];
   created_at?: ISODate;
   job_id?: UUID | null;
 }
@@ -559,6 +698,7 @@ export interface Pipeline {
   schedule: PipelineSchedule | null;
   last_run: PipelineRun | null;
   version?: number | null;
+  output_dataset_id?: UUID | null;
   created_at?: ISODate;
   updated_at?: ISODate;
 }
@@ -566,8 +706,10 @@ export interface Pipeline {
 export interface RunLogLine {
   ts: ISODate;
   level: "debug" | "info" | "warning" | "error" | string;
-  step_key?: string | null;
+  step?: string | null;
+  attempt?: number;
   message: string;
+  context?: Record<string, unknown> | null;
 }
 
 /* ---------- Lineage (W2) ---------- */
@@ -583,26 +725,33 @@ export interface LineageGraph {
   edges: Array<{ from: string; to: string; label?: string | null }>;
 }
 
-/* ---------- Semantic layer (W2) ---------- */
+/* ---------- Semantic layer (W2, `apps/semantic`) ---------- */
 
-export type SemanticRole = "dimension" | "measure" | "time" | "id" | "attribute";
+/** Backend roles (`apps/semantic/generation.py` ROLES). A detected PII column keeps role `pii`. */
+export type SemanticRole = "dimension" | "measure" | "time" | "id" | "pii";
 
 export interface SemanticColumn {
-  id?: UUID;
-  column_name: string;
+  name: string;
+  type?: string;
+  data_type?: string;
+  semantic_type?: string | null;
+  role: SemanticRole | string;
   display_name: string;
   description: string;
   synonyms: string[];
-  role: SemanticRole | string;
+  is_pii?: boolean;
   default_agg?: string | null;
   exposed_to_ai?: boolean;
+  ordinal?: number;
+  edited_fields?: string[];
 }
 
 export interface SemanticTable {
-  id?: UUID;
-  alias: string;
+  name: string;
   display_name: string;
   description: string;
+  synonyms: string[];
+  edited_fields?: string[];
   columns: SemanticColumn[];
 }
 
@@ -613,81 +762,118 @@ export interface MetricDefinition {
   expression: string;
   description: string;
   synonyms: string[];
+  table?: string;
+  is_default?: boolean;
+  is_active?: boolean;
+  status?: "valid" | "invalid" | string;
+  error?: string | null;
 }
 
+/** GET /datasets/{id}/semantic-model (generated on first access). */
 export interface SemanticModel {
   id: UUID;
   dataset_id: UUID;
+  dataset_version_id: UUID | null;
+  version: number | null;
   name: string;
-  version?: number;
-  status: "draft" | "published" | string;
+  description: string;
+  status: "ready" | "failed" | string;
+  last_error?: { code?: string; message?: string } | null;
+  generated_at?: ISODate | null;
+  updated_at?: ISODate | null;
   tables: SemanticTable[];
   metrics: MetricDefinition[];
 }
 
-/* ---------- Documents (AI/ML) ---------- */
+/* ---------- Documents (AI/ML, `apps/documents`) ---------- */
 
 export interface DocumentItem {
   id: UUID;
   title: string;
   filename: string;
   mime?: string;
+  file_kind?: string;
   size_bytes: number;
+  sha256?: string;
   classification: Classification;
-  status: string;
-  page_count: number | null;
+  classification_attested_at?: ISODate | null;
   doc_type?: string | null;
-  languages?: string[] | null;
-  summary?: string | null;
-  summary_source?: "extractive" | "gemini" | null;
+  status: "processing" | "ready" | "failed" | string;
+  page_count: number | null;
+  language?: string | null;
+  chunk_count?: number | null;
+  ocr_pages?: number | null;
+  ocr_unavailable_pages?: number | null;
   error?: string | null;
-  created_at: ISODate;
+  error_code?: string | null;
+  warnings?: string[] | null;
   last_job_id?: UUID | null;
+  created_at: ISODate;
+  updated_at?: ISODate;
+  processed_at?: ISODate | null;
+  /* detail only */
+  languages?: Record<string, number> | string[] | null;
+  doc_type_scores?: Record<string, number> | null;
+  summary?: string | null;
+  /** A signed `/api/v1/files/...` URL for the original file, when the backend exposes one. */
+  download_url?: string | null;
 }
 
 export interface DocumentPage {
-  page_no: number;
+  id: UUID;
+  number: number;
   text: string;
-  ocr_used?: boolean;
+  method: "text" | "ocr" | "ocr_unavailable" | "ocr_failed" | "empty" | string;
   ocr_confidence?: number | null;
-  lang?: string | null;
+  char_count?: number;
+  language?: string | null;
+  label?: string | null;
 }
 
 export interface DocumentChunk {
   id: UUID;
   ordinal: number;
-  page_from: number;
-  page_to: number;
-  section_path?: string | null;
+  page: number | null;
+  page_to: number | null;
+  section?: string | null;
   text: string;
   token_count?: number;
+  has_embedding?: boolean;
 }
 
 export interface DocumentEntity {
   id: UUID;
-  page_no: number | null;
-  entity_type: string;
+  kind: string;
   value: string;
-  normalized_value?: string | null;
+  normalized?: string | null;
+  is_pii?: boolean;
   confidence?: number | null;
-  source?: string | null;
+  page: number | null;
+  chunk_id?: UUID | null;
 }
 
 export interface DocumentTable {
   id: UUID;
-  page_no: number;
-  table_index: number;
-  data: { columns?: string[]; rows?: unknown[][] } | unknown[][];
+  index: number;
+  page: number | null;
+  title?: string | null;
+  header: string[];
+  rows: unknown[][];
+  n_rows?: number;
+  n_cols?: number;
+  truncated?: boolean;
 }
 
 export interface DocumentSearchHit {
   chunk_id: UUID;
   document_id: UUID;
   document_title?: string;
-  page_from: number;
-  page_to?: number;
+  page: number | null;
+  page_to?: number | null;
+  section?: string | null;
   text: string;
   score?: number;
+  highlights?: Array<[number, number]>;
 }
 
 export interface DocumentCitation {
@@ -695,13 +881,21 @@ export interface DocumentCitation {
   document_title?: string;
   page: number;
   chunk_id?: UUID;
+  /** The verified quote (backend `quote`). */
   text?: string;
+  source_id?: string;
 }
 
+/** POST /documents/ask. `mode: "extractive"` with a `reason` when the policy (or AI availability) forbids generation. */
 export interface DocumentAnswer {
+  question?: string;
   answer: string;
   mode: "generative" | "extractive" | string;
-  citations: DocumentCitation[];
+  citations: Array<DocumentCitation & { quote?: string }>;
+  passages?: DocumentSearchHit[];
+  confidence?: number | null;
+  unanswerable?: boolean;
   reason?: string | null;
+  message?: string | null;
   not_found?: boolean;
 }

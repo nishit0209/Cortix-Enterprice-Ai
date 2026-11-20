@@ -234,7 +234,7 @@ export function RunDetailView() {
               {(logs.data ?? []).map((l, i) => (
                 <li key={i} className={cn("grid grid-cols-[auto_auto_1fr] gap-3", l.level === "error" ? "text-danger" : l.level === "warning" ? "text-warning" : "text-fg-muted")}>
                   <span className="text-fg-subtle">{new Date(l.ts).toLocaleTimeString()}</span>
-                  <span className="text-fg-subtle">{l.step_key ?? "run"}</span>
+                  <span className="text-fg-subtle">{l.step ?? "run"}</span>
                   <span className="whitespace-pre-wrap break-words">{l.message}</span>
                 </li>
               ))}
@@ -284,10 +284,10 @@ export function StepTimeline({ steps }: { steps: PipelineRunStep[] }) {
         const width = a !== null && b !== null ? Math.max(1.5, ((b - a) / span) * 100) : 0;
         const err = typeof s.error === "string" ? s.error : s.error?.message;
         return (
-          <li key={s.step_key} className="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_160px] sm:items-center">
+          <li key={s.id} className="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)_160px] sm:items-center">
             <div className="min-w-0">
-              <div className="truncate font-mono text-xs text-fg">{s.step_key}</div>
-              <div className="truncate text-[11px] text-fg-subtle">{s.step_type}</div>
+              <div className="truncate font-mono text-xs text-fg">{s.id}</div>
+              <div className="truncate text-[11px] text-fg-subtle">{s.type}</div>
             </div>
             <div className="relative h-6 rounded-control bg-surface-2">
               {width > 0 && (

@@ -30,6 +30,18 @@ export function Highlighted({ segments, className }: { segments: TextSegment[]; 
   );
 }
 
+/** Why an answer is extractive (`reason` from POST /documents/ask). */
+export const EXTRACTIVE_REASONS: Record<string, { label: string; text: string }> = {
+  ai_policy_blocked: { label: "extractive (policy)", text: "Your AI data policy doesn't allow sending these documents to Gemini, so the answer quotes the most relevant passages instead." },
+  ai_not_configured: { label: "extractive", text: "Gemini isn't configured on this deployment, so the answer quotes the most relevant passages." },
+  ai_quota_exhausted: { label: "extractive (quota)", text: "Today's AI quota is used up, so the answer quotes the most relevant passages." },
+  ai_rate_limited: { label: "extractive (busy)", text: "Gemini is rate-limited right now, so the answer quotes the most relevant passages." },
+  ai_unavailable: { label: "extractive", text: "Gemini didn't respond, so the answer quotes the most relevant passages." },
+  ai_invalid_output: { label: "extractive", text: "The AI answer couldn't be verified, so the answer quotes the most relevant passages." },
+  no_valid_citations: { label: "extractive", text: "The AI answer had no verifiable citation, so the answer quotes the passages directly." },
+  no_relevant_passages: { label: "no match", text: "No passage in the selected documents matches the question." },
+};
+
 /**
  * Ask-your-documents panel: streamed answer with citation chips (click → page). When the AI data policy does not
  * allow document text to reach Gemini the backend answers extractively, which is shown with an "extractive (policy)" badge.
@@ -120,10 +132,10 @@ export function DocumentAskPanel({
               <span className="text-xs text-fg-muted">Q: {asked}</span>
               {state.mode && (
                 extractive ? (
-                  <Tooltip content={state.reason ?? "Your AI data policy doesn't allow sending these documents to Gemini, so the answer quotes the most relevant passages instead."}>
+                  <Tooltip content={state.message ?? EXTRACTIVE_REASONS[state.reason ?? ""]?.text ?? EXTRACTIVE_REASONS.ai_policy_blocked.text}>
                     <span>
                       <Badge tone="teal">
-                        <ShieldCheck /> extractive (policy)
+                        <ShieldCheck /> {EXTRACTIVE_REASONS[state.reason ?? ""]?.label ?? "extractive"}
                       </Badge>
                     </span>
                   </Tooltip>

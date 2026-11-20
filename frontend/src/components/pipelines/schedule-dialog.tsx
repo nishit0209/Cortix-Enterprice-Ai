@@ -35,13 +35,13 @@ export function ScheduleDialog({
   const save = useSaveSchedule(org, pipelineId);
   const [cron, setCron] = React.useState(schedule?.cron ?? CRON_PRESETS[1].value);
   const [tz, setTz] = React.useState(schedule?.timezone ?? "Asia/Kolkata");
-  const [active, setActive] = React.useState(schedule?.is_active ?? true);
+  const [active, setActive] = React.useState(schedule?.enabled ?? true);
   const [mode, setMode] = React.useState<string>(CRON_PRESETS.some((p) => p.value === schedule?.cron) || !schedule ? (schedule?.cron ?? CRON_PRESETS[1].value) : CUSTOM);
   React.useEffect(() => {
     if (!open) return;
     setCron(schedule?.cron ?? CRON_PRESETS[1].value);
     setTz(schedule?.timezone ?? "Asia/Kolkata");
-    setActive(schedule?.is_active ?? true);
+    setActive(schedule?.enabled ?? true);
     setMode(!schedule || CRON_PRESETS.some((p) => p.value === schedule.cron) ? (schedule?.cron ?? CRON_PRESETS[1].value) : CUSTOM);
   }, [open, schedule]);
   const error = validateCron(cron);
@@ -135,7 +135,7 @@ export function ScheduleDialog({
               loading={save.isPending && save.variables !== null}
               onClick={async () => {
                 try {
-                  await save.mutateAsync({ cron: cron.trim(), timezone: tz, is_active: active });
+                  await save.mutateAsync({ cron: cron.trim(), timezone: tz, enabled: active });
                   toast.success(`Scheduled: ${describeCron(cron, tz)}`);
                   onOpenChange(false);
                 } catch (e) {

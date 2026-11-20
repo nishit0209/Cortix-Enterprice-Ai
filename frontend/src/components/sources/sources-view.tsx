@@ -46,6 +46,8 @@ import {
   importTable,
   parseIntrospection,
   startSourceJob,
+  testChecks,
+  useSourceCatalog,
   useCreateDataSource,
   useDataSources,
   useDeleteDataSource,
@@ -354,6 +356,11 @@ function SourceDialog({ org, source, onClose, canManage }: { org: string; source
   const [busy, setBusy] = React.useState(false);
   const del = useDeleteDataSource(org);
   const autoTested = React.useRef<string | null>(null);
+  const catalog = useSourceCatalog(org, source?.id ?? "", !!source);
+  // Show the last stored catalog right away; "Refresh" re-runs introspection as a job.
+  React.useEffect(() => {
+    if (schemas === null && catalog.data && catalog.data.schemas.length > 0) setSchemas(catalog.data.schemas);
+  }, [catalog.data, schemas]);
 
   const test = React.useCallback(async () => {
     if (!source) return;
@@ -373,7 +380,7 @@ function SourceDialog({ org, source, onClose, canManage }: { org: string; source
   React.useEffect(() => {
     setTab("connection");
     setTestJob(null);
-    setChecks(source?.last_test_result?.checks ?? null);
+    setChecks(testChecks(source?.last_test_result));
     setTestError(null);
     setIntroJob(null);
     setSchemas(null);
@@ -449,8 +456,9 @@ function SourceDialog({ org, source, onClose, canManage }: { org: string; source
                           jobId={testJob}
                           title="Connection test"
                           onDone={(s) => {
-                            const r = (s.result ?? {}) as { checks?: SourceCheck[]; ok?: boolean };
-                            if (Array.isArray(r.checks)) setChecks(r.checks);
+                            const r = (s.result ?? {}) as { ok?: boolean };
+                            const parsed = testChecks(s.result);
+                            if (parsed) setChecks(parsed);
                             if (s.status !== "succeeded" || r.ok === false) setTestError(s.error ?? { code: "connection_test_failed" });
                             void qc.invalidateQueries({ queryKey: deKeys.sources(org) });
                           }}
@@ -676,9 +684,15 @@ function ImportDialog({ org, source, table, onClose }: { org: string; source: Da
     if (!table) return;
     setPending(true);
     try {
-      const res = await importTable(org, source.id, { table: `${table.schema}.${table.name}`, name: name.trim(), ...(classification !== "internal" ? { classification } : {}), ...(needs ? { attest: true } : {}) });
+      const res = await importTable(org, source.id, {
+        table: table.name,
+        schema: table.schema,
+        name: name.trim(),
+        ...(classification !== "internal" ? { classification } : {}),
+        ...(needs ? { attest: true } : {}),
+      });
       setJobId(res.job_id);
-      setDatasetId(res.dataset?.id ?? null);
+      setDatasetId(res.import?.dataset_id ?? null);
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {

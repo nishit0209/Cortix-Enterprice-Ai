@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, FileText, Layers, Loader2, ScanText, Search, Table2, Tags, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Download, FileText, Layers, Loader2, ScanText, Search, Table2, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useOrgContext, useSetBreadcrumb } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { ClassificationBadge, StatusBadge } from "@/components/ui/status";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResultTable } from "@/components/ask/result-table";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
+import { downloadSignedUrl, isExpiredDownload } from "@/lib/download";
 import {
   isDocProcessing,
   useDeleteDocument,
@@ -45,6 +46,7 @@ export function DocumentDetail() {
   const pathname = usePathname();
   const params = useSearchParams();
   const q = useDocument(slug, id);
+  const [downloading, setDownloading] = React.useState(false);
   const ready = q.data?.status === "ready";
   const [tab, setTab] = React.useState("pages");
   const page = Math.max(1, Number(params.get("page") ?? 1) || 1);
@@ -89,30 +91,49 @@ export function DocumentDetail() {
     );
   }
   const d = q.data;
-  const pageList = [...(pages.data ?? [])].sort((a, b) => a.page_no - b.page_no);
+  const pageList = [...(pages.data ?? [])].sort((a, b) => a.number - b.number);
   const total = d.page_count ?? pageList.length;
-  const current = pageList.find((p) => p.page_no === page);
+  const current = pageList.find((p) => p.number === page);
+  const languages = Array.isArray(d.languages)
+    ? d.languages
+    : d.languages && typeof d.languages === "object"
+      ? Object.entries(d.languages)
+          .filter(([, share]) => Number(share) >= 0.05)
+          .sort((a, b) => Number(b[1]) - Number(a[1]))
+          .map(([l]) => l)
+      : d.language
+        ? [d.language]
+        : [];
 
   const entityCols: DataTableColumn<DocumentEntity>[] = [
-    { id: "entity_type", accessorKey: "entity_type", header: "Type", cell: ({ row }) => <Badge tone="accent">{titleCase(row.original.entity_type)}</Badge> },
-    { id: "value", accessorKey: "value", header: "Value", cell: ({ row }) => <span className="font-medium">{row.original.value}</span> },
-    { id: "normalized", accessorFn: (r) => r.normalized_value ?? "", header: "Normalized", meta: { hideOnMobile: true } },
+    { id: "kind", accessorKey: "kind", header: "Type", cell: ({ row }) => <Badge tone="accent">{titleCase(row.original.kind)}</Badge> },
+    {
+      id: "value",
+      accessorKey: "value",
+      header: "Value",
+      cell: ({ row }) => (
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          {row.original.value}
+          {row.original.is_pii && <Badge tone="warning">PII</Badge>}
+        </span>
+      ),
+    },
+    { id: "normalized", accessorFn: (r) => r.normalized ?? "", header: "Normalized", meta: { hideOnMobile: true } },
     {
       id: "page",
-      accessorFn: (r) => r.page_no ?? 0,
+      accessorFn: (r) => r.page ?? 0,
       header: "Page",
       meta: { align: "right" },
       cell: ({ row }) =>
-        row.original.page_no ? (
-          <button type="button" className="text-accent hover:underline focus-ring" onClick={(e) => { e.stopPropagation(); goPage(row.original.page_no!); }}>
-            p.{row.original.page_no}
+        row.original.page ? (
+          <button type="button" className="text-accent hover:underline focus-ring" onClick={(e) => { e.stopPropagation(); goPage(row.original.page!); }}>
+            p.{row.original.page}
           </button>
         ) : (
           "—"
         ),
     },
     { id: "confidence", accessorFn: (r) => r.confidence ?? -1, header: "Confidence", meta: { align: "right" }, cell: ({ row }) => (row.original.confidence !== null && row.original.confidence !== undefined ? `${Math.round(row.original.confidence * 100)}%` : "—") },
-    { id: "source", accessorFn: (r) => r.source ?? "", header: "Source", meta: { hideOnMobile: true } },
   ];
 
   return (
@@ -134,7 +155,7 @@ export function DocumentDetail() {
               <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                 <ClassificationBadge value={d.classification} />
                 {d.doc_type && <Badge tone="outline">{d.doc_type}</Badge>}
-                {(d.languages ?? []).map((l) => (
+                {languages.map((l) => (
                   <Badge key={l} tone="neutral">
                     {l}
                   </Badge>
@@ -146,11 +167,40 @@ export function DocumentDetail() {
               </div>
             </div>
           </div>
-          {can("documents.manage") && (
-            <Button variant="danger-ghost" size="sm" onClick={() => setDeleting(true)}>
-              <Trash2 /> Delete
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {d.download_url && (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={downloading}
+                onClick={async () => {
+                  setDownloading(true);
+                  try {
+                    try {
+                      await downloadSignedUrl(d.download_url!, d.filename);
+                    } catch (e) {
+                      // Signed links expire: fetch the document again for a fresh link and retry once.
+                      if (!isExpiredDownload(e)) throw e;
+                      const fresh = (await q.refetch()).data?.download_url;
+                      if (!fresh) throw e;
+                      await downloadSignedUrl(fresh, d.filename);
+                    }
+                  } catch (e) {
+                    toast.error(errorMessage(e));
+                  } finally {
+                    setDownloading(false);
+                  }
+                }}
+              >
+                <Download /> Original
+              </Button>
+            )}
+            {can("documents.manage") && (
+              <Button variant="danger-ghost" size="sm" onClick={() => setDeleting(true)}>
+                <Trash2 /> Delete
+              </Button>
+            )}
+          </div>
         </div>
         {isDocProcessing(d) && (
           <div className="flex items-center gap-2 border-t border-border bg-info-soft/60 px-5 py-2.5 text-sm text-info" role="status">
@@ -162,9 +212,16 @@ export function DocumentDetail() {
             Processing failed{d.error ? `: ${d.error}` : "."}
           </div>
         )}
+        {(d.warnings ?? []).length > 0 && (
+          <ul className="space-y-0.5 border-t border-border bg-warning-soft/50 px-5 py-2.5 text-xs text-warning" aria-label="Processing warnings">
+            {(d.warnings ?? []).map((w) => (
+              <li key={w}>{w}</li>
+            ))}
+          </ul>
+        )}
         {d.summary && (
           <div className="border-t border-border px-5 py-3 text-sm text-fg-muted">
-            <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-subtle">Summary {d.summary_source === "extractive" ? "(extractive)" : ""}</span>
+            <span className="mr-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-subtle">Summary (extractive)</span>
             {d.summary}
           </div>
         )}
@@ -208,11 +265,17 @@ export function DocumentDetail() {
                   <Button variant="ghost" size="icon-xs" onClick={() => goPage(page + 1)} disabled={page >= total} aria-label="Next page">
                     <ChevronRight />
                   </Button>
-                  {current?.ocr_used && (
+                  {current?.method === "ocr" && (
                     <Badge tone="info" className="ml-auto">
                       <ScanText /> OCR{current.ocr_confidence ? ` ${Math.round(Number(current.ocr_confidence))}%` : ""}
                     </Badge>
                   )}
+                  {(current?.method === "ocr_unavailable" || current?.method === "ocr_failed") && (
+                    <Badge tone="warning" className="ml-auto" title="Scanned page: install Tesseract OCR on the server to extract its text">
+                      <ScanText /> {current.method === "ocr_failed" ? "OCR failed" : "OCR unavailable"}
+                    </Badge>
+                  )}
+                  {current?.label && <span className="text-xs text-fg-muted">{current.label}</span>}
                 </div>
                 <div className="scrollbar-thin max-h-[640px] overflow-y-auto">
                   {pages.isLoading ? (
@@ -222,7 +285,7 @@ export function DocumentDetail() {
                       ))}
                     </div>
                   ) : current ? (
-                    <article className="mx-auto max-w-[72ch] whitespace-pre-wrap px-6 py-6 font-serif text-[15px] leading-7 text-fg" lang={current.lang ?? undefined}>
+                    <article className="mx-auto max-w-[72ch] whitespace-pre-wrap px-6 py-6 font-serif text-[15px] leading-7 text-fg" lang={current.language && current.language !== "und" && current.language !== "mixed" ? current.language : undefined}>
                       {current.text || <span className="text-fg-subtle">(no text on this page)</span>}
                     </article>
                   ) : (
@@ -233,13 +296,13 @@ export function DocumentDetail() {
                   <div className="scrollbar-thin flex gap-1 overflow-x-auto border-t border-border px-3 py-2" aria-label="Pages">
                     {pageList.map((p) => (
                       <button
-                        key={p.page_no}
+                        key={p.number}
                         type="button"
-                        onClick={() => goPage(p.page_no)}
-                        aria-current={p.page_no === page ? "page" : undefined}
-                        className={cn("tabular min-w-8 rounded-[4px] px-1.5 py-0.5 text-xs focus-ring", p.page_no === page ? "bg-accent text-accent-fg" : "text-fg-muted hover:bg-surface-2")}
+                        onClick={() => goPage(p.number)}
+                        aria-current={p.number === page ? "page" : undefined}
+                        className={cn("tabular min-w-8 rounded-[4px] px-1.5 py-0.5 text-xs focus-ring", p.number === page ? "bg-accent text-accent-fg" : "text-fg-muted hover:bg-surface-2")}
                       >
-                        {p.page_no}
+                        {p.number}
                       </button>
                     ))}
                   </div>
@@ -259,11 +322,13 @@ export function DocumentDetail() {
                   <li key={c.id} className="rounded-card border border-border bg-surface p-3">
                     <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                       <span className="tabular font-mono">#{c.ordinal}</span>
-                      <button type="button" onClick={() => goPage(c.page_from)} className="text-accent hover:underline focus-ring">
-                        p.{c.page_from}
-                        {c.page_to !== c.page_from ? `–${c.page_to}` : ""}
-                      </button>
-                      {c.section_path && <span className="truncate">{c.section_path}</span>}
+                      {c.page !== null && (
+                        <button type="button" onClick={() => goPage(c.page ?? 1)} className="text-accent hover:underline focus-ring">
+                          p.{c.page}
+                          {c.page_to && c.page_to !== c.page ? `–${c.page_to}` : ""}
+                        </button>
+                      )}
+                      {c.section && <span className="truncate">{c.section}</span>}
                       {c.token_count !== undefined && <span className="tabular ml-auto">{c.token_count} tokens</span>}
                     </div>
                     <p className="line-clamp-4 text-sm text-fg">{c.text}</p>
@@ -282,7 +347,7 @@ export function DocumentDetail() {
                 data={entities.data}
                 loading={entities.isLoading || !ready}
                 getRowId={(r) => r.id}
-                filters={[{ columnId: "entity_type", label: "Type", options: Array.from(new Set((entities.data ?? []).map((e) => e.entity_type))).map((t) => ({ value: t, label: titleCase(t) })) }]}
+                filters={[{ columnId: "kind", label: "Type", options: Array.from(new Set((entities.data ?? []).map((e) => e.kind))).map((t) => ({ value: t, label: titleCase(t) })) }]}
                 emptyState={<EmptyState compact icon={<Tags />} title="No entities found" />}
               />
             )}
@@ -336,21 +401,24 @@ export function DocumentDetail() {
 }
 
 function DocTableCard({ table, onPage }: { table: DocumentTable; onPage: (p: number) => void }) {
-  const data = table.data;
-  const rows = Array.isArray(data) ? (data.slice(1) as unknown[][]) : (data.rows ?? []);
-  const columns = Array.isArray(data) ? ((data[0] as unknown[]) ?? []).map((c, i) => String(c ?? `col_${i + 1}`)) : (data.columns ?? []);
+  const width = Math.max(table.header?.length ?? 0, ...(table.rows ?? []).map((r) => (Array.isArray(r) ? r.length : 0)));
+  const columns = Array.from({ length: width }, (_, i) => String(table.header?.[i] || `col_${i + 1}`));
+  const title = table.title || `Table ${table.index + 1}`;
   return (
     <Card>
       <CardHeader
         icon={<Table2 />}
-        title={`Table ${table.table_index + 1}`}
+        title={title}
+        description={table.truncated ? `Showing the first ${table.rows.length} of ${table.n_rows ?? "?"} rows` : undefined}
         actions={
-          <Button variant="ghost" size="xs" onClick={() => onPage(table.page_no)}>
-            Page {table.page_no}
-          </Button>
+          table.page ? (
+            <Button variant="ghost" size="xs" onClick={() => onPage(table.page ?? 1)}>
+              Page {table.page}
+            </Button>
+          ) : undefined
         }
       />
-      <CardContent>{columns.length ? <ResultTable columns={columns} rows={rows} caption={`Table ${table.table_index + 1}`} /> : <p className="text-sm text-fg-muted">Empty table.</p>}</CardContent>
+      <CardContent>{columns.length ? <ResultTable columns={columns} rows={table.rows ?? []} caption={title} /> : <p className="text-sm text-fg-muted">Empty table.</p>}</CardContent>
     </Card>
   );
 }

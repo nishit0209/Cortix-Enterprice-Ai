@@ -1,5 +1,7 @@
 /**
- * Document Q&A answer state. The ask endpoint streams SSE (or answers with JSON). Tolerated events:
+ * Document Q&A answer state. `POST /documents/ask` answers with JSON
+ * `{answer, mode, reason, message, citations:[{document_id, page, chunk_id, quote, document_title}], unanswerable}`;
+ * SSE events are tolerated too in case the endpoint starts streaming:
  *   status {stage} · citations {citations:[...]} · citation {...} · mode {mode, reason}
  *   token {text} · answer {answer, mode, citations, reason, not_found} · done {...} · error {code, detail}
  * `mode: "extractive"` means the AI data policy did not allow sending document text to Gemini, so the answer
@@ -14,6 +16,8 @@ export interface DocAnswerState {
   text: string;
   mode: string | null;
   reason: string | null;
+  /** Human explanation that accompanies an extractive `reason`. */
+  message: string | null;
   citations: DocumentCitation[];
   notFound: boolean;
   error: { code: string; detail: string | null } | null;
@@ -25,6 +29,7 @@ export const initialDocAnswer: DocAnswerState = {
   text: "",
   mode: null,
   reason: null,
+  message: null,
   citations: [],
   notFound: false,
   error: null,
@@ -39,7 +44,8 @@ function normCitation(c: Record<string, unknown>): DocumentCitation | null {
     page,
     document_title: typeof c.document_title === "string" ? c.document_title : typeof c.title === "string" ? c.title : undefined,
     chunk_id: typeof c.chunk_id === "string" ? c.chunk_id : undefined,
-    text: typeof c.text === "string" ? c.text : typeof c.snippet === "string" ? c.snippet : undefined,
+    text: typeof c.quote === "string" ? c.quote : typeof c.text === "string" ? c.text : typeof c.snippet === "string" ? c.snippet : undefined,
+    source_id: typeof c.source_id === "string" ? c.source_id : undefined,
   };
 }
 
@@ -68,7 +74,8 @@ export function docAnswerReducer(s: DocAnswerState, a: DocAnswerAction): DocAnsw
       text: b.answer ?? s.text,
       mode: b.mode ?? s.mode,
       reason: b.reason ?? s.reason,
-      notFound: !!b.not_found,
+      message: b.message ?? s.message,
+      notFound: !!(b.not_found || b.unanswerable),
       citations: mergeCitations(s.citations, b.citations ?? []),
     };
   }

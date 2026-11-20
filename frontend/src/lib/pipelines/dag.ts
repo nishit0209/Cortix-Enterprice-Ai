@@ -1,14 +1,15 @@
 /**
  * Pure pipeline DAG helpers: tolerant parsing, serialization, validation, static schema inference and layout.
  *
- * Wire format emitted by the builder (PATCH /pipelines/{id} `dag`):
- *   { nodes: [{ id, type, config, position: {x, y} }], edges: [{ from, to, port? }] }
- * `port` is "left" | "right" on the two inputs of a join. The parser also accepts `key` instead of `id`,
- * `[from, to]` / `{source, target}` edges and the dotted type names of DATA_ENGINEERING_DESIGN §5.2.
+ * This is the builder's own model ({ nodes: [{ id, type, config, position }], edges: [{ from, to }] }).
+ * `wire.ts` converts it to and from the backend DAG (`source.dataset`, `destination.dataset`, backend config
+ * field names). The parser also accepts `key` instead of `id`, `[from, to]` / `{source, target}` edges and the
+ * dotted type names of DATA_ENGINEERING_DESIGN §5.2.
  */
 
-import type { PipelineDag, PipelineDagNode } from "@/lib/types";
-import { canonicalType, STEP_BY_TYPE } from "./catalog";
+import type { PipelineDagNode } from "@/lib/types";
+import { canonicalType, LIST_OPS, STEP_BY_TYPE } from "./catalog";
+import { expressionColumns, tryParseExpression } from "./expr";
 
 export interface DagEdge {
   from: string;
@@ -58,8 +59,8 @@ export function parseDag(raw: unknown): BuilderDag {
   return dag;
 }
 
-/** Canonical wire format (stable key order, rounded positions, empty optional config values dropped). */
-export function serializeDag(dag: BuilderDag): PipelineDag {
+/** Canonical builder snapshot (stable key order, rounded positions, undefined config values dropped). Used for dirty checks. */
+export function serializeDag(dag: BuilderDag): BuilderDag {
   return {
     nodes: dag.nodes.map((n) => ({
       id: n.id,
@@ -190,16 +191,22 @@ export function inferSchemas(
         break;
       case "aggregate": {
         const aggs = (Array.isArray(c.aggregations) ? c.aggregations : []) as Array<{ column: string; fn: string; as?: string }>;
+        const aggType = (a: { column: string; fn: string }) => {
+          if (a.fn.startsWith("count")) return "bigint";
+          if (["min", "max", "first", "last"].includes(a.fn)) return input?.find((x) => x.name === a.column)?.type ?? null;
+          return "double precision";
+        };
         out[id] = input
           ? [
               ...input.filter((col) => cols("group_by").includes(col.name)),
-              ...aggs.map((a) => ({ name: a.as || `${a.fn}_${a.column}`, type: a.fn.startsWith("count") ? "bigint" : "double precision" })),
+              ...aggs.map((a) => ({ name: a.as || (a.column && a.column !== "*" ? `${a.column}_${a.fn}` : "row_count"), type: aggType(a) })),
             ]
           : null;
         break;
       }
       case "join": {
-        const r = right ? (out[right.from] ?? null) : null;
+        // The joined dataset comes from the join's config (backend JoinCfg.dataset_id), not from a second edge.
+        const r = c.dataset_id ? (sourceColumns[String(c.dataset_id)] ?? null) : right ? (out[right.from] ?? null) : null;
         if (!input || !r) {
           out[id] = null;
           break;
@@ -231,6 +238,10 @@ export interface DagValidation {
 }
 
 function referencedColumns(type: string, c: Record<string, unknown>): Array<{ col: string; side?: "left" | "right" }> {
+  if (type === "derive" && typeof c.expression === "string") {
+    const parsed = tryParseExpression(c.expression);
+    return parsed.ok ? expressionColumns(parsed.tree).map((col) => ({ col })) : [];
+  }
   const list = (k: string) => (Array.isArray(c[k]) ? (c[k] as unknown[]).map(String) : []);
   switch (type) {
     case "select_columns":
@@ -274,7 +285,15 @@ function isBlank(v: unknown): boolean {
 
 const NAME_RE = /^[a-z_][a-z0-9_]{0,62}$/;
 
-export function validateDag(dag: BuilderDag, schemas?: Record<string, SchemaColumn[] | null>): DagValidation {
+/**
+ * Client-side validation mirroring the backend rules (linear chain, required fields, column references).
+ * `datasetColumns` (dataset id -> columns) resolves the right-hand side of joins.
+ */
+export function validateDag(
+  dag: BuilderDag,
+  schemas?: Record<string, SchemaColumn[] | null>,
+  datasetColumns?: Record<string, SchemaColumn[] | undefined>,
+): DagValidation {
   const issues: DagIssue[] = [];
   const add = (nodeId: string | null, message: string) => issues.push({ nodeId, message });
   const ids = new Set<string>();
@@ -289,6 +308,7 @@ export function validateDag(dag: BuilderDag, schemas?: Record<string, SchemaColu
     if (sources.length === 0) add(null, "The pipeline needs a source.");
     if (dests.length === 0) add(null, "The pipeline needs a dataset output.");
     if (dests.length > 1) dests.slice(1).forEach((d) => add(d.id, "Only one output is allowed per pipeline."));
+    if (sources.length > 1) sources.slice(1).forEach((d) => add(d.id, "Only one source is allowed. Use a Join step to bring in another dataset."));
   }
 
   const seen = new Set<string>();
@@ -313,13 +333,14 @@ export function validateDag(dag: BuilderDag, schemas?: Record<string, SchemaColu
     const outs = dag.edges.filter((e) => e.from === n.id);
     if (spec.inputs === 0 && ins.length > 0) add(n.id, "A source cannot have inputs.");
     if (spec.inputs === 1 && ins.length !== 1) add(n.id, ins.length === 0 ? "Connect an input to this step." : "This step takes exactly one input.");
-    if (spec.inputs === 2 && ins.length !== 2) add(n.id, "A join needs exactly two inputs (left and right).");
     if (spec.outputs === 0 && outs.length > 0) add(n.id, "The output cannot feed other steps.");
     if (spec.outputs > 0 && outs.length === 0) add(n.id, "Connect this step to a following step.");
+    if (outs.length > 1) add(n.id, "Pipelines are a single chain: a step can feed only one next step.");
     for (const f of spec.fields) {
       if (!f.required) continue;
-      if (f.showIf && !f.showIf.in.includes(String(n.config[f.showIf.key] ?? ""))) continue;
-      if (isBlank(n.config[f.key])) add(n.id, `${f.label} is required.`);
+      // Missing keys fall back to the catalog defaults (e.g. an output without `target` writes a new dataset).
+      if (f.showIf && !f.showIf.in.includes(String(n.config[f.showIf.key] ?? spec.defaults[f.showIf.key] ?? ""))) continue;
+      if (isBlank(n.config[f.key] ?? spec.defaults[f.key])) add(n.id, `${f.label} is required.`);
     }
     if (n.type === "derive" && !isBlank(n.config.name) && !NAME_RE.test(String(n.config.name))) {
       add(n.id, "New column names use lowercase letters, digits and underscores.");
@@ -336,13 +357,27 @@ export function validateDag(dag: BuilderDag, schemas?: Record<string, SchemaColu
     if (n.type === "join") {
       const keys = (n.config.on ?? []) as Array<{ left?: string; right?: string }>;
       if (keys.some((k) => !k.left || !k.right)) add(n.id, "Every join key needs a left and a right column.");
-      if (ins.length === 2 && !ins.some((e) => e.port === "left")) add(n.id, "Connect one input to the left handle of the join.");
+    }
+    if (n.type === "derive" && typeof n.config.expression === "string" && n.config.expression.trim()) {
+      const parsed = tryParseExpression(n.config.expression);
+      if (!parsed.ok) add(n.id, `Expression: ${parsed.error}`);
+    }
+    if (n.type === "filter") {
+      const conds = (n.config.conditions ?? []) as Array<{ op?: string; value?: unknown }>;
+      if (conds.some((x) => x.op === "between" && (!Array.isArray(x.value) || x.value.length !== 2))) add(n.id, "“between” needs two values: low, high.");
+      if (conds.some((x) => (x.op === "in" || x.op === "not_in") && (!Array.isArray(x.value) || x.value.length === 0))) add(n.id, "List conditions need at least one value.");
+      if (conds.some((x) => x.op && !LIST_OPS.has(x.op) && x.op !== "is_null" && x.op !== "not_null" && isBlank(x.value))) add(n.id, "Every condition needs a value.");
     }
     // Column references must exist in the input schema when it is known.
     if (schemas && ins.length > 0) {
       for (const ref of referencedColumns(n.type, n.config)) {
-        const edge = ref.side === "right" ? ins.find((e) => e.port !== "left") : (ins.find((e) => e.port === "left") ?? ins[0]);
-        const schema = edge ? schemas[edge.from] : null;
+        const edge = ins.find((e) => e.port === "left") ?? ins[0];
+        const schema =
+          ref.side === "right"
+            ? (datasetColumns?.[String(n.config.dataset_id ?? "")] ?? null)
+            : edge
+              ? schemas[edge.from]
+              : null;
         if (schema && ref.col && !schema.some((c) => c.name === ref.col)) add(n.id, `Column "${ref.col}" is not in the input.`);
       }
     }

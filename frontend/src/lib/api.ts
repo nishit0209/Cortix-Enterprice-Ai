@@ -291,6 +291,26 @@ export function cursorFrom(url: string | null | undefined): string | null {
   }
 }
 
+/**
+ * GET every page of a cursor-paginated list (following `next_cursor`), up to `maxItems`.
+ * Accepts bare arrays too (returned as-is).
+ */
+export async function fetchAll<T>(
+  path: string,
+  { query, signal, pageSize = 200, maxItems = 2000 }: { query?: Query; signal?: AbortSignal; pageSize?: number; maxItems?: number } = {},
+): Promise<T[]> {
+  const out: T[] = [];
+  let cursor: string | null = null;
+  for (let guard = 0; guard < 100; guard++) {
+    const res: T[] | Paginated<T> = await api.get<T[] | Paginated<T>>(path, { signal, query: { ...query, limit: pageSize, cursor: cursor ?? undefined } });
+    if (Array.isArray(res)) return res.slice(0, maxItems);
+    out.push(...(res.items ?? []));
+    cursor = cursorFrom(res.next_cursor);
+    if (!cursor || out.length >= maxItems) break;
+  }
+  return out.slice(0, maxItems);
+}
+
 /* ---------------- uploads with progress ---------------- */
 
 export interface UploadProgress {

@@ -89,8 +89,9 @@ export function useDeleteConversation(org: string) {
 
 export function useMessageFeedback(org: string) {
   return useMutation({
+    // Backend FeedbackSerializer: {value: "up" | "down"}.
     mutationFn: ({ messageId, correct }: { messageId: string; correct: boolean }) =>
-      api.post<unknown>(`${o(org)}/bi/messages/${messageId}/feedback`, { correct }),
+      api.post<unknown>(`${o(org)}/bi/messages/${messageId}/feedback`, { value: correct ? "up" : "down" }),
   });
 }
 
