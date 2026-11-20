@@ -97,7 +97,6 @@ def test_notifications_never_cross_orgs(two_orgs):
 @needs_notifications
 def test_notify_requires_a_tenant_context(two_orgs):
     from apps.core.notifications import notify
-
     from apps.core.tenancy import TenantContextMissing
 
     with pytest.raises((TenantContextMissing, RuntimeError, PermissionError)):
