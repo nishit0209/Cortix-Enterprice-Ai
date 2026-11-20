@@ -90,7 +90,7 @@ def test_isolation_registrations_match_live_routes():
     assert stale_registrations({r.name for r in ROUTES if r.name}) == []
 
 
-# W2/W3 contract routes (CONTRACT.md + API_SPECIFICATION Phase 3/4/8). Each must be discovered by the matrix and,
+# W2/W3 contract routes (CONTRACT.md + API_SPECIFICATION Phase 3/4/8; W3 additions). Each must be discovered by the matrix and,
 # when it has resource kwargs, have an isolation factory. A path that does not resolve yet is reported as a skip
 # (the feature is not merged), never silently ignored.
 _ID = "018f0000-0000-7000-8000-0000000000aa"
@@ -116,6 +116,18 @@ W2_CONTRACT_PATHS = [
     ("documents", "documents"),
     ("document", f"documents/{_ID}"),
     ("documents-ask", "documents/ask"),
+    # W3 additions (CONTRACT "W3 additions": dashboards, notifications; saved queries; AI status)
+    ("saved-queries", "saved-queries"),
+    ("saved-query", f"saved-queries/{_ID}"),
+    ("dashboards", "dashboards"),
+    ("dashboard", f"dashboards/{_ID}"),
+    ("dashboard-widgets", f"dashboards/{_ID}/widgets"),
+    ("dashboard-widget", f"dashboards/{_ID}/widgets/{_ID}"),
+    ("dashboard-widget-data", f"dashboards/{_ID}/widgets/{_ID}/data"),
+    ("notifications", "notifications"),
+    ("notification-read", f"notifications/{_ID}/read"),
+    ("notifications-read-all", "notifications/read-all"),
+    ("ai-status", "ai/status"),
 ]
 
 
