@@ -9,7 +9,7 @@ Owned paths touched: `frontend/**` and this handoff only. `check_ownership.py --
 
 ## Done
 
-Commits: `6a9a41e`, `43f03c2`, `c682bf8`, `f6753f3`, `3846acf`, `6a92f31`, `24a07cf` (+ this handoff).
+Commits: `6a9a41e`, `43f03c2`, `c682bf8`, `f6753f3`, `3846acf`, `6a92f31`, `24a07cf` (+ this handoff). Review fixes: `78829d6`, `330d43c` (see "Review fixes").
 
 ### A. No-mock audit (`3846acf`, `24a07cf`, guard in `6a92f31`)
 
@@ -115,7 +115,7 @@ The client was checked against the views, serializers and URLs in `backend/apps/
 | Lineage | `?node_type&node_id&depth` → `{nodes:[{id,type,label}], edges:[{from,to,label}]}` |
 | Quality | `/datasets/{id}/quality`, `/quality-rules` |
 | Semantic | `GET`/`PATCH /datasets/{id}/semantic-model` (minimal diff); dataset metrics CRUD |
-| Documents | Page, chunk, entity, table and search shapes; `ask` `mode` with `reason`; citations with page; allowed upload types; original download through the signed URL |
+| Documents | Page, chunk, entity, table and search shapes; `ask` `mode` with `reason`; citations with page; allowed upload types. The original-file download needs a `download_url` that no backend branch returns yet (Request 3, Defect 4) |
 | BI | Feedback `{value: up\|down}`; query history; exports; saved queries; insights envelope |
 
 Fixed in this run:
@@ -133,7 +133,7 @@ The W3 shapes were verified against the backend W3 code:
 ### F. Downloads (`6a9a41e`)
 
 - Exports use `POST /exports`. The response is either the file stream or JSON with `{download_url|url}`.
-- Document originals use the returned URL.
+- Document originals: the "Original" button (`document-detail.tsx:171`) uses `download_url` from the document detail. **No backend branch sends that field yet** (`DocumentDetailSerializer` has none and there is no download route), so the button stays hidden. Users cannot download an uploaded original until ai_ml adds it (Request 3, Defect 4). The client code is ready: signed URL, expiry, one refetch.
 - Same-origin signed `/api/v1/files/<token>` URLs are fetched, so an expired link can be explained. Cross-origin presigned URLs are opened by the browser.
 - Only https or same-origin URLs are followed.
 - An expired link (403, or the 410 `download_expired` the local files view actually returns) raises `download_expired`. Exports then ask for a fresh link once.
@@ -182,6 +182,8 @@ Nothing has run against a live backend, because no database exists yet. The UI f
    - Notifications: please document the producer link convention, an app-relative UI route such as `/data/pipelines/<id>/runs/<run_id>`. The client maps the resource-style paths listed in C.
 2. **Integrator.** Mission A allows "Planned" for C360, P360, ML, Automation and the admin console. "Access policies" (the governance UI) is also still Planned, because `docs/FEATURE_STATUS.md` schedules "governance UI" for W4; the backend governance API exists. The guard allow-list includes `policies`. Please confirm W4, or schedule it.
 
+3. **ai_ml.** Add `download_url` to `DocumentDetailSerializer` (`backend/apps/documents/serializers.py:20`). Compute it as `apps.core.storage.presigned_get(doc.storage_key, filename=doc.filename)` after the `documents.view` / dataset ACL check, or use the signed `/api/v1/files/<token>` link on the local storage backend. Until it exists, the document "Original" download is unavailable. See Defect 4.
+
 ## Open issues
 
 - **Live run pending.** The real end-to-end check against `runserver` + PostgreSQL waits for the database.
@@ -199,3 +201,42 @@ Nothing has run against a live backend, because no database exists yet. The UI f
 3. **backend.**
    - `backend/apps/core/notifications.py:6-7`: the docstring example link `/pipelines/<id>/runs/<run_id>` is not a UI route (`/data/pipelines/...` is). It is mapped client-side; please steer producers to UI routes.
    - `backend/apps/bi/views.py:270-271`: saved-query writes gate on `dashboards.create`, while pinning (`POST /dashboards/{id}/widgets {message_id}`, `dashboards.manage`) also creates a SavedQuery. A role holding only `dashboards.manage` can therefore create saved queries through a pin but not directly. Please confirm this is intended.
+4. **ai_ml.**
+   - `backend/apps/documents/serializers.py:20` (`DocumentDetailSerializer`) has no `download_url`, and `apps/documents/views.py` has no download route. This holds on `main` and on every W3 worktree (backend, ai_ml, data_engineering, qa_security).
+   - Mission F requires document files to use the returned signed URL, so the original of an uploaded document cannot be downloaded. The frontend hides the button until the field arrives.
+   - Fix: see Request 3.
+
+## Review fixes
+
+An independent reviewer reported 5 findings. Each one was verified and handled as follows.
+
+| # | Sev. | Finding | Outcome |
+|---|---|---|---|
+| 1 | medium | `useSaveLayout` cancelled in-flight widget data, which matched by key prefix, so those tiles went blank | **Fixed** (`78829d6`). Widget data has its own key root `["org", org, "dashboard-widget-data", id, wid]` (`dashKeys.widgetData` / `widgetDataAll`). The layout-save cancel is `exact: true`. `WidgetCard` now shows a "Load data" state when there is no data, no error and no fetch, instead of rendering nothing. |
+| 2 | low | Dashboard mutations re-ran every widget's guarded query, with one audit row each | **Fixed** (`78829d6`). Same key move, plus `exact: true` on every list/detail invalidate and remove. Rename, "Show on home", add widget and remove widget re-run no widget query. "Refresh all" invalidates `widgetDataAll`. Deleting a dashboard also drops its widget data. |
+| 3 | low | Retrying a failed pin with "+ New dashboard" created a duplicate dashboard each time | **Fixed** (`78829d6`). After the dashboard is created, the dialog calls `setTarget(d.id)` and clears the name, so a retry pins to it. The created dashboard seeds the detail cache, so the Pin button doesn't wait for a refetch. |
+| 4 | low | The quota banner and pill ignored `quota.scope` and always cited the org request count | **Fixed** (`330d43c`). `AiQuota` gains `scope` (validated) and `tokens` (from `token_budget`). `user` falls back to `user_budget`. The banner and pill copy follow the scope: personal limit, token budget, platform capacity, or org requests (also used when there is no scope). The pill bar is coloured only when the org request budget tripped, and a "Daily tokens" row is added. Older payloads derive the scope too. |
+| 5 | low | Document "Original" download is dead code; the handoff claimed it works | **Confirmed; not frontend-owned.** Sections E and F above are corrected. Request 3 and Defect 4 go to ai_ml. The client code is unchanged: it already uses the field when present. |
+
+Regression tests (each new test was run against the previous code and failed there):
+- `src/lib/queries/dashboards.test.tsx` (4 tests):
+  - widget-data keys are outside the dashboards prefix;
+  - a layout save leaves a loading widget loading, and it completes. Old code: reverted to an empty tile;
+  - rename, show on home, add widget and remove widget leave the widget-data request count at 1. Old code: 5. "Refresh all" re-runs it;
+  - a cancelled widget shows "Load data", and loading works.
+- `src/components/dashboards/pin-dialog.test.tsx` (1 test): after a 409 pin failure, the retry posts to the same dashboard and `POST /dashboards` runs once. Old code: twice.
+- `src/components/ask/quota-banner.test.tsx` (+4 tests): user, org_tokens, platform and org_requests copy for exhausted and low; pill labels; unknown scope; scope derived on older payloads.
+
+Checks after the fixes (real results, 2026-11-20):
+
+| Check | Result |
+|---|---|
+| `npm run lint` | clean |
+| `npm run typecheck` | clean |
+| `npm test -- --run` | **17 files, 180 passed**, 0 failed, 0 skipped (was 15 files, 171) |
+| `npm run build` | OK |
+| `check_conventions.py` | OK |
+| `check_ownership.py --agent frontend --base main` | OK |
+| `ruff check backend` | All checks passed |
+| `manage.py check` (test settings) | No issues |
+| `makemigrations --check --dry-run` | No changes detected. Warning: the history check could not log in as `nexora_migrator` on the local PostgreSQL. |
