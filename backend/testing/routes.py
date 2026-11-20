@@ -181,6 +181,18 @@ def tenant_routes() -> list[Route]:
     return list(seen.values())
 
 
+PLATFORM_PREFIX = "api/v1/platform/"
+
+
+def platform_routes() -> list[Route]:
+    """Every route under /api/v1/platform/ (platform super-admin console; no org kwarg)."""
+    seen: dict[str, Route] = {}
+    for r in iter_routes():
+        if r.pattern.startswith(PLATFORM_PREFIX) and "format" not in r.kwargs:
+            seen.setdefault(r.pattern, r)
+    return list(seen.values())
+
+
 def verify_build(route: Route, path: str) -> bool:
     """True when `path` resolves back to the same view (guards the regex filling above)."""
     from django.urls import Resolver404, resolve
