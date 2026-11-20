@@ -514,6 +514,26 @@ def lookup_invitation(token: str) -> InvitationRecord | None:
     return InvitationRecord(id=row[0], org_id=row[1], org_slug=row[2], email=row[3], role_id=row[4], expires_at=row[5])
 
 
+def members_with_permission(codename: str) -> list[UUID]:
+    """User ids of the ACTIVE members whose role grants `codename` (inside the org's tenant context).
+    Registered with apps.core.notifications so lower layers can notify e.g. all org admins."""
+    return list(
+        Membership.objects.filter(status="active", role__role_permissions__permission__codename=codename)
+        .values_list("user_id", flat=True)
+        .distinct()
+    )
+
+
+def _notify_invitation_accepted(inv: Invitation, user) -> None:
+    """The inviter and the people who manage members learn that someone joined (never the joiner)."""
+    from apps.core.notifications import notify
+
+    recipients = {inv.invited_by, *members_with_permission("members.manage")} - {user.pk}
+    who = user.full_name or user.email
+    notify(sorted(recipients, key=str), "invitation.accepted", f"{who} joined the organization",
+           f"{user.email} accepted the invitation as {inv.role.name}.", "/settings/members")
+
+
 def accept_invitation(*, record: InvitationRecord, user, request=None) -> dict:
     """Join the invited org (idempotent for an existing membership). Returns the Org payload."""
     from apps.core.tenancy.views import resolve_membership
@@ -533,6 +553,7 @@ def accept_invitation(*, record: InvitationRecord, user, request=None) -> dict:
         audit.record("invitation.accept", target=inv,
                      metadata={"email": inv.email, "membership_id": str(membership.id)},
                      actor=("user", user.pk), request=request)
+        _notify_invitation_accepted(inv, user)
         info = resolve_membership(user.pk, record.org_slug)
         if info is None:  # membership exists but is suspended
             raise Forbidden("Your membership in this organization is suspended.", code="membership_suspended")
