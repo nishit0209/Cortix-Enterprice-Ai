@@ -16,15 +16,16 @@ def kinds(ins):
 def test_top_n_and_share():
     cols = ["region", "total_amount"]
     rows = [["North", 500.0], ["South", 300.0], ["East", 150.0], ["West", 50.0]]
-    ins = compute_insights(cols, rows)
+    ins = compute_insights(cols, rows, complete=True)  # every region is in the rows
     assert kinds(ins)[:2] == ["top_n", "share"]
     top = ins[0]["data"]["items"]
     assert [i["label"] for i in top] == ["North", "South", "East"]
     share = ins[1]["data"]
     assert share["label"] == "North" and share["share"] == pytest.approx(0.5) and share["total"] == 1000.0
     assert share["top_n_share"] == pytest.approx(0.95)
-    assert "North accounts for 50.0% of total total amount (1,000)" in ins[1]["text"]
-    assert "North (500)" in ins[0]["text"]
+    assert ins[1]["text"] == ("North accounts for 50.0% of the total amount (1,000). "
+                              "The top 3 together make up 95.0%.")
+    assert ins[0]["text"] == "Top region by total amount: North (500, 50.0%), South (300, 30.0%), East (150, 15.0%)."
 
 
 def test_period_change_compare_shape():

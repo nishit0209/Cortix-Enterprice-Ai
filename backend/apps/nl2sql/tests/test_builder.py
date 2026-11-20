@@ -75,7 +75,7 @@ def test_at_least_twenty_variants():
 @pytest.mark.parametrize("question", [
     "revenue by region in the west",               # filter value the builder cannot express
     "top 5 regions by revenue excluding returns",  # extra condition
-    "revenue by region and channel",               # two dimensions
+    "revenue by region, channel and product",      # three dimensions
     "which customers churned",                     # not an aggregate question
     "top 5 regions by profitability",              # unknown measure
     "total widgets",                               # unknown measure

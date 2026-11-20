@@ -4,8 +4,8 @@ the guard applies the caller's policy at execution time."""
 from __future__ import annotations
 
 from django.db import models
-from pgvector.django import HnswIndex, VectorField
 
+from apps.ai.vectors import EmbeddingField
 from apps.core.tenancy.models import TenantModel
 
 EMBEDDING_DIM = 768  # intfloat/multilingual-e5-base; changing it needs a migration + re-embed job
@@ -36,7 +36,9 @@ class BiQueryCache(TenantModel):
     verified = models.BooleanField(default=False)
     verified_by = models.UUIDField(null=True, blank=True)
     created_by = models.UUIDField(null=True, blank=True)
-    embedding = VectorField(dimensions=EMBEDDING_DIM, null=True, blank=True)
+    # vector(768) with pgvector, double precision[] without it (apps.ai.vectors); the HNSW index is created by
+    # the migration only on pgvector.
+    embedding = EmbeddingField(dim=EMBEDDING_DIM, null=True, blank=True)
     hit_count = models.IntegerField(default=0)
     last_hit_at = models.DateTimeField(null=True, blank=True)
 
@@ -46,6 +48,4 @@ class BiQueryCache(TenantModel):
         ]
         indexes = [
             models.Index(fields=["org", "scope_id", "slot_shape"], name="nl2sql_cache_scope_idx"),
-            HnswIndex(name="nl2sql_cache_emb_hnsw", fields=["embedding"], m=16, ef_construction=64,
-                      opclasses=["vector_cosine_ops"]),
         ]

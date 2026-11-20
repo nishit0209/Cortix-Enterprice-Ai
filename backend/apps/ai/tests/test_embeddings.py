@@ -42,8 +42,9 @@ def test_local_embedder_is_lazy_and_uses_e5_prefixes(monkeypatch, tmp_path):
     calls = {}
 
     class StubST:
-        def __init__(self, name, cache_folder=None, device=None):
+        def __init__(self, name, cache_folder=None, device=None, local_files_only=None):
             calls["init"] = (name, cache_folder, device)
+            calls["local_files_only"] = local_files_only
 
         def get_sentence_embedding_dimension(self):
             return 4
@@ -55,7 +56,7 @@ def test_local_embedder_is_lazy_and_uses_e5_prefixes(monkeypatch, tmp_path):
 
     monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=StubST))
     monkeypatch.setenv("HF_HOME", str(tmp_path))
-    emb = LocalEmbedder("intfloat/multilingual-e5-base", dim=4)
+    emb = LocalEmbedder("intfloat/multilingual-e5-base", dim=4, allow_download=True)
     assert not emb.loaded and "init" not in calls  # nothing loaded at construction
     q = emb.embed_queries(["revenue by region"])
     p = emb.embed_passages(["chunk one", "chunk two"])
@@ -65,6 +66,7 @@ def test_local_embedder_is_lazy_and_uses_e5_prefixes(monkeypatch, tmp_path):
     assert q.shape == (1, 4) and p.shape == (2, 4)
     assert np.allclose(np.linalg.norm(p, axis=1), 1.0)
     assert emb.embed_queries([]).shape == (0, 4)
+    assert calls["local_files_only"] is False  # allow_download=True
 
 
 def test_local_embedder_dimension_mismatch(monkeypatch):
@@ -79,7 +81,7 @@ def test_local_embedder_dimension_mismatch(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=StubST))
     with pytest.raises(ImproperlyConfigured):
-        LocalEmbedder("BAAI/bge-m3", dim=768).embed_queries(["x"])
+        LocalEmbedder("BAAI/bge-m3", dim=768, allow_download=True).embed_queries(["x"])
 
 
 def test_override_embedder_and_embed_query():

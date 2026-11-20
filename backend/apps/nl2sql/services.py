@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+from dataclasses import dataclass, replace
 from datetime import date
 from uuid import UUID
 
@@ -49,6 +50,7 @@ from .sqlutil import (
     render,
     validate_against_context,
 )
+from .values import with_known_values
 
 log = logging.getLogger("nexora.nl2sql")
 
@@ -65,6 +67,9 @@ BLOCKED_MESSAGES = {
 }
 
 
+QUOTA_REASONS = frozenset({"ai_quota_exhausted", "ai_rate_limited"})
+
+
 def _today(today: date | None) -> date:
     return today or timezone.localdate()
 
@@ -73,9 +78,34 @@ def _payload(ctx: QuestionContext) -> PayloadManifest:
     return PayloadManifest({PayloadClass.SCHEMA: (f"dataset:{ctx.dataset_id}",)})
 
 
-def _none(reason: str, ids=(), explanation: str | None = None) -> SqlProposal:
-    return SqlProposal(sql=None, source="none", explanation=explanation or BLOCKED_MESSAGES.get(reason),
-                       blocked_reason=reason, ai_request_ids=tuple(ids))
+@dataclass(frozen=True)
+class BlockedProposal(SqlProposal):
+    """A `source="none"` proposal blocked by the AI platform. Quota/rate-limit blocks carry `resets_at` (ISO 8601)
+    and `retry_after_s`, so bi can put them on its `error` event (CONTRACT W3 "AI quota UX"). It IS a
+    SqlProposal (subclass): callers that only know the contract keep working."""
+
+    resets_at: str | None = None
+    retry_after_s: int | None = None
+    quota_scope: str | None = None
+
+
+def _none(reason: str, ids=(), explanation: str | None = None, *, exc: Exception | None = None) -> SqlProposal:
+    extra = getattr(exc, "extra", None) or {}
+    return BlockedProposal(sql=None, source="none", explanation=explanation or BLOCKED_MESSAGES.get(reason),
+                           blocked_reason=reason, ai_request_ids=tuple(ids),
+                           resets_at=extra.get("resets_at") if reason in QUOTA_REASONS else None,
+                           retry_after_s=extra.get("retry_after_s") if reason in QUOTA_REASONS else None,
+                           quota_scope=extra.get("scope") if reason in QUOTA_REASONS else None)
+
+
+def blocked_details(proposal: SqlProposal) -> dict:
+    """Extra fields for a blocked proposal's error event: {resets_at, retry_after_s} when known."""
+    out = {}
+    for key in ("resets_at", "retry_after_s"):
+        value = getattr(proposal, key, None)
+        if value is not None:
+            out[key] = value
+    return out
 
 
 def _allowed(ctx: QuestionContext) -> dict:
@@ -228,7 +258,8 @@ def propose(question: str, ctx: QuestionContext, *, today: date | None = None,
     if hit is not None:
         return hit
 
-    built = build_sql(question, ctx, today=today)
+    # profiled dimension values let the builder answer "revenue from Electronics" locally (never sent to Gemini)
+    built = build_sql(question, with_known_values(ctx, dataset_version_id), today=today)
     if built is not None:
         return SqlProposal(sql=built.sql, source="builder", explanation=built.explanation,
                            assumptions=built.assumptions, chart_hint=built.chart_hint)
@@ -243,7 +274,7 @@ def _generate(question: str, ctx: QuestionContext, today: date) -> SqlProposal:
         try:
             data = _llm_call("nl2sql.generate", ctx, tier=tier, **inputs)
         except (AIPolicyBlocked, AIQuotaExhausted, AIUnavailable, AIInvalidOutput) as exc:
-            return _none(_ai_failure(exc), ids)
+            return _none(_ai_failure(exc), ids, exc=exc)
         proposal, code, message, raw_sql = _postprocess(data, ctx, card)
         if proposal is not None:
             return _with_ids(proposal, ids)
@@ -256,10 +287,7 @@ def _generate(question: str, ctx: QuestionContext, today: date) -> SqlProposal:
 
 
 def _with_ids(p: SqlProposal, ids) -> SqlProposal:
-    return SqlProposal(sql=p.sql, source=p.source, explanation=p.explanation, assumptions=p.assumptions,
-                       chart_hint=p.chart_hint, clarification=p.clarification,
-                       ai_request_ids=tuple(p.ai_request_ids) + tuple(i for i in ids if i not in p.ai_request_ids),
-                       blocked_reason=p.blocked_reason)
+    return replace(p, ai_request_ids=tuple(p.ai_request_ids) + tuple(i for i in ids if i not in p.ai_request_ids))
 
 
 def _repair_call(question, bad_sql_aliased, code, message, ctx, today, card, inputs) -> SqlProposal:
@@ -269,7 +297,7 @@ def _repair_call(question, bad_sql_aliased, code, message, ctx, today, card, inp
         data = _llm_call("nl2sql.repair", ctx, tier="reasoning", bad_sql=bad_sql_aliased, reject_code=code,
                          reject_message=message, **repair_inputs)
     except (AIPolicyBlocked, AIQuotaExhausted, AIUnavailable, AIInvalidOutput) as exc:
-        return _none(_ai_failure(exc))
+        return _none(_ai_failure(exc), exc=exc)
     proposal, code2, _msg2, _raw2 = _postprocess(data, ctx, card)
     if proposal is None:
         return _none("ai_invalid_output",
@@ -323,10 +351,17 @@ def store_verified(question: str, sql: str, ctx: QuestionContext, *, explanation
                        user_id=ctx.user_id, dataset_version_id=dataset_version_id)
 
 
-def compute_insights(columns, rows):
+def compute_insights(columns, rows, *, complete: bool | None = None, sql: str | None = None,
+                     truncated: bool | None = None):
+    """Local insights. Pass the executed `sql` and the result's `truncated` flag (or `complete` directly) so a
+    LIMITed / truncated result is never narrated as "the total" (see sqlutil.result_is_complete)."""
     from .insights import compute_insights as _ci
+    from .sqlutil import result_is_complete
 
-    return _ci(columns, rows)
+    rows = list(rows)
+    if complete is None and (sql is not None or truncated is not None):
+        complete = result_is_complete(sql, len(rows), truncated=truncated)
+    return _ci(columns, rows, complete=complete)
 
 
 def narrate(question: str, insights: list[dict]) -> str:

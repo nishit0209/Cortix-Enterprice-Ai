@@ -1,8 +1,10 @@
 """Exact + semantic question cache with slot re-binding (AI_ARCHITECTURE.md §4).
 
 * Exact: (org, scope, sha256(normalized question)). Relative periods ("last month") are re-bound to today.
-* Semantic: local e5 embedding of the slot TEMPLATE ("top <num> region by revenue <period>"), pgvector cosine
-  >= 0.93, same slot shape; date/number slots re-bound to the new question's values.
+* Semantic: local e5 embedding of the slot TEMPLATE ("top <num> region by revenue <period>"), cosine similarity
+  >= 0.93 via apps.ai.vectors.nearest (pgvector SQL or numpy over the scope's rows), same slot shape; date/number
+  slots re-bound to the new question's values. Skipped (exact cache + builder still work) when the local
+  embedding model is unavailable; rows stored meanwhile get their vector from the `ai.reembed_pending` job.
 * A hit is used only when (a) every slot whose value changed is templated in the SQL, (b) equality
   constraints still hold, and (c) the bound SQL only references tables/columns allowed to THIS user.
 """
@@ -10,6 +12,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from uuid import UUID
 
 from django.db import DatabaseError, transaction
@@ -63,6 +66,8 @@ def materialize(row, slots: Slots, ctx: QuestionContext, source: str) -> SqlProp
         return None
     if validate_against_context(ast, ctx.policy.tables, _allowed(ctx)) is not None:
         return None
+    if not literals_carried_over(ast, getattr(row, "normalized_question", "") or "", slots.normalized):
+        return None  # "revenue in the North region" must never answer "... in the South region"
     changed = any(new_values.get(n) != cached_values.get(n) for n in templated)
     explanation = row.explanation or None
     if changed:
@@ -74,6 +79,28 @@ def materialize(row, slots: Slots, ctx: QuestionContext, source: str) -> SqlProp
         assumptions=tuple(row.assumptions or ()),
         chart_hint=chart_from_json(row.chart_hint),
     )
+
+
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
+
+
+def literals_carried_over(ast, cached_question: str, new_question: str) -> bool:
+    """Every string literal of the cached SQL that came from the cached question's words (a filter value such as
+    'North') must also occur in the new question. Literals that are not question words ('current_period') and
+    dates (re-bound slots) are ignored."""
+    from sqlglot import exp
+
+    cached_q, new_q = f" {cached_question.lower()} ", f" {new_question.lower()} "
+    for lit in ast.find_all(exp.Literal):
+        if not lit.is_string:
+            continue
+        value = str(lit.this or "").strip().lower()
+        if not value or _ISO_DATE_RE.match(value):
+            continue
+        pattern = re.compile(rf"(?<![\w]){re.escape(value)}(?![\w])")
+        if pattern.search(cached_q) and not pattern.search(new_q):
+            return False
+    return True
 
 
 def _touch(row) -> None:
@@ -104,19 +131,32 @@ def lookup_exact(ctx: QuestionContext, slots: Slots, *, dataset_version_id: UUID
     return proposal
 
 
-def _embed(text: str) -> list[float] | None:
-    from apps.ai.services import embed_query
+SEMANTIC_MAX_SCAN = 5_000  # candidate rows ranked in numpy per scope + slot shape (array backend)
 
+
+def _embed(text: str) -> list[float] | None:
+    from apps.ai.services import EmbeddingUnavailable, embed_query, embedding_available
+
+    if not embedding_available():
+        return None
     try:
         return embed_query(text)
-    except Exception:  # noqa: BLE001 - embeddings are an optimisation; never fail the question
-        log.warning("nl2sql: local embedding unavailable; semantic cache skipped", exc_info=True)
+    except EmbeddingUnavailable as exc:
+        log.info("nl2sql: local embedding model unavailable (%s); semantic cache skipped", exc.reason)
         return None
+    except Exception:  # noqa: BLE001 - embeddings are an optimisation; never fail the question
+        log.warning("nl2sql: local embedding failed; semantic cache skipped", exc_info=True)
+        return None
+
+
+def embed_template(text: str) -> list[float] | None:
+    """Embedding used for the semantic cache (None when the local model is unavailable)."""
+    return _embed(text)
 
 
 def lookup_semantic(ctx: QuestionContext, slots: Slots, *, dataset_version_id: UUID | None = None,
                     threshold: float = SEMANTIC_THRESHOLD, embedding: list[float] | None = None) -> SqlProposal | None:
-    from pgvector.django import CosineDistance
+    from apps.ai.vectors import nearest
 
     from .models import BiQueryCache
 
@@ -125,13 +165,10 @@ def lookup_semantic(ctx: QuestionContext, slots: Slots, *, dataset_version_id: U
         return None
     try:
         with transaction.atomic():
-            rows = list(
-                BiQueryCache.objects.filter(scope_id=scope_id(ctx, dataset_version_id), slot_shape=slots.shape,
-                                            embedding__isnull=False)
-                .annotate(distance=CosineDistance("embedding", vec))
-                .filter(distance__lte=1.0 - threshold)
-                .order_by("distance")[:5]
-            )
+            candidates = BiQueryCache.objects.filter(scope_id=scope_id(ctx, dataset_version_id),
+                                                     slot_shape=slots.shape)
+            rows = [r for r in nearest(candidates, "embedding", vec, 5, max_scan=SEMANTIC_MAX_SCAN)
+                    if r.distance <= 1.0 - threshold + 1e-9]
     except DatabaseError:
         log.warning("nl2sql: semantic cache lookup failed", exc_info=True)
         return None
@@ -199,3 +236,25 @@ def store(question: str, sql: str, ctx: QuestionContext, *, slots: Slots, source
             scope_id=scope, question_hash=slots.hash, created_by=user_id,
             verified_by=user_id if verified else None, **defaults,
         )
+
+
+# ------------------------------------------------------------------------------------------- re-embedding
+REEMBED_SCAN_SQL = "SELECT DISTINCT org_id FROM nl2sql_biquerycache WHERE embedding IS NULL"
+
+
+def reembed_missing(embedder, limit: int = 500) -> int:
+    """Embed cache rows of the CURRENT tenant that were stored without a vector (model unavailable then).
+    Raises EmbeddingUnavailable when the model is still missing."""
+    from .models import BiQueryCache
+
+    rows = list(BiQueryCache.objects.filter(embedding__isnull=True).order_by("created_at")
+                .values_list("id", "template_question")[:max(1, int(limit))])
+    done = 0
+    for i in range(0, len(rows), 32):
+        part = rows[i:i + 32]
+        vectors = embedder.embed_queries([t for _, t in part])
+        with transaction.atomic():
+            for (row_id, _t), vec in zip(part, vectors, strict=True):
+                BiQueryCache.objects.filter(id=row_id).update(embedding=[float(x) for x in vec])
+        done += len(part)
+    return done

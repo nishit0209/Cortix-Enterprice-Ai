@@ -12,7 +12,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             "id", "title", "filename", "mime", "file_kind", "size_bytes", "sha256", "classification",
             "classification_attested_at", "doc_type", "status", "page_count", "language", "chunk_count",
             "ocr_pages", "ocr_unavailable_pages", "error", "error_code", "warnings", "uploaded_by", "last_job_id",
-            "created_at", "updated_at", "processed_at",
+            "created_at", "updated_at", "processed_at", "embedding_status",
         ]
         read_only_fields = fields
 
@@ -51,7 +51,8 @@ class ChunkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DocumentChunk
-        fields = ["id", "ordinal", "text", "page", "page_to", "section", "token_count", "has_embedding"]
+        fields = ["id", "ordinal", "text", "page", "page_to", "section", "token_count", "has_embedding",
+                  "embedding_pending"]
         read_only_fields = fields
 
     def get_has_embedding(self, obj) -> bool:

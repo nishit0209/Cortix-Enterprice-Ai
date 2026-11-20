@@ -2,7 +2,10 @@
 
     create_document(fileobj, ...)        -> (Document, Job)   upload + enqueue processing (queue "ml")
     run_processing(org_id, document_id, job_id)              extraction -> analysis -> embeddings -> persist
-    hybrid_search(q, document_ids=None, k=8) -> SearchResult  pgvector cosine top-20 + FTS ('simple') top-20, RRF
+    hybrid_search(q, document_ids=None, k=8) -> SearchResult  vector cosine top-20 (apps.ai.vectors.nearest:
+                                                               pgvector or numpy) + FTS ('simple') top-20, RRF;
+                                                               full-text only when the local model is unavailable
+    reembed_pending(org_id=None) -> dict                      fill vectors of `embedding_pending` chunks
     ask(question, document_ids=None)    -> dict               policy-gated Gemini answer with verified citations,
                                                                otherwise an extractive answer (no LLM)
     summarize(document, mode)           -> dict               extractive (local) by default; Gemini when allowed
@@ -25,11 +28,19 @@ from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db import DatabaseError, transaction
 from django.db.models import F
 from django.utils import timezone
-from pgvector.django import CosineDistance
 from rest_framework.exceptions import NotFound, ValidationError
 
 from apps.ai.exceptions import AIInvalidOutput, AIPolicyBlocked, AIQuotaExhausted, AIUnavailable
-from apps.ai.services import embed_query, gemini, get_embedder, get_prompt, request_trace
+from apps.ai.services import (
+    EmbeddingUnavailable,
+    embed_query,
+    embedding_available,
+    gemini,
+    get_embedder,
+    get_prompt,
+    request_trace,
+)
+from apps.ai.vectors import nearest
 from apps.core import audit, jobs, storage
 from apps.core.tenancy.context import require_org_id
 from apps.core.tenancy.tasks import tenant_step
@@ -73,6 +84,17 @@ DEFAULT_K = 8
 MAX_K = 20
 MAX_QUERY_CHARS = 1000
 MAX_DOCUMENT_IDS = 50
+DEFAULT_VECTOR_MAX_SCAN = 20_000
+# Storage errors from the S3 backend (botocore) and the filesystem backend (OSError).
+_STORAGE_ERRORS = (BotoCoreError, ClientError, OSError)
+PENDING_WARNING = ("semantic embeddings pending: the local embedding model is not available yet "
+                   "(run `manage.py download_models`); full-text search works meanwhile")
+SEARCH_MODE_MESSAGES = {
+    "embedding_model_unavailable": ("Semantic search is unavailable because the local embedding model is not "
+                                    "downloaded yet; showing full-text matches only."),
+    "embeddings_pending": ("Some passages are still waiting for semantic embeddings; they are matched by "
+                           "full-text only for now."),
+}
 _SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 NOT_FOUND = "Not found in the provided documents."
 
@@ -188,7 +210,9 @@ def create_document(fileobj, *, title: str = "", classification: str | None = No
     doc.storage_key = storage.org_key("documents", str(doc.id), _SAFE_NAME_RE.sub("_", filename)[:120] or "file")
     try:
         storage.put_object(doc.storage_key, raw, doc.mime)
-    except (BotoCoreError, ClientError) as exc:
+    except _STORAGE_ERRORS as exc:
+        if isinstance(exc, PermissionError):
+            raise
         log.warning("documents: upload to object storage failed: %s", type(exc).__name__)
         raise StorageUnavailable() from exc
     job = jobs.create_job("document_process", user_id=user_id, message="Queued")
@@ -251,7 +275,7 @@ def delete_document(doc: Document, *, request=None) -> None:
     doc.delete()
     try:
         storage.delete_object(key)
-    except (BotoCoreError, ClientError, PermissionError):
+    except _STORAGE_ERRORS:
         log.warning("documents: object %s could not be deleted from storage (orphan)", key)
 
 
@@ -264,7 +288,11 @@ def _fail(org_id, document_id, job_id, code: str, message: str) -> None:
 
 
 def persist_analysis(doc: Document, analysis: Analysis, vectors: list[list[float]] | None) -> dict:
-    """Replace the document's derived rows (idempotent re-processing). Inside a tenant transaction."""
+    """Replace the document's derived rows (idempotent re-processing). Inside a tenant transaction.
+
+    `vectors=None` means the local embedding model was unavailable: chunks are stored with `embedding_pending=True`
+    (full-text searchable now, embedded later by `reembed_pending`)."""
+    pending = vectors is None and bool(analysis.chunks)
     DocumentEntity.objects.filter(document=doc).delete()
     DocumentTable.objects.filter(document=doc).delete()
     DocumentChunk.objects.filter(document=doc).delete()
@@ -278,7 +306,7 @@ def persist_analysis(doc: Document, analysis: Analysis, vectors: list[list[float
     chunk_rows = DocumentChunk.objects.bulk_create([
         DocumentChunk(org_id=doc.org_id, document=doc, ordinal=c.ordinal, text=c.text, page=c.page,
                       page_to=c.page_to, section=c.section, token_count=c.token_count,
-                      embedding=(vectors[c.ordinal] if vectors else None))
+                      embedding=(vectors[c.ordinal] if vectors else None), embedding_pending=pending)
         for c in analysis.chunks
     ], batch_size=200)
     DocumentChunk.objects.filter(document=doc).update(search_vector=SearchVector("text", config="simple"))
@@ -304,6 +332,7 @@ def persist_analysis(doc: Document, analysis: Analysis, vectors: list[list[float
     doc.ocr_pages = analysis.ocr_pages
     doc.ocr_unavailable_pages = analysis.ocr_unavailable_pages
     doc.chunk_count = len(analysis.chunks)
+    doc.embedding_status = "none" if not analysis.chunks else ("pending" if pending else "complete")
     doc.summary = " ".join(s["text"] for s in analysis.summary)[:5000]
     doc.warnings = [w[:300] for w in analysis.warnings][:50]
     doc.error = ""
@@ -314,8 +343,48 @@ def persist_analysis(doc: Document, analysis: Analysis, vectors: list[list[float
         "document_id": str(doc.id), "status": "ready", "pages": doc.page_count, "chunks": doc.chunk_count,
         "entities": len(analysis.entities), "tables": len(analysis.tables), "language": doc.language,
         "doc_type": doc.doc_type, "ocr_pages": doc.ocr_pages, "ocr_unavailable_pages": doc.ocr_unavailable_pages,
-        "embedded": vectors is not None, "warnings": analysis.warnings,
+        "embedded": vectors is not None, "embedding_status": doc.embedding_status, "warnings": analysis.warnings,
     }
+
+
+def _notify(user_ids: list, kind: str, title: str, body: str, link: str) -> None:
+    """apps.core.notifications.notify (W3, built by Backend in parallel): imported lazily, skipped if missing."""
+    if not user_ids:
+        return
+    try:
+        from apps.core.notifications import notify
+    except ImportError:
+        return
+    try:
+        with transaction.atomic():  # a savepoint: a failed insert never poisons the processing transaction
+            notify(user_ids, kind, title, body, link)
+    except Exception:  # noqa: BLE001 - a notification never fails document processing
+        log.warning("documents: notification %s failed", kind, exc_info=True)
+
+
+def document_link(doc_id) -> str:
+    return f"/documents/{doc_id}"
+
+
+def _notify_processed(doc: Document) -> None:
+    if not doc.uploaded_by:
+        return
+    extra = " Semantic search will be enabled once the embedding model is available." \
+        if doc.embedding_status == "pending" else ""
+    _notify([doc.uploaded_by], "document.processed", f"Document ready: {doc.title}"[:200],
+            f"{doc.page_count} page(s), {doc.chunk_count} passage(s) indexed.{extra}", document_link(doc.id))
+
+
+def _notify_failed(org, document_id) -> None:
+    try:
+        with tenant_step(org):
+            doc = Document.objects.filter(id=document_id).first()
+            if doc is None or not doc.uploaded_by:
+                return
+            _notify([doc.uploaded_by], "document.failed", f"Document processing failed: {doc.title}"[:200],
+                    doc.error or "The document could not be processed.", document_link(doc.id))
+    except Exception:  # noqa: BLE001
+        log.warning("documents: failure notification skipped", exc_info=True)
 
 
 def run_processing(*, org_id, document_id, job_id) -> dict | None:
@@ -330,7 +399,9 @@ def run_processing(*, org_id, document_id, job_id) -> dict | None:
             jobs.update(job_id, status="running", progress=5, message="Downloading")
             try:
                 storage.download_to(key, path)
-            except (BotoCoreError, ClientError) as exc:
+            except _STORAGE_ERRORS as exc:
+                if isinstance(exc, PermissionError):
+                    raise
                 raise ExtractionError("storage_unavailable", "The file could not be read from storage.") from exc
         with tenant_step(org):
             jobs.update(job_id, status="running", progress=15, message="Extracting text")
@@ -340,9 +411,9 @@ def run_processing(*, org_id, document_id, job_id) -> dict | None:
         analysis = analyze(extracted, title=title)
         with tenant_step(org):
             jobs.update(job_id, status="running", progress=65, message="Embedding")
-        vectors = embed_chunks(analysis.chunks, get_embedder())
-        if vectors is None:
-            analysis.warnings.append("semantic embeddings unavailable; full-text search only")
+        vectors = embed_chunks(analysis.chunks, get_embedder()) if embedding_available() else None
+        if vectors is None and analysis.chunks:
+            analysis.warnings.append(PENDING_WARNING)
         with tenant_step(org):
             doc = Document.objects.select_for_update().get(id=document_id)
             result = persist_analysis(doc, analysis, vectors)
@@ -350,9 +421,11 @@ def run_processing(*, org_id, document_id, job_id) -> dict | None:
                          metadata={k: result[k] for k in ("pages", "chunks", "entities", "tables", "doc_type",
                                                           "language", "ocr_pages", "ocr_unavailable_pages")})
             jobs.finish(job_id, result=result)
+            _notify_processed(doc)
         return result
     except ExtractionError as exc:
         _fail(org, document_id, job_id, exc.code, exc.message)
+        _notify_failed(org, document_id)
         return None
     except Document.DoesNotExist:
         log.info("documents: %s deleted before processing", document_id)
@@ -362,6 +435,7 @@ def run_processing(*, org_id, document_id, job_id) -> dict | None:
         try:
             _fail(org, document_id, job_id, "document_processing_error",
                   f"Processing failed ({type(exc).__name__}).")
+            _notify_failed(org, document_id)
         except DatabaseError:
             log.exception("documents: could not mark %s as failed", document_id)
         return None
@@ -380,6 +454,23 @@ class SearchResult:
     vector_used: bool
     fulltext_used: bool
     terms: list[str] = field(default_factory=list)
+    vector_reason: str | None = None  # why the vector ranking did not run (embedding_model_unavailable)
+    pending_chunks: int = 0  # in-scope chunks still waiting for an embedding (full-text only)
+
+    @property
+    def mode(self) -> str:
+        """hybrid (vector + full-text), fulltext (no semantic ranking) or none (empty query)."""
+        if self.vector_used:
+            return "hybrid"
+        return "fulltext" if (self.fulltext_used or self.vector_reason) else "none"
+
+    @property
+    def mode_reason(self) -> str | None:
+        if not self.vector_used and self.vector_reason:
+            return self.vector_reason
+        if self.pending_chunks:
+            return "embeddings_pending"
+        return None
 
 
 def _chunk_scope(document_ids: list[UUID] | None):
@@ -389,16 +480,35 @@ def _chunk_scope(document_ids: list[UUID] | None):
     return qs
 
 
-def _vector_ranking(q: str, document_ids) -> list[UUID] | None:
+def vector_max_scan() -> int:
+    return int(getattr(settings, "DOCUMENT_VECTOR_MAX_SCAN", DEFAULT_VECTOR_MAX_SCAN))
+
+
+def _vector_ranking(q: str, document_ids) -> tuple[list[UUID] | None, str | None]:
+    """(ranked chunk ids, None) or (None, reason) when semantic ranking is not possible right now."""
+    if not embedding_available():
+        return None, "embedding_model_unavailable"
     try:
         qvec = embed_query(q)
-    except Exception as exc:  # noqa: BLE001 - embedder unavailable -> full-text only
+    except EmbeddingUnavailable:
+        return None, "embedding_model_unavailable"
+    except Exception as exc:  # noqa: BLE001 - embedder broken -> full-text only, never a failed request
         log.warning("documents: query embedding failed (%s)", type(exc).__name__)
-        return None
-    rows = (_chunk_scope(document_ids).filter(embedding__isnull=False)
-            .annotate(distance=CosineDistance("embedding", qvec)).order_by("distance")
-            .values_list("id", flat=True)[:VECTOR_TOP_K])
-    return list(rows)
+        return None, "embedding_model_unavailable"
+    try:
+        with transaction.atomic():
+            rows = nearest(_chunk_scope(document_ids), "embedding", qvec, VECTOR_TOP_K, max_scan=vector_max_scan())
+    except DatabaseError:
+        log.warning("documents: vector ranking failed; full-text only", exc_info=True)
+        return None, "vector_search_failed"
+    return [r.id for r in rows], None
+
+
+def _pending_count(document_ids) -> int:
+    try:
+        return _chunk_scope(document_ids).filter(embedding_pending=True).count()
+    except DatabaseError:  # pragma: no cover - informational only
+        return 0
 
 
 def _fulltext_ranking(terms: list[str], document_ids) -> list[UUID]:
@@ -418,7 +528,7 @@ def hybrid_search(q: str, *, document_ids: list[UUID] | None = None, k: int = DE
     q = (q or "").strip()[:MAX_QUERY_CHARS]
     k = max(1, min(int(k), MAX_K))
     terms = query_terms(q)
-    vector = _vector_ranking(q, document_ids) if q else None
+    vector, vector_reason = _vector_ranking(q, document_ids) if q else (None, None)
     fulltext = _fulltext_ranking(terms, document_ids)
     lists = [lst for lst in (vector, fulltext) if lst]
     fused = rrf_fuse(lists, limit=k) if lists else []
@@ -430,7 +540,8 @@ def hybrid_search(q: str, *, document_ids: list[UUID] | None = None, k: int = DE
                 section=chunks[cid].section, text=chunks[cid].text, score=round(score, 6))
         for cid, score in fused if cid in chunks
     ]
-    return SearchResult(q, passages, vector is not None, bool(terms), terms)
+    return SearchResult(q, passages, vector is not None, bool(terms), terms, vector_reason=vector_reason,
+                        pending_chunks=_pending_count(document_ids) if q else 0)
 
 
 def passage_payload(p: Passage, terms: list[str]) -> dict:
@@ -439,9 +550,17 @@ def passage_payload(p: Passage, terms: list[str]) -> dict:
             "highlights": term_spans(p.text, terms)}
 
 
+def retrieval_payload(result: SearchResult) -> dict:
+    return {"vector": result.vector_used, "fulltext": result.fulltext_used, "fusion": "rrf",
+            "mode": result.mode, "reason": result.mode_reason, "pending_embeddings": result.pending_chunks}
+
+
 def search_payload(result: SearchResult) -> dict:
+    reason = result.mode_reason
     return {"query": result.query, "results": [passage_payload(p, result.terms) for p in result.passages],
-            "retrieval": {"vector": result.vector_used, "fulltext": result.fulltext_used, "fusion": "rrf"}}
+            "search_mode": result.mode, "search_mode_reason": reason,
+            "search_mode_message": SEARCH_MODE_MESSAGES.get(reason or ""),
+            "retrieval": retrieval_payload(result)}
 
 
 # --------------------------------------------------------------------------------------------- Q&A
@@ -473,7 +592,7 @@ def _extractive_response(question: str, result: SearchResult, reason: str | None
         "passages": [passage_payload(p, result.terms) for p in result.passages],
         "confidence": None, "unanswerable": unanswerable, "reason": reason,
         "message": REASON_MESSAGES.get(reason or "", None), "ai_request_ids": [str(i) for i in ids],
-        "retrieval": {"vector": result.vector_used, "fulltext": result.fulltext_used, "fusion": "rrf"},
+        "retrieval": retrieval_payload(result), "search_mode": result.mode,
     }
 
 
@@ -503,7 +622,7 @@ def ask(question: str, *, document_ids: list[UUID] | None = None, user_id=None) 
         "question": question, "mode": "generative",
         "passages": [passage_payload(p, result.terms) for p in result.passages],
         "ai_request_ids": [str(i) for i in ids],
-        "retrieval": {"vector": result.vector_used, "fulltext": result.fulltext_used, "fusion": "rrf"},
+        "retrieval": retrieval_payload(result), "search_mode": result.mode,
     }
     if data.get("unanswerable"):
         return {**base, "answer": NOT_FOUND, "citations": [], "confidence": data.get("confidence"),
@@ -551,3 +670,37 @@ def summarize(doc: Document, *, mode: str = "extractive", user_id=None) -> dict:
     return {"document_id": str(doc.id), "mode": "generative", "summary": str(data.get("summary") or "").strip(),
             "sentences": [], "key_points": [str(k) for k in (data.get("key_points") or [])][:8], "reason": None,
             "message": None, "ai_request_ids": [str(i) for i in ids]}
+
+
+# ------------------------------------------------------------------------------------------- re-embedding
+REEMBED_SCAN_SQL = "SELECT DISTINCT org_id FROM documents_documentchunk WHERE embedding_pending"
+
+
+def reembed_pending(embedder=None, limit: int = 500) -> int:
+    """Embed up to `limit` `embedding_pending` chunks of the CURRENT tenant; documents whose chunks are all done
+    become `embedding_status="complete"`. Raises EmbeddingUnavailable when the model is (still) missing."""
+    from .pipeline import EMBED_BATCH
+
+    embedder = embedder or get_embedder()
+    rows = list(DocumentChunk.objects.filter(embedding_pending=True).order_by("document_id", "ordinal")
+                .values_list("id", "document_id", "text")[:max(1, int(limit))])
+    if not rows:
+        return 0
+    done = 0
+    for i in range(0, len(rows), EMBED_BATCH):
+        part = rows[i:i + EMBED_BATCH]
+        vectors = embedder.embed_passages([text for _, _, text in part])
+        with transaction.atomic():
+            for (chunk_id, _doc, _text), vec in zip(part, vectors, strict=True):
+                DocumentChunk.objects.filter(id=chunk_id).update(
+                    embedding=[float(x) for x in vec], embedding_pending=False)
+        done += len(part)
+    doc_ids = {doc_id for _, doc_id, _ in rows}
+    still = set(DocumentChunk.objects.filter(document_id__in=doc_ids, embedding_pending=True)
+                .values_list("document_id", flat=True).distinct())
+    complete = [d for d in doc_ids if d not in still]
+    if complete:
+        Document.objects.filter(id__in=complete, embedding_status="pending").update(
+            embedding_status="complete", updated_at=timezone.now())
+    log.info("documents: embedded %d pending chunk(s) in %d document(s)", done, len(doc_ids))
+    return done

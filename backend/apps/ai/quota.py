@@ -287,6 +287,27 @@ class QuotaLimiter:
             raise LimiterUnavailable(str(exc)) from exc
 
     # --- reporting -----------------------------------------------------------------------------------
+    def project_day_requests(self, model: str) -> int:
+        """Requests counted today against the project RPD of `model`."""
+        key = f"{KEY_PREFIX}:model:{model}:d:{pacific_day(self._clock()).isoformat()}:req"
+        try:
+            return _int(self._redis().get(key))
+        except LimiterUnavailable:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise LimiterUnavailable(str(exc)) from exc
+
+    def mark_once(self, name: str, *, org_id: UUID | str) -> bool:
+        """True exactly once per org, `name` and Pacific quota day (SET NX with a TTL until the day ends + 1 h)."""
+        now = self._clock()
+        key = f"{KEY_PREFIX}:org:{org_id}:d:{pacific_day(now).isoformat()}:once:{name}"
+        try:
+            return bool(self._redis().set(key, "1", nx=True, ex=seconds_until_pacific_midnight(now) + 3600))
+        except LimiterUnavailable:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise LimiterUnavailable(str(exc)) from exc
+
     def usage(self, org_id: UUID | str, user_id: UUID | str | None = None) -> UsageSnapshot:
         now = self._clock()
         day = pacific_day(now).isoformat()
