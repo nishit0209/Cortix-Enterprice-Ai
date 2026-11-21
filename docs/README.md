@@ -8,6 +8,7 @@ Nexora is a multi-tenant Enterprise AI and Data Intelligence Platform: data engi
 
 | # | Document | What it covers |
 |---|---|---|
+| 0 | [PRODUCT_OVERVIEW.md](PRODUCT_OVERVIEW.md) | **What NEXORA is**: modules A–J and every feature inside them, selling points, what is in the box, status |
 | 1 | [PROJECT_VISION.md](PROJECT_VISION.md) | Problems, personas, MVP scope, non-goals, success metrics, status legend |
 | 2 | [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) | Modular monolith, processes, app map and layering, technology choices, decision log |
 | 3 | [MULTI_TENANCY_DESIGN.md](MULTI_TENANCY_DESIGN.md) | Tenancy options compared, hybrid decision, RLS on `app.org_id`, isolation tests |
