@@ -34,7 +34,7 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 export function ApprovalsInbox() {
-  const { slug } = useOrgContext();
+  const { slug, can } = useOrgContext();
   const [status, setStatus] = React.useState("pending");
   const list = useApprovals(slug, status);
   const [deciding, setDeciding] = React.useState<{ a: Approval; decision: "approve" | "reject" } | null>(null);
@@ -106,7 +106,10 @@ export function ApprovalsInbox() {
                         </Link>
                       )}
                     </div>
-                    {a.status === "pending" && (
+                    {a.status === "pending" && a.approver_permission && !can(a.approver_permission) && (
+                      <p className="text-xs text-fg-muted">Waiting for someone with {a.approver_permission}</p>
+                    )}
+                    {a.status === "pending" && (!a.approver_permission || can(a.approver_permission)) && (
                       <div className="flex gap-2">
                         <Button size="sm" variant="secondary" onClick={() => setDeciding({ a, decision: "reject" })}>
                           <X /> Reject

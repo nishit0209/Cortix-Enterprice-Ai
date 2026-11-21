@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Bot, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { Bot, Pencil, Play, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useOrgContext } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +13,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
 import { CATEGORY_LABELS, type StepKind } from "@/lib/automation/catalog";
 import { formatScopes, parseScopes, type AgentConfig } from "@/lib/automation/graph";
 import { errorMessage } from "@/lib/errors";
-import { useAgents, useDeleteAgent, useSaveAgent, useStepCatalog } from "@/lib/queries/automation";
+import { useAgents, useDeleteAgent, useRunAgent, useSaveAgent, useStepCatalog } from "@/lib/queries/automation";
 import { formatRelative } from "@/lib/utils";
 import { ModuleError, NativeSelect } from "@/components/mdm/common";
 
@@ -28,6 +29,7 @@ export function AgentsPanel() {
   const del = useDeleteAgent(slug);
   const [editing, setEditing] = React.useState<AgentConfig | "new" | null>(null);
   const [pending, setPending] = React.useState<AgentConfig | null>(null);
+  const [running, setRunning] = React.useState<AgentConfig | null>(null);
   const steps = catalog.data?.steps ?? [];
   const label = (k: string) => steps.find((s) => s.kind === k)?.label ?? k;
 
@@ -75,6 +77,11 @@ export function AgentsPanel() {
                 </div>
                 {canManage && (
                   <div className="flex gap-1">
+                    {can("automation.run") && a.is_active && (
+                      <Button variant="secondary" size="sm" onClick={() => setRunning(a)}>
+                        <Play /> Run
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon-sm" aria-label={`Edit ${a.name}`} onClick={() => setEditing(a)}>
                       <Pencil />
                     </Button>
@@ -89,6 +96,7 @@ export function AgentsPanel() {
         )}
       </CardContent>
       <AgentDialog agent={editing} onClose={() => setEditing(null)} steps={steps} />
+      <RunAgentDialog agent={running} onClose={() => setRunning(null)} />
       <ConfirmDialog
         open={!!pending}
         onOpenChange={(o) => !o && setPending(null)}
@@ -251,6 +259,56 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
           </Button>
           <Button onClick={submit} loading={save.isPending}>
             {existing ? "Save" : "Create agent"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RunAgentDialog({ agent, onClose }: { agent: AgentConfig | null; onClose: () => void }) {
+  const { slug } = useOrgContext();
+  const router = useRouter();
+  const run = useRunAgent(slug);
+  const [goal, setGoal] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    setGoal("");
+    setError(null);
+  }, [agent]);
+  return (
+    <Dialog open={!!agent} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader
+          title={agent ? `Run ${agent.name}` : ""}
+          description="Describe the task. The agent plans with its allowed tools only; each tool call is an audited step and gated steps wait for approval."
+        />
+        <DialogBody className="space-y-2">
+          <Field id="ag-goal" label="Goal">
+            <Textarea id="ag-goal" rows={4} value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={2000} placeholder="Refresh the sales pipeline and notify me if it fails" />
+          </Field>
+          {error && <p className="text-sm text-danger">{error}</p>}
+        </DialogBody>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={run.isPending}
+            onClick={async () => {
+              if (!agent) return;
+              if (!goal.trim()) return setError("Describe what the agent should do.");
+              try {
+                const r = await run.mutateAsync({ agentId: agent.id, goal: goal.trim() });
+                toast.success("Agent run started");
+                onClose();
+                if (r.id) router.push(`/o/${slug}/automation/runs/${r.id}`);
+              } catch (e) {
+                setError(errorMessage(e));
+              }
+            }}
+          >
+            <Play /> Start
           </Button>
         </DialogFooter>
       </DialogContent>

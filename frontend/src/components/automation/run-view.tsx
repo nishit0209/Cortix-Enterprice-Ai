@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Hand, ListTree } from "lucide-react";
+import { ArrowLeft, Ban, EyeOff, Hand, ListTree } from "lucide-react";
+import { toast } from "sonner";
 import { useOrgContext, useSetBreadcrumb } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,8 @@ import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status";
 import type { StepRun } from "@/lib/automation/graph";
-import { useRunSteps, useWorkflowRun } from "@/lib/queries/automation";
+import { useCancelRun, useRunSteps, useWorkflowRun } from "@/lib/queries/automation";
+import { errorMessage } from "@/lib/errors";
 import { cn, formatDateTime, formatRelative, titleCase } from "@/lib/utils";
 import { ModuleError } from "@/components/mdm/common";
 
@@ -29,8 +31,9 @@ export function duration(a: string | null, b: string | null): string {
 
 export function RunView() {
   const { id } = useParams<{ id: string }>();
-  const { slug } = useOrgContext();
+  const { slug, can } = useOrgContext();
   const run = useWorkflowRun(slug, id);
+  const cancel = useCancelRun(slug);
   const live = !!run.data && LIVE.has(run.data.status);
   const steps = useRunSteps(slug, id, live);
   useSetBreadcrumb(run.data ? `Run ${formatDateTime(run.data.created_at)}` : null);
@@ -51,8 +54,28 @@ export function RunView() {
             <ArrowLeft className="size-3" /> {r.workflow_name ?? "Automation"}
           </Link>
         }
-        title={`Run of ${r.workflow_name ?? "workflow"}${r.version ? ` v${r.version}` : ""}`}
+        title={r.agent_id && !r.workflow_name ? "Agent run" : `Run of ${r.workflow_name ?? "workflow"}${r.version ? ` v${r.version}` : ""}`}
         badge={<StatusBadge status={r.status} />}
+        actions={
+          live && can("automation.run") ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={cancel.isPending}
+              onClick={async () => {
+                try {
+                  await cancel.mutateAsync(r.id);
+                  toast.success("Run cancelled");
+                  void run.refetch();
+                } catch (e) {
+                  toast.error(errorMessage(e));
+                }
+              }}
+            >
+              <Ban /> Cancel run
+            </Button>
+          ) : undefined
+        }
         description={`${r.trigger_type ? `${titleCase(r.trigger_type)} trigger · ` : ""}started ${formatDateTime(r.started_at ?? r.created_at)}${r.finished_at ? ` · took ${duration(r.started_at, r.finished_at)}` : ""}`}
       />
       {r.status === "waiting_approval" && (
@@ -111,6 +134,12 @@ function StepItem({ step }: { step: StepRun }) {
         )}
       </div>
       {step.error && <p className="mt-1 text-xs text-danger">{step.error}</p>}
+      {step.output_redacted && (
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-fg-subtle">
+          <EyeOff className="size-3" /> Output is visible only to the person the run acted for and to auditors.
+        </p>
+      )}
+      {step.status === "waiting" && step.resume_at && <p className="mt-1 text-[11px] text-fg-subtle">Resumes {formatRelative(step.resume_at)}</p>}
       {open && hasOutput && <pre className="mt-2 max-h-64 overflow-auto rounded-control bg-surface-2 p-2 text-[11px]">{JSON.stringify(step.output, null, 2)}</pre>}
     </li>
   );

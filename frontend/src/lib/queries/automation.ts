@@ -169,19 +169,61 @@ export interface TriggerCreated {
   url: string | null;
   signature_header: string | null;
   timestamp_header: string | null;
+  algorithm: string | null;
+  format: string | null;
 }
 
 export function useCreateTrigger(org: string, id: string) {
   const inv = useInvalidate(org);
   return useMutation({
     mutationFn: async (body: { type: "schedule" | "webhook" | "event"; config: Record<string, unknown> }): Promise<TriggerCreated> => {
-      const r = (await api.post<Record<string, unknown>>(`${base(org)}/workflows/${id}/triggers`, body)) ?? {};
-      const t = mapTrigger(r.trigger ?? r);
-      const s = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : null);
-      return { id: t.id, secret: s("secret") ?? s("signing_secret"), url: t.url ?? s("url"), signature_header: s("signature_header"), timestamp_header: s("timestamp_header") };
+      return triggerCreated((await api.post<Record<string, unknown>>(`${base(org)}/workflows/${id}/triggers`, body)) ?? {});
     },
     onSuccess: inv,
   });
+}
+
+function triggerCreated(r: Record<string, unknown>): TriggerCreated {
+  const t = mapTrigger(r.trigger ?? r);
+  const s = (k: string) => (typeof r[k] === "string" ? (r[k] as string) : null);
+  return {
+    id: t.id,
+    secret: s("secret") ?? s("signing_secret"),
+    url: t.url,
+    signature_header: t.signature?.signature_header ?? s("signature_header"),
+    timestamp_header: t.signature?.timestamp_header ?? s("timestamp_header"),
+    algorithm: t.signature?.algorithm ?? null,
+    format: t.signature?.format ?? null,
+  };
+}
+
+export function useRotateTriggerSecret(org: string, id: string) {
+  const inv = useInvalidate(org);
+  return useMutation({
+    mutationFn: async (triggerId: string) => triggerCreated((await api.post<Record<string, unknown>>(`${base(org)}/workflows/${id}/triggers/${triggerId}/rotate-secret`, {})) ?? {}),
+    onSuccess: inv,
+  });
+}
+
+export function useSetTriggerActive(org: string, id: string) {
+  const inv = useInvalidate(org);
+  return useMutation({
+    mutationFn: ({ triggerId, is_active }: { triggerId: string; is_active: boolean }) => api.patch<unknown>(`${base(org)}/workflows/${id}/triggers/${triggerId}`, { is_active }),
+    onSuccess: inv,
+  });
+}
+
+export function useRunAgent(org: string) {
+  const inv = useInvalidate(org);
+  return useMutation({
+    mutationFn: async ({ agentId, goal }: { agentId: string; goal: string }) => mapRun(await api.post<unknown>(`${base(org)}/agents/${agentId}/runs`, { goal })),
+    onSuccess: inv,
+  });
+}
+
+export function useCancelRun(org: string) {
+  const inv = useInvalidate(org);
+  return useMutation({ mutationFn: (runId: string) => api.post<unknown>(`${base(org)}/workflow-runs/${runId}/cancel`, {}), onSuccess: inv });
 }
 
 export function useDeleteTrigger(org: string, id: string) {

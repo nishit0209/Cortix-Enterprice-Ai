@@ -245,7 +245,7 @@ function CreateWorkflowDialog({ open, onOpenChange }: { open: boolean; onOpenCha
         <DialogHeader title="New workflow" description="You'll add steps and triggers in the builder." />
         <DialogBody className="space-y-3">
           <Field id="wf-name" label="Name" error={error ?? undefined}>
-            <Input id="wf-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} autoFocus />
+            <Input id="wf-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} autoFocus />
           </Field>
           <Field id="wf-desc" label="Description">
             <Input id="wf-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />

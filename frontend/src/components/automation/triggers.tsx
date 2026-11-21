@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { CalendarClock, Copy, KeyRound, Plus, Radio, Trash2, Webhook } from "lucide-react";
+import { CalendarClock, Copy, KeyRound, Pause, Play, Plus, Radio, RotateCw, Trash2, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import { useOrgContext } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { TRIGGER_EVENTS } from "@/lib/automation/catalog";
 import type { Trigger } from "@/lib/automation/graph";
 import { errorMessage } from "@/lib/errors";
 import { CRON_PRESETS, describeCron, validateCron } from "@/lib/pipelines/cron";
-import { useCreateTrigger, useDeleteTrigger, useTriggers, type TriggerCreated } from "@/lib/queries/automation";
+import { useCreateTrigger, useDeleteTrigger, useRotateTriggerSecret, useSetTriggerActive, useTriggers, type TriggerCreated } from "@/lib/queries/automation";
 import { formatRelative } from "@/lib/utils";
 import { ModuleError, NativeSelect } from "@/components/mdm/common";
 
@@ -39,6 +39,9 @@ export function TriggersPanel({ workflowId, canManage }: { workflowId: string; c
   const { slug } = useOrgContext();
   const triggers = useTriggers(slug, workflowId);
   const del = useDeleteTrigger(slug, workflowId);
+  const rotate = useRotateTriggerSecret(slug, workflowId);
+  const toggle = useSetTriggerActive(slug, workflowId);
+  const [rotating, setRotating] = React.useState<Trigger | null>(null);
   const [open, setOpen] = React.useState(false);
   const [pending, setPending] = React.useState<Trigger | null>(null);
   const [created, setCreated] = React.useState<TriggerCreated | null>(null);
@@ -74,14 +77,51 @@ export function TriggersPanel({ workflowId, canManage }: { workflowId: string; c
                       {!t.is_active && <Badge tone="neutral">Paused</Badge>}
                     </p>
                     <p className="text-xs text-fg-muted">{describeTrigger(t)}</p>
-                    {t.type === "webhook" && <code className="mt-1 block truncate text-[11px] text-fg-subtle">{hookUrl(t)}</code>}
-                    {t.last_fired_at && <p className="text-[11px] text-fg-subtle">Last fired {formatRelative(t.last_fired_at)}</p>}
+                    {t.type === "webhook" && (
+                      <code className="mt-1 block truncate text-[11px] text-fg-subtle">
+                        {hookUrl(t)}
+                        {t.secret_hint ? ` · secret …${t.secret_hint}` : ""}
+                      </code>
+                    )}
+                    {t.type === "webhook" && t.signature?.signature_header && (
+                      <p className="text-[11px] text-fg-subtle">
+                        {t.signature.algorithm ?? "HMAC-SHA256"} in {t.signature.signature_header}
+                        {t.signature.timestamp_header ? `, timestamp in ${t.signature.timestamp_header}` : ""}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-fg-subtle">
+                      {t.next_run_at && t.is_active ? `Next run ${formatRelative(t.next_run_at)} · ` : ""}
+                      {t.last_fired_at ? `Last fired ${formatRelative(t.last_fired_at)}` : "Never fired"}
+                    </p>
                   </div>
                 </div>
                 {canManage && (
-                  <Button variant="ghost" size="icon-sm" aria-label="Remove trigger" onClick={() => setPending(t)}>
-                    <Trash2 />
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t.is_active ? "Pause trigger" : "Resume trigger"}
+                      disabled={toggle.isPending}
+                      onClick={async () => {
+                        try {
+                          await toggle.mutateAsync({ triggerId: t.id, is_active: !t.is_active });
+                          toast.success(t.is_active ? "Trigger paused" : "Trigger resumed");
+                        } catch (e) {
+                          toast.error(errorMessage(e));
+                        }
+                      }}
+                    >
+                      {t.is_active ? <Pause /> : <Play />}
+                    </Button>
+                    {t.type === "webhook" && (
+                      <Button variant="ghost" size="icon-sm" aria-label="Rotate webhook secret" onClick={() => setRotating(t)}>
+                        <RotateCw />
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon-sm" aria-label="Remove trigger" onClick={() => setPending(t)}>
+                      <Trash2 />
+                    </Button>
+                  </div>
                 )}
               </li>
             ))}
@@ -90,6 +130,24 @@ export function TriggersPanel({ workflowId, canManage }: { workflowId: string; c
       </CardContent>
       <AddTriggerDialog open={open} onOpenChange={setOpen} workflowId={workflowId} onCreated={(c) => c.secret && setCreated(c)} />
       <SecretDialog created={created} onClose={() => setCreated(null)} />
+      <ConfirmDialog
+        open={!!rotating}
+        onOpenChange={(o) => !o && setRotating(null)}
+        title="Rotate the webhook secret?"
+        description="The current secret stops working immediately. Update every caller with the new one."
+        confirmLabel="Rotate secret"
+        loading={rotate.isPending}
+        onConfirm={async () => {
+          if (!rotating) return;
+          try {
+            const res = await rotate.mutateAsync(rotating.id);
+            setRotating(null);
+            if (res.secret) setCreated(res);
+          } catch (e) {
+            toast.error(errorMessage(e));
+          }
+        }}
+      />
       <ConfirmDialog
         open={!!pending}
         onOpenChange={(o) => !o && setPending(null)}
@@ -232,8 +290,9 @@ function SecretDialog({ created, onClose }: { created: TriggerCreated | null; on
           <p className="flex items-start gap-2 text-xs text-fg-muted">
             <KeyRound className="mt-0.5 size-3.5 shrink-0" />
             <span>
-              Sign the raw request body with HMAC-SHA256 using this secret
+              Sign with {created.algorithm ?? "HMAC-SHA256 over the raw request body"} using this secret
               {created.signature_header ? ` and send it in the ${created.signature_header} header` : ""}
+              {created.format ? ` as ${created.format}` : ""}
               {created.timestamp_header ? `, with the Unix time in ${created.timestamp_header}` : ", with the request timestamp"}. Requests older than 5 minutes are rejected.
             </span>
           </p>

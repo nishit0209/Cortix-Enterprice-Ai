@@ -85,7 +85,7 @@ function EditorInner({ workflow, latest, versions, catalog, registryKnown }: { w
   }, [issues]);
   const dirty = JSON.stringify(graphToWire(graph)) !== savedJson;
   const nameDirty = name.trim() !== workflow.name && name.trim().length > 0;
-  const published = versions.find((v) => v.published);
+  const published = workflow.current_version ? (versions.find((v) => v.version === workflow.current_version) ?? null) : null;
   const selNode = graph.nodes.find((n) => n.id === selected) ?? null;
   const selKind = selNode ? stepKind(catalog, selNode.kind) : null;
 
@@ -310,7 +310,7 @@ function EditorInner({ workflow, latest, versions, catalog, registryKnown }: { w
                       <span className="font-medium">v{v.version}</span>
                       <span className="text-xs text-fg-muted">{v.graph.nodes.length} steps</span>
                       <span className="text-xs text-fg-muted">{formatRelative(v.created_at)}</span>
-                      {v.published ? <Badge tone="success">Published {formatRelative(v.published_at)}</Badge> : <Badge tone="outline">Draft</Badge>}
+                      {published?.version === v.version ? <Badge tone="success">Live · published {formatRelative(v.published_at)}</Badge> : v.published ? <Badge tone="neutral">Previously published</Badge> : <Badge tone="outline">Draft</Badge>}
                     </li>
                   ))}
                 </ul>

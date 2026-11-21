@@ -214,7 +214,10 @@ export interface Trigger {
   is_active: boolean;
   created_at: string | null;
   last_fired_at: string | null;
+  next_run_at: string | null;
   url: string | null;
+  secret_hint: string | null;
+  signature: { timestamp_header: string | null; signature_header: string | null; algorithm: string | null; format: string | null } | null;
 }
 
 export interface WorkflowRun {
@@ -224,6 +227,7 @@ export interface WorkflowRun {
   version: number | null;
   status: string;
   trigger_type: string | null;
+  agent_id: string | null;
   error: string | null;
   started_at: string | null;
   finished_at: string | null;
@@ -238,10 +242,12 @@ export interface StepRun {
   status: string;
   attempt: number;
   output: unknown;
+  output_redacted: boolean;
   error: string | null;
   started_at: string | null;
   finished_at: string | null;
   approval_id: string | null;
+  resume_at: string | null;
 }
 
 export interface Approval {
@@ -320,7 +326,12 @@ export function mapTrigger(raw: unknown): Trigger {
     is_active: r.is_active !== false && r.active !== false,
     created_at: str(r.created_at),
     last_fired_at: str(r.last_fired_at) ?? str(r.last_triggered_at),
-    url: str(r.url) ?? str(r.hook_url) ?? str(r.webhook_url),
+    next_run_at: str(r.next_run_at),
+    url: str(r.webhook_url) ?? str(r.url) ?? str(r.hook_url),
+    secret_hint: str(r.secret_hint),
+    signature: isObj(r.signature)
+      ? { timestamp_header: str(r.signature.timestamp_header), signature_header: str(r.signature.signature_header), algorithm: str(r.signature.algorithm), format: str(r.signature.format) }
+      : null,
   };
 }
 
@@ -335,6 +346,7 @@ export function mapRun(raw: unknown): WorkflowRun {
     version: num(r.version) ?? num(r.workflow_version),
     status: str(r.status) ?? "queued",
     trigger_type: str(r.trigger_type) ?? (trig ? str(trig.type) : str(r.trigger)),
+    agent_id: str(r.agent_id),
     error: errText(r.error),
     started_at: str(r.started_at),
     finished_at: str(r.finished_at),
@@ -352,10 +364,12 @@ export function mapStepRun(raw: unknown): StepRun {
     status: str(r.status) ?? "",
     attempt: num(r.attempt) ?? 1,
     output: r.output ?? r.output_ref ?? null,
+    output_redacted: r.output_redacted === true,
     error: errText(r.error),
     started_at: str(r.started_at),
     finished_at: str(r.finished_at),
     approval_id: str(r.approval_id),
+    resume_at: str(r.resume_at),
   };
 }
 
