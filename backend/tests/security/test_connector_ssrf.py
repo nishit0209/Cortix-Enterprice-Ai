@@ -104,7 +104,14 @@ LITERAL_HOSTS = [
 # Legacy/obfuscated IPv4 spellings that libc resolvers turn into 127.0.0.1. Refusing them as an invalid host is
 # as good as `connector_host_forbidden`; connecting is not.
 OBFUSCATED_HOSTS = ["2130706433", "0x7f000001", "0177.0.0.1", "127.1", "[::1]", "fe80::1%25eth0"]
-INVALID_HOST_CODES = {FORBIDDEN_CODE, "validation_error", "invalid_host", "connector_invalid_config"}
+# `connector_host_invalid` is the as-built syntax refusal (apps.connectors.exceptions.InvalidHost).
+INVALID_HOST_CODES = {
+    FORBIDDEN_CODE,
+    "connector_host_invalid",
+    "validation_error",
+    "invalid_host",
+    "connector_invalid_config",
+}
 
 
 @needs_sources
@@ -122,6 +129,10 @@ def test_private_and_special_hosts_are_refused(sources, host):
 @pytest.mark.ac("P3-AC2")
 @pytest.mark.parametrize("host", OBFUSCATED_HOSTS)
 def test_obfuscated_loopback_spellings_are_refused(sources, host):
+    # Behave like glibc (inet_aton): every spelling that reaches the resolver comes back as loopback, so a
+    # guard that lets the name through to DNS must still refuse the answer. (Windows returns "unresolvable"
+    # for these, which would hide a missing check.)
+    sources.resolver.answers[host] = ["127.0.0.1"]
     status, code = sources(host)
     assert code in INVALID_HOST_CODES, f"{host}: status {status}, code {code}"
     assert sources.spy.attempts == [], f"connection attempted for {host}: {sources.spy.attempts}"

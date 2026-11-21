@@ -16,7 +16,7 @@ import pytest
 from testing.client import api_client_for, requires_tenant_route, route_exists
 from testing.db import db_tenant, tenant_tables
 from testing.flows import items, job_outcome
-from testing.network import ConnectSpy
+from testing.network import ConnectSpy, Resolver
 
 pytestmark = [pytest.mark.django_db, requires_tenant_route("data-sources", "Data Engineering")]
 
@@ -34,6 +34,8 @@ def source_api(
     # a driver error that echoes every connection parameter, password included (some libpq errors do)
     spy = ConnectSpy(error_message="could not connect: host={host} user={user} password={password}")
     spy.install(monkeypatch)
+    # resolve the synthetic name (private, allowed above) so the worker reaches the spied connect step
+    Resolver(answers={"db.example.test": ["10.20.30.40"]}).install(monkeypatch)
     client = api_client_for(a.owner)
     responses: list[str] = []
 
@@ -71,7 +73,7 @@ def _create(source_api, canaries):
 
 
 def _all_text(source_api, caplog, fake_redis) -> str:
-    redis_events = json.dumps({k: [f for _e, f in v] for k, v in fake_redis.streams.items()}, default=repr)
+    redis_events = repr(fake_redis.streams)  # stream keys and fields are bytes
     return "\n".join([*source_api.responses, caplog.text, redis_events])
 
 
