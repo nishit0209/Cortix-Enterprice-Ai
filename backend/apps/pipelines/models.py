@@ -41,7 +41,7 @@ class PipelineVersion(TenantModel):
 
 class PipelineRun(TenantModel):
     STATUS = [(s, s) for s in ("queued", "running", "succeeded", "failed", "cancelled")]
-    TRIGGERS = [(t, t) for t in ("manual", "schedule", "api", "retry")]
+    TRIGGERS = [(t, t) for t in ("manual", "schedule", "api", "retry", "automation")]
     ACTIVE = ("queued", "running")
 
     pipeline = models.ForeignKey(Pipeline, on_delete=models.CASCADE, related_name="runs")

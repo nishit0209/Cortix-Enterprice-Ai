@@ -161,7 +161,20 @@ def test_scoring_requires_a_model(env, django_capture_on_commit_callbacks):
     resolve(client, a, django_capture_on_commit_callbacks)
     resp = client.post(url(a, "customers/scoring-runs"), {"score_type": "churn"}, format="json")
     assert resp.status_code == 409 and resp.json()["code"] == "ml_model_required"
-    assert client.post(url(a, "customers/scoring-runs"), {"score_type": "nba"}, format="json").status_code == 400
+    assert client.post(url(a, "customers/scoring-runs"), {"score_type": "bogus"}, format="json").status_code == 400
+    # next-best-action needs no model: rules from RFM + segments (+ churn/CLV once they exist)
+    with django_capture_on_commit_callbacks(execute=True):
+        resp = client.post(url(a, "customers/scoring-runs"), {"score_type": "nba"}, format="json")
+    assert resp.status_code == 202, resp.content
+    runs = client.get(url(a, "customers/scoring-runs")).json()["items"]
+    assert runs[0]["status"] == "succeeded" and runs[0]["score_type"] == "next_best_action", runs
+    with a.tenant():
+        n_profiles = CustomerProfile.objects.count()
+    assert runs[0]["stats"]["scored"] == n_profiles > 0 and runs[0]["selection"] == "rules"
+    pooja = profile_of(a, "CRM-1")
+    scores = client.get(url(a, f"customers/{pooja}/scores")).json()
+    nba = [s for s in scores["latest"] if s["score_type"] == "next_best_action"]
+    assert nba and nba[0]["value"]["action"] and nba[0]["explanation"]["method"] == "rules"
 
 
 def test_permissions_settings_and_policy(env, api_client_for):

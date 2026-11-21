@@ -14,9 +14,8 @@ def resolve_customers(*, org_id: str, run_id: str, actor_id: str | None = None) 
 
 
 @shared_task(base=TenantTask, name="apps.customers.tasks.score_customers", long_running=True, acks_late=True)
-def score_customers(*, org_id: str, job_id: str, score_type: str, model_id: str,
-                    actor_id: str | None = None) -> dict | None:
-    """Churn / CLV scoring through the ML registry (services.run_scoring)."""
-    from .services import run_scoring
+def score_customers(*, org_id: str, run_id: str, actor_id: str | None = None) -> dict | None:
+    """Churn / CLV scoring through the ML registry + next-best-action rules (scoring.run_scoring)."""
+    from .scoring import run_scoring
 
-    return run_scoring(org_id=org_id, job_id=job_id, score_type=score_type, model_id=model_id)
+    return run_scoring(org_id=org_id, run_id=run_id)

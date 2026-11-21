@@ -7,8 +7,9 @@ Resolution: start_resolution(user_id, request) -> (run, job)          202; task 
 Review:     decide_match(match, decision, user_id, request)           confirm merges, reject splits / blocks the pair
 Profiles:   profile_payload / profile_detail / timeline_queryset      golden records, linked records, events
 Segments:   create_segment / refresh_segment / refresh_all_segments   rule ({field, op, value}) and RFM quintiles
-Scoring:    start_scoring(...)                                        409 ml_model_required until a model is ready
-Features:   features_frame() / publish_features(user_id)              non-PII profile features -> publish_frame
+Scoring:    start_scoring(...) -> (run, job)                          churn/CLV via the ML registry (409
+                                                                      ml_model_required without a model) + NBA rules
+Features:   features_frame() / publish_features(user_id, kind)        non-PII features / point-in-time training set
 
 All work runs inside the org's tenant context. Source data is read through apps.datasets.services.governed_frame
 under the requesting user's policy, so denied/masked columns are never read and row policies apply.
@@ -24,7 +25,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
-import polars as pl
 from django.db import transaction
 from django.db.models import Count, Max, Min, Q, Sum
 from django.utils import timezone
@@ -37,6 +37,7 @@ from apps.core.tenancy import require_org_id
 from apps.core.tenancy.tasks import tenant_step
 
 from . import matching as M
+from . import scoring
 from .models import (
     CustomerEvent,
     CustomerProfile,
@@ -57,20 +58,13 @@ PROFILE_FIELDS = ("external_id", "email", "phone", "name", "first_name", "last_n
 EVENT_FIELDS = ("customer_key", "occurred_at", "event_type", "event_type_column", "amount", "channel", "event_id",
                 "attributes")
 EVENT_COLUMN_FIELDS = ("customer_key", "occurred_at", "event_type_column", "amount", "channel", "event_id")
-ORDER_EVENT_TYPES = ("order", "purchase", "transaction", "sale")
+ORDER_EVENT_TYPES = scoring.ORDER_EVENT_TYPES
 MAX_EVENT_ATTRIBUTES = 20
 RUN_STALE_AFTER = dt.timedelta(hours=2)
 BATCH = 2000
 
 NOTIFY_FINISHED = "customers.resolution_finished"
 NOTIFY_FAILED = "customers.resolution_failed"
-
-
-class MlModelRequired(NexoraError):
-    status_code = 409
-    default_code = "ml_model_required"
-    default_detail = ("Customer scoring needs a trained churn/CLV model with a production (or staging) version in the "
-                      "ML workspace.")
 
 
 class ColumnNotAllowed(NexoraError):
@@ -99,9 +93,11 @@ def settings_payload(s: CustomerSettings) -> dict:
         "survivorship": {**M.DEFAULT_SURVIVORSHIP, **(s.survivorship or {})},
         "default_country_code": s.default_country_code,
         "features_dataset_id": str(s.features_dataset_id) if s.features_dataset_id else None,
+        "training_dataset_id": str(s.training_dataset_id) if s.training_dataset_id else None,
+        "churn_window_days": s.churn_window_days,
         "defaults": {"auto_threshold": M.DEFAULT_AUTO, "review_threshold": M.DEFAULT_REVIEW,
                      "weights": M.DEFAULT_WEIGHTS, "survivorship": M.DEFAULT_SURVIVORSHIP,
-                     "survivorship_rules": list(M.SURVIVORSHIP_RULES)},
+                     "survivorship_rules": list(M.SURVIVORSHIP_RULES), "churn_window_days": 90},
     }
 
 
@@ -137,6 +133,14 @@ def update_settings(data: Mapping[str, Any], *, request=None) -> CustomerSetting
         if not code.isdigit() or not 1 <= len(code) <= 3:
             raise ValidationError({"default_country_code": ["A 1-3 digit calling code, e.g. 91."]})
         s.default_country_code = code
+    if "churn_window_days" in data:
+        try:
+            window = int(data["churn_window_days"])
+        except (TypeError, ValueError) as exc:
+            raise ValidationError({"churn_window_days": ["A whole number of days."]}) from exc
+        if not 7 <= window <= 730:
+            raise ValidationError({"churn_window_days": ["Between 7 and 730 days."]})
+        s.churn_window_days = window
     s.auto_threshold, s.review_threshold = Decimal(str(round(auto, 4))), Decimal(str(round(review, 4)))
     s.save()
     audit.record("customers.settings.update", target=s, request=request,
@@ -930,122 +934,70 @@ def segment_payload(s: CustomerSegment) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------- features / scoring
-FEATURE_COLUMNS = ("profile_id", "record_count", "source_count", "event_count", "order_count", "monetary",
-                   "avg_order_value", "recency_days", "tenure_days", "rfm_r", "rfm_f", "rfm_m")
+# Implemented in apps.customers.scoring (point-in-time features, ML scoring, next-best-action); re-exported here.
+MlModelRequired = scoring.MlModelRequired
+FEATURE_COLUMNS = scoring.FEATURE_COLUMNS
+features_frame = scoring.features_frame
+FEATURE_KINDS = ("current", "training")
 
 
-def features_frame() -> pl.DataFrame:
-    """One row per profile, numeric features only (no PII): input for churn/CLV models and segmentation."""
-    rows, as_of = compute_rfm_rows()
-    rfm = {r.profile_id: r for r in rows}
-    data: dict[str, list] = {c: [] for c in FEATURE_COLUMNS}
-    for p in CustomerProfile.objects.all().order_by("id").iterator(chunk_size=BATCH):
-        r = rfm.get(p.id)
-        data["profile_id"].append(str(p.id))
-        data["record_count"].append(p.record_count)
-        data["source_count"].append(len(p.sources or []))
-        data["event_count"].append(p.event_count)
-        data["order_count"].append(p.order_count)
-        data["monetary"].append(float(p.monetary))
-        data["avg_order_value"].append(round(float(p.monetary) / p.order_count, 2) if p.order_count else None)
-        data["recency_days"].append((as_of - p.last_order_at).days if p.last_order_at else None)
-        data["tenure_days"].append((as_of - p.first_seen).days if p.first_seen else None)
-        data["rfm_r"].append(r.r if r else None)
-        data["rfm_f"].append(r.f if r else None)
-        data["rfm_m"].append(r.m if r else None)
-    schema = {"profile_id": pl.String, "monetary": pl.Float64, "avg_order_value": pl.Float64,
-              **{c: pl.Int64 for c in FEATURE_COLUMNS if c not in ("profile_id", "monetary", "avg_order_value")}}
-    return pl.DataFrame(data, schema=schema)
-
-
-def publish_features(*, user_id, request=None):
-    """Publish features_frame() as the "Customer 360 features" dataset (a new version on later calls)."""
+def _publish_target(dataset_id) -> UUID | None:
     from apps.datasets import services as datasets
 
-    frame = features_frame()
-    if frame.height == 0:
-        raise Conflict("There are no customer profiles yet; run identity resolution first.", code="no_profiles")
+    if not dataset_id:
+        return None
+    try:
+        return datasets.get_dataset(dataset_id).id
+    except NotFound:
+        return None
+
+
+def publish_features(*, user_id, kind: str = "current", request=None):
+    """kind=current: features_frame() as "Customer 360 features" (scoring input / segmentation).
+    kind=training: the point-in-time training set with `churned` and `future_value` labels, as
+    "Customer 360 training set" (train churn/CLV models on it). Later calls add a new version."""
+    from apps.datasets import services as datasets
+
+    if kind not in FEATURE_KINDS:
+        raise ValidationError({"kind": ["Must be current or training."]})
     cfg = get_settings()
-    target = None
-    if cfg.features_dataset_id:
-        try:
-            target = datasets.get_dataset(cfg.features_dataset_id).id
-        except NotFound:
-            target = None
-    version = datasets.publish_frame(
-        name="Customer 360 features", frame=frame, user_id=user_id, classification="internal", dataset_id=target,
-        description="Per-customer features from Customer 360 (record/event counts, RFM). No personal data.",
-        source="customers")
-    cfg.features_dataset_id = version.dataset_id
-    cfg.save(update_fields=["features_dataset_id", "updated_at"])
+    meta: dict[str, Any] = {}
+    if kind == "training":
+        frame, meta = scoring.training_frame(cfg.churn_window_days)
+        if frame.height < scoring.MIN_TRAINING_ROWS:
+            raise Conflict(
+                f"Not enough order history for a training set: {frame.height} customers had orders before the "
+                f"{cfg.churn_window_days}-day label window (at least {scoring.MIN_TRAINING_ROWS} are needed).",
+                code="not_enough_history", extra=meta)
+        name, target = "Customer 360 training set", _publish_target(cfg.training_dataset_id)
+        description = (f"Customer 360 features as of {meta['cutoff'][:10]} with labels from the next "
+                       f"{cfg.churn_window_days} days: churned (no order) and future_value. No personal data.")
+    else:
+        frame = scoring.features_frame()
+        if frame.height == 0:
+            raise Conflict("There are no customer profiles yet; run identity resolution first.", code="no_profiles")
+        name, target = "Customer 360 features", _publish_target(cfg.features_dataset_id)
+        description = "Per-customer features from Customer 360 (record/event/ticket counts, RFM). No personal data."
+    version = datasets.publish_frame(name=name, frame=frame, user_id=user_id, classification="internal",
+                                     dataset_id=target, description=description, source="customers")
+    if kind == "training":
+        cfg.training_dataset_id = version.dataset_id
+        cfg.save(update_fields=["training_dataset_id", "updated_at"])
+    else:
+        cfg.features_dataset_id = version.dataset_id
+        cfg.save(update_fields=["features_dataset_id", "updated_at"])
     audit.record("customers.features.publish", target=cfg, request=request,
-                 metadata={"dataset_id": str(version.dataset_id), "version_id": str(version.id),
-                           "rows": frame.height})
+                 metadata={"kind": kind, "dataset_id": str(version.dataset_id), "version_id": str(version.id),
+                           "rows": frame.height, **meta})
     return version
 
 
 def start_scoring(data: Mapping[str, Any], *, user_id, request=None):
-    """POST /customers/scoring-runs. Needs a model in the ML registry with a production/staging version
-    (apps.ml.services.predict_frame); until one exists this is 409 ml_model_required."""
-    score_type = str(data.get("score_type") or "churn")
-    if score_type not in ("churn", "clv"):
-        raise ValidationError({"score_type": ["Must be churn or clv."]})
-    model_id = data.get("model_id")
-    try:
-        from apps.ml import services as ml
-    except ImportError as exc:
-        raise MlModelRequired() from exc
-    predict = getattr(ml, "predict_frame", None)
-    not_ready = getattr(ml, "ModelNotReady", None)
-    if predict is None or not model_id:
-        raise MlModelRequired(extra={"score_type": score_type})
-    frame = features_frame()
-    if frame.height == 0:
-        raise Conflict("There are no customer profiles yet; run identity resolution first.", code="no_profiles")
-    try:
-        predict(model_id, frame.head(1))
-    except Exception as exc:
-        if not_ready is not None and isinstance(exc, not_ready):
-            raise MlModelRequired(extra={"score_type": score_type, "model_id": str(model_id)}) from exc
-        raise
-    from .tasks import score_customers
-
-    job = jobs.create_job("customers.score", user_id=user_id, message="Queued")
-    audit.record("customers.scoring.start", target_type="customers.customerscore", target_id=str(job.id),
-                 request=request, metadata={"score_type": score_type, "model_id": str(model_id)})
-    kwargs = {"org_id": str(require_org_id()), "job_id": str(job.id), "score_type": score_type,
-              "model_id": str(model_id), "actor_id": str(user_id) if user_id else None}
-    transaction.on_commit(lambda: score_customers.delay(**kwargs))
-    return job
+    """POST /customers/scoring-runs -> (run, job). See apps.customers.scoring."""
+    cfg = get_settings()
+    projects = {d for d in (cfg.features_dataset_id, cfg.training_dataset_id) if d}
+    return scoring.start_scoring(data, user_id=user_id, project_datasets=projects, request=request)
 
 
-def run_scoring(*, org_id, job_id, score_type: str, model_id: str) -> dict | None:
-    """Task body: predict_frame over every profile's features -> CustomerScore rows."""
-    from apps.ml import services as ml
-
-    org = UUID(str(org_id))
-    try:
-        with tenant_step(org):
-            jobs.update(job_id, status="running", progress=10, message="Scoring customers")
-            frame = features_frame()
-        scored = ml.predict_frame(model_id, frame, explain=True)
-        now = timezone.now()
-        rows = []
-        for rec in scored.iter_rows(named=True):
-            prob = rec.get("probability")
-            value = {"prediction": _jsonable(rec.get("prediction"))}
-            if prob is not None:
-                value["probability"] = float(prob)
-            rows.append(CustomerScore(
-                org_id=org, profile_id=UUID(rec["profile_id"]), score_type=score_type, value=value,
-                confidence=Decimal(str(round(float(prob), 4))) if prob is not None else None,
-                explanation=_jsonable(rec.get("explanation") or {}), model_id=UUID(str(model_id)), scored_at=now))
-        with tenant_step(org):
-            CustomerScore.objects.bulk_create(rows, batch_size=BATCH)
-            jobs.finish(job_id, result={"scored": len(rows), "score_type": score_type})
-        return {"scored": len(rows)}
-    except Exception as exc:  # noqa: BLE001
-        log.exception("customer scoring failed job=%s", job_id)
-        with tenant_step(org):
-            jobs.fail(job_id, code=getattr(exc, "default_code", "scoring_failed"), message="Customer scoring failed.")
-        return None
+def run_scoring(*, org_id, run_id) -> dict | None:
+    return scoring.run_scoring(org_id=org_id, run_id=run_id)
