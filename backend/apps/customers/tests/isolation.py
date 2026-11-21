@@ -7,7 +7,12 @@ from decimal import Decimal
 
 
 def _base(world):
-    from apps.customers.models import CustomerProfile, CustomerProfileLink, CustomerSource, CustomerSourceRecord
+    from apps.customers.models import (
+        CustomerProfile,
+        CustomerProfileLink,
+        CustomerSource,
+        CustomerSourceRecord,
+    )
 
     found = world.resources.get("customer_base")
     if found is None:
