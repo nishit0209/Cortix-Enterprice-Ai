@@ -247,6 +247,17 @@ def reprocess(doc: Document, *, user_id=None, request=None):
     return job
 
 
+def process_now(doc: Document, *, user_id=None) -> tuple:
+    """Re-run processing synchronously (automation `documents.process`: already on a worker). -> (job, result)"""
+    job = jobs.create_job("document_process", user_id=user_id, message="Queued")
+    doc.status = "processing"
+    doc.error = doc.error_code = ""
+    doc.last_job_id = job.id
+    doc.save(update_fields=["status", "error", "error_code", "last_job_id", "updated_at"])
+    audit.record("document.reprocess", target=doc, metadata={"job_id": str(job.id), "via": "automation"})
+    return job, run_processing(org_id=require_org_id(), document_id=doc.id, job_id=job.id)
+
+
 def set_classification(doc: Document, classification: str, *, attest: bool, user_id, request=None) -> Document:
     before = doc.classification
     _apply_classification(doc, classification, attest=attest, user_id=user_id)
@@ -405,6 +416,23 @@ def _notify_failed(org, document_id) -> None:
         log.warning("documents: failure notification skipped", exc_info=True)
 
 
+def _emit_processed(doc: Document, result: dict) -> None:
+    """Automation event `document.processed` (metadata only, never document text). A no-op without workflows."""
+    try:
+        from apps.automation.events import emit
+    except ImportError:
+        return
+    try:
+        with transaction.atomic():
+            emit("document.processed", {
+                "document_id": str(doc.id), "title": doc.title, "doc_type": doc.doc_type,
+                "classification": doc.classification, "collection_id": str(doc.collection_id)
+                if getattr(doc, "collection_id", None) else None,
+                **{k: result.get(k) for k in ("pages", "chunks", "entities", "tables", "language")}})
+    except Exception:  # noqa: BLE001 - an automation hiccup never fails document processing
+        log.warning("documents: document.processed event not emitted", exc_info=True)
+
+
 def run_processing(*, org_id, document_id, job_id) -> dict | None:
     """Celery body (queue "ml"). Short tenant transactions around I/O; heavy work runs outside transactions."""
     org = UUID(str(org_id))
@@ -440,6 +468,7 @@ def run_processing(*, org_id, document_id, job_id) -> dict | None:
                                                           "language", "ocr_pages", "ocr_unavailable_pages")})
             jobs.finish(job_id, result=result)
             _notify_processed(doc)
+            _emit_processed(doc, result)
         return result
     except ExtractionError as exc:
         _fail(org, document_id, job_id, exc.code, exc.message)

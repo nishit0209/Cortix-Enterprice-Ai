@@ -327,7 +327,7 @@ def _publish_frame():
     return fn
 
 
-def start_batch_prediction(model: MLModel, *, user_id, data: dict, request=None):
+def start_batch_prediction(model: MLModel, *, user_id, data: dict, request=None, inline: bool = False):
     """Validate synchronously (version can serve, the caller may read every feature), then enqueue."""
     from apps.datasets.models import ATTESTED_CLASSIFICATIONS
     from apps.datasets.services import get_dataset
@@ -361,6 +361,9 @@ def start_batch_prediction(model: MLModel, *, user_id, data: dict, request=None)
               "output_dataset_id": str(out_id) if out_id else None, "explain": bool(data.get("explain")),
               "user_id": str(user_id) if user_id else None, "actor_id": str(user_id) if user_id else None,
               "classification": classification, "attest": bool(data.get("attest"))}
+    if inline:  # automation step: already on a worker, score now and return the result as a 3rd element
+        kwargs.pop("actor_id")
+        return job, mv, run_batch_prediction(**kwargs)
     transaction.on_commit(lambda: run_batch_prediction_task.delay(**kwargs))
     return job, mv
 

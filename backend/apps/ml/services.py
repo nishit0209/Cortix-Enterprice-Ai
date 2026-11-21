@@ -57,9 +57,10 @@ from .models import DatasetSnapshot, Experiment, MLModel, MLProject, ModelVersio
 log = logging.getLogger("nexora.ml")
 
 __all__ = [
-    "MLInvalid", "ModelNotReady", "PolicyExcludedColumns", "PredictionInputInvalid", "compare", "create_project", "get_experiment", "get_model",
-    "get_project", "monitoring", "predict_frame", "predict_rows", "promote", "recommendations", "register",
-    "run_drift_all", "start_batch_prediction", "start_eda", "start_experiments", "start_snapshot",
+    "MLInvalid", "ModelNotReady", "PolicyExcludedColumns", "PredictionInputInvalid", "apply_promotion", "compare",
+    "create_project", "get_experiment", "get_model", "get_project", "monitoring", "predict_frame", "predict_rows",
+    "production_needs_approval", "promote", "recommendations", "register", "request_promotion", "run_drift_all",
+    "start_batch_prediction", "start_eda", "start_experiments", "start_snapshot",
 ]
 
 PROFILE_ROWS = 20_000
@@ -481,7 +482,9 @@ def run_snapshot(*, org_id, snapshot_id, job_id, user_id=None) -> dict | None:
 
 
 # ------------------------------------------------------------------------------------------------ experiments
-def start_experiments(project: MLProject, *, user_id, data: dict, request=None):
+def start_experiments(project: MLProject, *, user_id, data: dict, request=None, inline: bool = False):
+    """Create the experiments + job and enqueue training (queue "ml"). `inline=True` (automation steps, which
+    already run on a background worker) trains synchronously and returns the run's result as a 4th element."""
     if project.status != "active":
         raise ProjectNotReady("This project is archived.")
     algos = list(dict.fromkeys(data.get("algorithms") or ([data["algorithm"]] if data.get("algorithm") else [])))
@@ -540,6 +543,9 @@ def start_experiments(project: MLProject, *, user_id, data: dict, request=None):
     kwargs = {"org_id": str(require_org_id()), "job_id": str(job.id), "experiment_ids": [str(e.id) for e in created],
               "snapshot_id": str(snap.id), "user_id": str(user_id) if user_id else None,
               "actor_id": str(user_id) if user_id else None}
+    if inline:
+        kwargs.pop("actor_id")
+        return created, job, snap, run_training(**kwargs)
     transaction.on_commit(lambda: run_training_task.delay(**kwargs))
     return created, job, snap
 
@@ -761,7 +767,8 @@ def register(experiment: Experiment, *, user_id, data: dict | None = None, reque
 PROMOTE_STAGES = ("staging", "production", "archived")
 
 
-def promote(model: MLModel, version_no: int, stage: str, *, user_id, request=None) -> ModelVersion:
+def promote(model: MLModel, version_no: int, stage: str, *, user_id, request=None,
+            approval_id=None) -> ModelVersion:
     """CONTRACT "Promotion (W4)": one production version per model; the previous one becomes archived."""
     if stage not in PROMOTE_STAGES:
         raise ValidationError({"stage": [f"Use one of {', '.join(PROMOTE_STAGES)}."]})
@@ -784,7 +791,88 @@ def promote(model: MLModel, version_no: int, stage: str, *, user_id, request=Non
         version.save(update_fields=["stage", "promoted_by", "promoted_at", "updated_at"])
     audit.record("ml.model.promote", target=version, request=request,
                  changes={"before": {"stage": before}, "after": {"stage": stage}},
-                 metadata={"model_id": str(model.id), "version": version.version, "archived_versions": demoted})
+                 metadata={"model_id": str(model.id), "version": version.version, "archived_versions": demoted,
+                           **({"approval_id": str(approval_id)} if approval_id else {})})
+    return version
+
+
+# ------------------------------------------------------------------------------------- promotion approvals
+PROMOTION_APPROVAL_KIND = "model_promotion"
+PROMOTION_HOOK = "apps.ml.services.apply_promotion"
+
+
+def production_needs_approval() -> bool:
+    """CONTRACT "W5 additions / Approvals": production promotion goes through an approval. The automation app
+    provides `request_approval`; `ML_PRODUCTION_REQUIRES_APPROVAL=False` turns the gate off for an install."""
+    if not getattr(settings, "ML_PRODUCTION_REQUIRES_APPROVAL", True):
+        return False
+    return _request_approval_fn() is not None
+
+
+def _request_approval_fn():
+    try:
+        from apps.automation import services as automation
+    except ImportError:  # pragma: no cover - automation ships with the platform from W5
+        return None
+    return getattr(automation, "request_approval", None)
+
+
+def request_promotion(model: MLModel, version_no: int, stage: str, *, user_id, request=None):
+    """The promote route. Returns ("promoted", ModelVersion) or ("pending", ApprovalRequest).
+
+    Staging/archived are immediate. Production creates an approval request (approver permission `ml.promote`,
+    impact high: the decision needs password re-auth); the version is promoted by `apply_promotion` when the
+    approval is granted."""
+    if stage not in PROMOTE_STAGES:
+        raise ValidationError({"stage": [f"Use one of {', '.join(PROMOTE_STAGES)}."]})
+    version = get_version(model, int(version_no))
+    if stage != "production" or not production_needs_approval():
+        return "promoted", promote(model, int(version_no), stage, user_id=user_id, request=request)
+    if version.stage == "production":
+        return "promoted", version
+    metrics = version.metrics or {}
+    payload = {
+        "model_id": str(model.id), "model_name": model.name, "version": version.version, "stage": "production",
+        "algorithm": version.algorithm, "task_type": model.task_type,
+        "primary_metric": metrics.get("primary_metric"), "primary_value": metrics.get("primary_value"),
+        "current_production": next((v.version for v in model.versions.all() if v.stage == "production"), None),
+        "hook": PROMOTION_HOOK,
+    }
+    approval = _request_approval_fn()(
+        kind=PROMOTION_APPROVAL_KIND, title=f"Promote {model.name} v{version.version} to production"[:200],
+        payload=payload, approver_permission="ml.promote", impact="high", requested_by=user_id)
+    audit.record("ml.model.promotion_requested", target=version, request=request, metadata={
+        "model_id": str(model.id), "version": version.version, "approval_id": str(approval.id)})
+    return "pending", approval
+
+
+def _approval_value(approval, *names, default=None):
+    for name in names:
+        value = getattr(approval, name, None) if not isinstance(approval, dict) else approval.get(name)
+        if value is not None:
+            return value
+    return default
+
+
+def apply_promotion(approval) -> ModelVersion | None:
+    """Hook called by apps.automation when a `model_promotion` approval is decided (inside the org's tenant
+    context). Approved -> the version becomes production (the previous one archived). Anything else -> no-op."""
+    status_ = str(_approval_value(approval, "status", default="")).lower()
+    if status_ not in ("approved", "granted"):
+        return None
+    payload = _approval_value(approval, "payload", default={}) or {}
+    model = MLModel.objects.filter(id=_uuid(payload.get("model_id"))).first()
+    if model is None:
+        log.warning("ml: approved promotion %s points at a missing model", _approval_value(approval, "id"))
+        return None
+    decided_by = _approval_value(approval, "decided_by_id", "decided_by")
+    decided_by = getattr(decided_by, "pk", decided_by)
+    stage = payload.get("stage") or "production"
+    version = promote(model, int(payload["version"]), stage, user_id=decided_by,
+                      approval_id=_approval_value(approval, "id"))
+    _notify([_approval_value(approval, "requested_by_id", "requested_by")], "ml.model_promoted",
+            f"{model.name} v{version.version} is now in {stage}", "The promotion was approved.",
+            model_link(model.id))
     return version
 
 

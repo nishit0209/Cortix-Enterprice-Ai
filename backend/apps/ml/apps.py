@@ -11,3 +11,6 @@ class MlConfig(AppConfig):
         from . import serving
 
         serving.register_periodic_job()  # "ml.drift" hourly: PSI drift (+ label performance) per serving model
+        from .steps import register_steps
+
+        register_steps()  # automation step kinds ml.train / ml.batch_predict (no-op without apps.automation)

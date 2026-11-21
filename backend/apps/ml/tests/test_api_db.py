@@ -92,7 +92,8 @@ def test_project_eda_recommendations_and_leakage(env):
     assert project["id"] in {p["id"] for p in listed["items"]}
 
 
-def test_train_compare_register_promote_predict_monitor(env):
+def test_train_compare_register_promote_predict_monitor(env, settings):
+    settings.ML_PRODUCTION_REQUIRES_APPROVAL = False  # the W4 direct flow; approvals: test_w5_automation_db
     project = _project(env)
     lr = _train(env, project["id"], "logistic_regression")
     rf = _train(env, project["id"], "random_forest")
