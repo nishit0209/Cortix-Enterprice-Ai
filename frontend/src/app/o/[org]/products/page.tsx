@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { ProductsView } from "@/components/products/products-view";
 
 export default function ProductsPage() {
-  return <PlannedModule id="products" />;
+  return <ProductsView />;
 }

@@ -75,10 +75,11 @@ describe("WidgetCard renders live /widgets/{id}/data", () => {
     expect(screen.getByText("Showing the first 2 rows")).toBeInTheDocument();
   });
 
-  it("renders a chart widget from the data (no error, no empty state)", async () => {
+  it("renders a chart widget from the data (no error, no empty state)", { timeout: 20_000 }, async () => {
     stubApi(() => json(data()));
     const { container } = renderWidget({ kind: "chart" });
-    await waitFor(() => expect(container.querySelector(".recharts-responsive-container")).not.toBeNull());
+    // The chart module is loaded lazily (components/lazy-charts), so allow for the dynamic import.
+    await waitFor(() => expect(container.querySelector(".recharts-responsive-container")).not.toBeNull(), { timeout: 15_000 });
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.queryByText("The query returned no rows.")).toBeNull();
   });

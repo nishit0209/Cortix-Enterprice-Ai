@@ -5,7 +5,8 @@ import { AlertTriangle, BarChart3, FileQuestion, GripVertical, Lock, MoreHorizon
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/feedback";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, Tooltip } from "@/components/ui/overlays";
-import { ResultChart, formatValue } from "@/components/ask/result-chart";
+import { formatValue } from "@/components/ask/chart-meta";
+import { ResultChart } from "@/components/lazy-charts";
 import { ResultTable } from "@/components/ask/result-table";
 import { chartSpecFor, kpiFromData, widgetErrorState } from "@/lib/dashboards/widgets";
 import { useWidgetData } from "@/lib/queries/dashboards";

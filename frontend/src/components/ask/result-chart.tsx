@@ -20,67 +20,18 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { AreaChart as AreaIcon, BarChart3, Gauge, LineChart as LineIcon, PieChart as PieIcon, ScatterChart as ScatterIcon, Table2 } from "lucide-react";
 import { CHART_COLORS, ChartTooltip, chartTheme } from "@/components/ui/chart-card";
 import type { ChartSpec } from "@/lib/chat/chart";
-import { toNumber } from "@/lib/chat/chart";
-import type { ChartType } from "@/lib/types";
-import { cn, formatNumber, titleCase } from "@/lib/utils";
+import { titleCase } from "@/lib/utils";
 
-export const CHART_TYPE_META: Record<ChartType, { label: string; icon: React.ReactNode }> = {
-  bar: { label: "Bar", icon: <BarChart3 /> },
-  line: { label: "Line", icon: <LineIcon /> },
-  area: { label: "Area", icon: <AreaIcon /> },
-  pie: { label: "Pie", icon: <PieIcon /> },
-  scatter: { label: "Scatter", icon: <ScatterIcon /> },
-  kpi: { label: "KPI", icon: <Gauge /> },
-  table: { label: "Table", icon: <Table2 /> },
-};
+import { CHART_TYPE_META, ChartTypeSwitcher, formatValue } from "./chart-meta";
 
-export function formatValue(v: unknown): string {
-  const n = toNumber(v);
-  if (n === null) return v === null || v === undefined ? "—" : String(v);
-  if (Math.abs(n) >= 1000) return formatNumber(n, { compact: Math.abs(n) >= 100_000 });
-  return Number.isInteger(n) ? String(n) : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-}
+export { CHART_TYPE_META, ChartTypeSwitcher, formatValue };
 
 function shortLabel(v: unknown): string {
   const s = String(v ?? "—");
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
   return s.length > 14 ? `${s.slice(0, 13)}…` : s;
-}
-
-/** Chart type switcher (segmented control). */
-export function ChartTypeSwitcher({
-  types,
-  value,
-  onChange,
-}: {
-  types: ChartType[];
-  value: ChartType;
-  onChange: (t: ChartType) => void;
-}) {
-  return (
-    <div className="flex rounded-control border border-border p-0.5" role="radiogroup" aria-label="Chart type">
-      {types.map((t) => (
-        <button
-          key={t}
-          type="button"
-          role="radio"
-          aria-checked={value === t}
-          aria-label={CHART_TYPE_META[t].label}
-          title={CHART_TYPE_META[t].label}
-          onClick={() => onChange(t)}
-          className={cn(
-            "flex size-7 items-center justify-center rounded-[4px] text-fg-subtle transition-colors focus-ring [&_svg]:size-3.5",
-            value === t ? "bg-surface-2 text-fg shadow-xs" : "hover:text-fg",
-          )}
-        >
-          {CHART_TYPE_META[t].icon}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 export function ResultChart({ spec, height = 280 }: { spec: ChartSpec; height?: number }) {

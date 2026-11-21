@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Download, FileText, Layers, Loader2, ScanText, Search, Table2, Tags, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Download, FileText, Layers, Loader2, ScanSearch, ScanText, Search, Table2, Tags, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useOrgContext, useSetBreadcrumb } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import type { DocumentEntity, DocumentTable } from "@/lib/types";
 import { cn, formatBytes, formatDateTime, formatNumber, titleCase } from "@/lib/utils";
 import { DocumentAskPanel } from "./ask-panel";
 import { SearchPanel } from "./documents-view";
+import { CollectionPicker, ExtractPanel, PromoteTableButton } from "./document-extras";
 
 function Unavailable({ what, error, onRetry }: { what: string; error: unknown; onRetry: () => void }) {
   return isUnavailableEndpoint(error) ? (
@@ -169,7 +170,8 @@ export function DocumentDetail() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <CollectionPicker document={d} />
             {d.download_url && (
               <Button
                 variant="secondary"
@@ -246,6 +248,9 @@ export function DocumentDetail() {
             </TabsTrigger>
             <TabsTrigger value="search">
               <Search /> Search
+            </TabsTrigger>
+            <TabsTrigger value="extract">
+              <ScanSearch /> Extract
             </TabsTrigger>
           </TabsList>
           <TabsContent value="pages">
@@ -366,13 +371,22 @@ export function DocumentDetail() {
             ) : (
               <div className="space-y-4">
                 {(tables.data ?? []).map((t) => (
-                  <DocTableCard key={t.id} table={t} onPage={goPage} />
+                  <DocTableCard key={t.id} table={t} onPage={goPage} documentId={d.id} />
                 ))}
               </div>
             )}
           </TabsContent>
           <TabsContent value="search">
             <SearchPanel org={slug} titles={new Map([[d.id, d.title]])} documentIds={[d.id]} onOpen={(_, p) => goPage(p)} />
+          </TabsContent>
+          <TabsContent value="extract">
+            {ready ? (
+              <ExtractPanel documentId={d.id} onPage={goPage} />
+            ) : (
+              <Card>
+                <EmptyState compact icon={<Loader2 className="animate-spin" />} title="Not ready yet" />
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
         {can("documents.ask") && ready && (
@@ -402,7 +416,7 @@ export function DocumentDetail() {
   );
 }
 
-function DocTableCard({ table, onPage }: { table: DocumentTable; onPage: (p: number) => void }) {
+function DocTableCard({ table, onPage, documentId }: { table: DocumentTable; onPage: (p: number) => void; documentId: string }) {
   const width = Math.max(table.header?.length ?? 0, ...(table.rows ?? []).map((r) => (Array.isArray(r) ? r.length : 0)));
   const columns = Array.from({ length: width }, (_, i) => String(table.header?.[i] || `col_${i + 1}`));
   const title = table.title || `Table ${table.index + 1}`;
@@ -413,11 +427,14 @@ function DocTableCard({ table, onPage }: { table: DocumentTable; onPage: (p: num
         title={title}
         description={table.truncated ? `Showing the first ${table.rows.length} of ${table.n_rows ?? "?"} rows` : undefined}
         actions={
-          table.page ? (
-            <Button variant="ghost" size="xs" onClick={() => onPage(table.page ?? 1)}>
-              Page {table.page}
-            </Button>
-          ) : undefined
+          <>
+            <PromoteTableButton documentId={documentId} table={table} title={title} />
+            {table.page ? (
+              <Button variant="ghost" size="xs" onClick={() => onPage(table.page ?? 1)}>
+                Page {table.page}
+              </Button>
+            ) : null}
+          </>
         }
       />
       <CardContent>{columns.length ? <ResultTable columns={columns} rows={table.rows ?? []} caption={title} /> : <p className="text-sm text-fg-muted">Empty table.</p>}</CardContent>

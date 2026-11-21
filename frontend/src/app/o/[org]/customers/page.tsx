@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { CustomersView } from "@/components/customers/customers-view";
 
 export default function CustomersPage() {
-  return <PlannedModule id="customers" />;
+  return <CustomersView />;
 }

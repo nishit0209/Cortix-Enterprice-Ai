@@ -13,8 +13,8 @@ import { ALL_NAV_ITEMS } from "@/lib/nav";
 // vite-node provides __dirname (import.meta.url is not a file: URL under jsdom); fall back to <cwd>/src.
 const SRC = typeof __dirname === "string" ? resolve(__dirname, "..") : resolve(process.cwd(), "src");
 
-/** Modules that are not built yet (docs/FEATURE_STATUS.md: W4 ML workspace + governance UI, W5 C360/P360, W6 automation). */
-const PLANNED_ALLOWED = new Set(["ml", "customers", "products", "automation", "policies"]);
+/** Modules that are not built yet. Since wave 5 every module is built, so nothing may be "Planned". */
+const PLANNED_ALLOWED = new Set<string>();
 
 /** Demo-data markers: [what it catches, pattern]. Matched per line of application code. */
 const DEMO_DATA_MARKERS: Array<[string, RegExp]> = [

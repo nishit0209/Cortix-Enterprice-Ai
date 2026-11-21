@@ -835,6 +835,8 @@ export interface DocumentItem {
   classification: Classification;
   classification_attested_at?: ISODate | null;
   doc_type?: string | null;
+  /** W5: optional collection (document-collections). */
+  collection_id?: UUID | null;
   status: "processing" | "ready" | "failed" | string;
   page_count: number | null;
   language?: string | null;
@@ -901,6 +903,8 @@ export interface DocumentTable {
   n_rows?: number;
   n_cols?: number;
   truncated?: boolean;
+  /** W5: set once the table was promoted to a dataset. */
+  promoted_dataset_id?: UUID | null;
 }
 
 export interface DocumentSearchHit {

@@ -30,12 +30,9 @@ import { cn, formatNumber } from "@/lib/utils";
 import type { ConfusionMatrix, CurvePoint, FeatureDrift, Importance, ResidualPoint } from "@/lib/ml/types";
 import { PSI_MODERATE, PSI_STABLE, PSI_TONE, confusionCells } from "@/lib/ml/mappers";
 
-export const fmtMetric = (v: unknown): string => {
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return "—";
-  if (Math.abs(n) >= 1000) return formatNumber(n, { compact: true });
-  return n.toFixed(Math.abs(n) < 1 ? 3 : 2);
-};
+import { fmtMetric } from "./format";
+
+export { fmtMetric };
 
 const tick = (v: unknown) => fmtMetric(v);
 

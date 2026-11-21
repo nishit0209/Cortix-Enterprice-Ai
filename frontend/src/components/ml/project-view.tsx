@@ -22,7 +22,8 @@ import type { Eda, MlProject, Recommendation } from "@/lib/ml/types";
 import { useMlEda, useMlProject, useMlRecommendations, useRunEda } from "@/lib/queries/ml";
 import { cn, formatDateTime, formatNumber, formatPercent } from "@/lib/utils";
 import { MlError, TaskBadge } from "./common";
-import { CorrelationHeatmap, CountBars, HBarChart, fmtMetric } from "./ml-charts";
+import { fmtMetric } from "./format";
+import { CorrelationHeatmap, CountBars, HBarChart } from "@/components/lazy-charts";
 import { TrainTab } from "./train-tab";
 import { ExperimentsTab } from "./experiments-tab";
 

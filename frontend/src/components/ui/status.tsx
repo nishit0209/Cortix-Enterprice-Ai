@@ -37,6 +37,16 @@ const STATUS_TONES: Record<string, { tone: Tone; pulse?: boolean; label?: string
   retired: { tone: "neutral" },
   disabled: { tone: "neutral" },
   deleted: { tone: "danger" },
+  pending_review: { tone: "warning", label: "Pending review" },
+  needs_review: { tone: "warning", label: "Needs review" },
+  waiting_approval: { tone: "warning", pulse: true, label: "Waiting for approval" },
+  proposed: { tone: "info" },
+  confirmed: { tone: "success" },
+  approved: { tone: "success" },
+  auto_merged: { tone: "success", label: "Auto-merged" },
+  extracted: { tone: "info" },
+  skipped: { tone: "neutral" },
+  synced: { tone: "success" },
 };
 
 /** Run/job/resource status pill (queued, running, succeeded, failed, retrying, ...). */

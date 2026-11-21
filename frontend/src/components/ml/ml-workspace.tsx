@@ -22,7 +22,7 @@ import { servingVersion } from "@/lib/ml/mappers";
 import type { MlModel, MlProject } from "@/lib/ml/types";
 import { useDeleteMlProject, useMlModels, useMlProjects } from "@/lib/queries/ml";
 import { formatNumber, formatRelative } from "@/lib/utils";
-import { fmtMetric } from "./ml-charts";
+import { fmtMetric } from "./format";
 import { MlError, StageBadge, TaskBadge } from "./common";
 
 export function MlWorkspace() {
