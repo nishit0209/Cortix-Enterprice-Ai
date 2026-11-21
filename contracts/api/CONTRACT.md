@@ -369,3 +369,40 @@ Platform routes require `User.is_platform_admin` and use the `ops` alias. They *
 - **Determinism:** a `random_state` is recorded on every experiment.
 - **Explanations:** local SHAP (TreeExplainer for tree models, LinearExplainer for linear models, a permutation fallback); bounded to the first 1,000 rows.
 - **Gemini** is used only for the optional EDA/metrics narration, through `GeminiService` and the policy gate. Never row values on the free tier.
+
+## W5 (FINAL wave) additions (binding; Integrator 2026-11-21)
+
+These are binding: `docs/API_SPECIFICATION.md` Phase 10 (automation and agents), Phase 8 (document intelligence: rows not yet built), Phase 6 `scoring-runs`.
+
+### Automation step registry (Backend owns `apps.automation`)
+
+- **`apps.automation.registry.register_step(kind: str, handler, *, schema: dict, impact: "low"|"high" = "low")`.**
+  - Each app registers its own step kinds in `AppConfig.ready()`, importing the registry lazily.
+  - A handler is `handler(ctx: StepContext, config: dict) -> dict` (the JSON output). It runs inside `tenant_context` as the run's actor.
+  - Every step re-checks the actor's permissions (no privilege escalation).
+- **Built-in step kinds (Backend):** `condition`, `notify`, `approval` (pauses the run until decided), `wait`.
+- **Required app step kinds:**
+  - Data Engineering: `pipelines.run`, `customers.resolve`, `customers.score`, `products.normalize`;
+  - Backend: `bi.saved_query` (runs through the guard under the actor's policy);
+  - AI/ML: `ml.batch_predict`, `ml.train`, `documents.process`.
+- **Triggers:**
+  - `schedule` (cron, via `core.scheduler`);
+  - `webhook` (HMAC-SHA256 over the raw body with the trigger secret; reject bodies older than 5 minutes via a timestamp header; no session);
+  - `event`: `dataset.ingest_finished`, `pipeline.run_failed`, `pipeline.run_succeeded`, `document.processed`. Producers call `apps.automation.events.emit(kind, payload)`, imported lazily and a no-op when no workflow matches.
+
+### Approvals
+
+- `apps.automation.services.request_approval(*, kind, title, payload, approver_permission, impact, requested_by) -> ApprovalRequest`.
+- Decisions for `impact="high"` require password re-auth.
+- **ML promotion to `production` now creates an approval** (`approver_permission="ml.promote"`, `impact="high"`) and returns 202 with `approval_id`. The version is promoted when the approval is granted, via the hook `apps.ml.services.apply_promotion(approval)`.
+- Staging promotion stays immediate (200).
+
+### Agents (`/agents`)
+
+- An agent config is a tools allowlist (registered step kinds only), scopes and approval rules.
+- Agent planning MAY use Gemini only through `GeminiService` and the policy gate, with schema and step metadata only (never row values on the free tier).
+- Every tool call is an audited step run. `impact="high"` tools always require approval.
+
+### Errors
+
+- Problem responses MUST be served with `Content-Type: application/problem+json`. Set `response.content_type`; DRF otherwise overwrites the header (W4 defect).
