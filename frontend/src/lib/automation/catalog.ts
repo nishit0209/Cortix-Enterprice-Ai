@@ -62,7 +62,15 @@ export const BUILTIN_STEPS: StepKind[] = [
     category: "control",
     impact: "low",
     registered: false,
-    schema: s({ title: { type: "string", title: "Title" }, message: { type: "string", title: "Message" }, permission: { type: "string", title: "Notify holders of permission", description: "Empty: the workflow owner" } }, ["title"]),
+    schema: s(
+      {
+        title: { type: "string", title: "Title" },
+        body: { type: "string", title: "Message" },
+        recipients: { title: "Recipients", enum: ["actor", "permission"], description: "actor: whoever the run acts for" },
+        permission: { type: "string", title: "Permission (for recipients = permission)" },
+      },
+      ["title"],
+    ),
   },
   {
     kind: "approval",
@@ -75,9 +83,10 @@ export const BUILTIN_STEPS: StepKind[] = [
       {
         title: { type: "string", title: "Title" },
         approver_permission: { type: "string", title: "Approver permission", default: "automation.manage" },
-        impact: { type: "string", title: "Impact", enum: ["low", "high"], default: "low", description: "High impact decisions need password re-authentication." },
+        impact: { type: "string", title: "Impact", enum: ["low", "medium", "high"], default: "low", description: "High impact decisions need password re-authentication." },
+        expires_in_hours: { type: "integer", title: "Expires after (hours)", minimum: 1, maximum: 720 },
       },
-      ["title", "approver_permission"],
+      ["title"],
     ),
   },
   {

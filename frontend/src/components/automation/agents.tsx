@@ -14,7 +14,7 @@ import { EmptyState, Skeleton } from "@/components/ui/feedback";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { CATEGORY_LABELS, type StepKind } from "@/lib/automation/catalog";
-import type { AgentConfig } from "@/lib/automation/graph";
+import { formatScopes, parseScopes, type AgentConfig } from "@/lib/automation/graph";
 import { errorMessage } from "@/lib/errors";
 import { useAgents, useDeleteAgent, useSaveAgent, useStepCatalog } from "@/lib/queries/automation";
 import { formatRelative } from "@/lib/utils";
@@ -70,7 +70,7 @@ export function AgentsPanel() {
                     ))}
                   </div>
                   <p className="text-[11px] text-fg-subtle">
-                    Approval required for: {a.approval_required_for.join(", ") || "high"} impact · updated {formatRelative(a.updated_at)}
+                    Approval required for: {a.approval_required_for.join(", ") || "high"} · updated {formatRelative(a.updated_at)}
                   </p>
                 </div>
                 {canManage && (
@@ -118,7 +118,8 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
   const [description, setDescription] = React.useState("");
   const [tier, setTier] = React.useState("fast");
   const [tools, setTools] = React.useState<string[]>([]);
-  const [scopes, setScopes] = React.useState("");
+  const [scopes, setScopes] = React.useState<Record<string, string>>({});
+  const [approveTools, setApproveTools] = React.useState<string[]>([]);
   const [maxSteps, setMaxSteps] = React.useState("8");
   const [lowNeedsApproval, setLowNeedsApproval] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -129,7 +130,8 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
     setDescription(existing?.description ?? "");
     setTier(existing?.model_tier ?? "fast");
     setTools(existing?.allowed_tools ?? []);
-    setScopes((existing?.scopes ?? []).join(", "));
+    setScopes(Object.fromEntries(Object.entries(existing?.tool_scopes ?? {}).map(([t, s]) => [t, formatScopes(s)])));
+    setApproveTools((existing?.approval_required_for ?? []).filter((r) => r !== "low" && r !== "high"));
     setMaxSteps(String(existing?.max_steps ?? 8));
     setLowNeedsApproval(!!existing?.approval_required_for.includes("low"));
     setError(null);
@@ -147,6 +149,12 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
     if (!tools.length) return setError("Allow at least one tool.");
     const n = Number(maxSteps);
     if (!Number.isInteger(n) || n < 1 || n > 50) return setError("Max steps must be 1-50.");
+    const tool_scopes: Record<string, Record<string, string[]>> = {};
+    for (const t of tools) {
+      const { scopes: parsed, error: e } = parseScopes(scopes[t] ?? "");
+      if (e) return setError(`${t}: ${e}`);
+      if (Object.keys(parsed).length) tool_scopes[t] = parsed;
+    }
     try {
       await save.mutateAsync({
         id: existing?.id,
@@ -154,9 +162,9 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
         description: description.trim() || undefined,
         model_tier: tier,
         allowed_tools: tools,
-        scopes: scopes.split(",").map((x) => x.trim()).filter(Boolean),
+        tool_scopes,
         max_steps: n,
-        approval_required_for: lowNeedsApproval ? ["low", "high"] : ["high"],
+        approval_required_for: [...(lowNeedsApproval ? ["low"] : []), "high", ...approveTools.filter((t) => tools.includes(t))],
       });
       toast.success(existing ? "Agent updated" : "Agent created");
       onClose();
@@ -205,9 +213,28 @@ function AgentDialog({ agent, onClose, steps }: { agent: AgentConfig | "new" | n
               ))}
             </div>
           </fieldset>
-          <Field id="ag-scopes" label="Scopes" hint="Permissions the agent acts with, e.g. pipelines.run, datasets.view. They can never exceed those of the person who runs it.">
-            <Input id="ag-scopes" value={scopes} onChange={(e) => setScopes(e.target.value)} />
-          </Field>
+          {tools.length > 0 && (
+            <fieldset className="space-y-2">
+              <legend className="mb-1 text-xs font-medium">Per-tool limits</legend>
+              <p className="text-[11px] text-fg-subtle">
+                Optional. Restrict config values, e.g. <code>pipeline_id = &lt;id&gt;, &lt;id&gt;</code>. Steps always run with the permissions of the person the agent acts for.
+              </p>
+              {tools.map((t) => (
+                <div key={t} className="grid items-center gap-2 sm:grid-cols-[10rem_1fr_auto]">
+                  <span className="truncate font-mono text-xs">{t}</span>
+                  <Input value={scopes[t] ?? ""} onChange={(e) => setScopes((s) => ({ ...s, [t]: e.target.value }))} placeholder="key = value1, value2; key2 = value" aria-label={`Scope for ${t}`} />
+                  <label className="flex items-center gap-1.5 text-xs">
+                    <Checkbox
+                      checked={approveTools.includes(t) || steps.find((s) => s.kind === t)?.impact === "high"}
+                      disabled={steps.find((s) => s.kind === t)?.impact === "high"}
+                      onCheckedChange={(c) => setApproveTools((a) => (c === true ? [...a, t] : a.filter((x) => x !== t)))}
+                    />
+                    Approve
+                  </label>
+                </div>
+              ))}
+            </fieldset>
+          )}
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={lowNeedsApproval} onCheckedChange={(c) => setLowNeedsApproval(c === true)} />
             Also require approval for low-impact tools (high impact always does)

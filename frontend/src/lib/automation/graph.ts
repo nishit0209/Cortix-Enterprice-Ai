@@ -1,11 +1,19 @@
 /**
- * Workflow graph (the `graph` of a workflow version: DATABASE_SCHEMA `workflow_version.graph`) and the tolerant
- * mappers for `apps.automation` payloads. Wire format sent by the builder:
- *   {nodes: [{id, kind, name, config, position}], edges: [{from, to, branch?: "true"|"false"}]}
- * Reading also accepts `steps` for nodes, `type`/`key` aliases and `source`/`target` edges.
+ * Workflow graph (`workflow_version.graph`), in the `apps.automation.graph` dialect:
+ *   {steps: [{key, kind, name?, config, depends_on?: [key], when?: bool, retries?, retry_backoff_s?, timeout_s?}],
+ *    layout: {<key>: {x, y}}}
+ * A step that depends on a `condition` runs only when the condition's result equals its `when` (default true); the
+ * builder draws that as the condition's "yes"/"no" handle. `layout` only stores canvas positions.
+ * Reading also accepts the canvas dialect ({nodes, edges}) and `id`/`type` aliases.
  */
 
 import { missingRequired, stepKind, type StepKind } from "./catalog";
+
+export interface StepOptions {
+  retries?: number;
+  retry_backoff_s?: number;
+  timeout_s?: number;
+}
 
 export interface WfNode {
   id: string;
@@ -13,6 +21,7 @@ export interface WfNode {
   name: string;
   config: Record<string, unknown>;
   position: { x: number; y: number };
+  options?: StepOptions;
 }
 
 export interface WfEdge {
@@ -26,53 +35,97 @@ export interface WfGraph {
   edges: WfEdge[];
 }
 
+export interface WireStep {
+  key: string;
+  kind: string;
+  name?: string;
+  config: Record<string, unknown>;
+  depends_on?: string[];
+  when?: boolean;
+  retries?: number;
+  retry_backoff_s?: number;
+  timeout_s?: number;
+}
+
+export interface WireGraph {
+  steps: WireStep[];
+  layout: Record<string, { x: number; y: number }>;
+}
+
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
 const str = (v: unknown): string | null => (typeof v === "string" ? v : typeof v === "number" ? String(v) : null);
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
+const OPTION_KEYS = ["retries", "retry_backoff_s", "timeout_s"] as const;
 
 export function graphFromWire(raw: unknown): WfGraph {
   const g = isObj(raw) ? raw : {};
-  const rawNodes = Array.isArray(g.nodes) ? g.nodes : Array.isArray(g.steps) ? g.steps : [];
+  const rawNodes = Array.isArray(g.steps) ? g.steps : Array.isArray(g.nodes) ? g.nodes : [];
+  const layout = isObj(g.layout) ? g.layout : {};
   const nodes: WfNode[] = [];
+  const deps: Array<{ to: string; from: string[]; when: unknown }> = [];
   rawNodes.forEach((n, i) => {
     if (!isObj(n)) return;
-    const id = str(n.id) ?? str(n.key) ?? `step_${i + 1}`;
-    const kind = str(n.kind) ?? str(n.type) ?? str(n.step) ?? "notify";
-    const pos = isObj(n.position) ? n.position : {};
+    const id = str(n.key) ?? str(n.id) ?? `step_${i + 1}`;
+    const pos = isObj(layout[id]) ? (layout[id] as Obj) : isObj(n.position) ? n.position : {};
+    const options: StepOptions = {};
+    for (const k of OPTION_KEYS) {
+      const v = num(n[k]);
+      if (v !== null) options[k] = v;
+    }
     nodes.push({
       id,
-      kind,
-      name: str(n.name) ?? str(n.label) ?? "",
+      kind: str(n.kind) ?? str(n.type) ?? "notify",
+      name: str(n.name) ?? "",
       config: isObj(n.config) ? n.config : {},
       position: { x: num(pos.x) ?? i * 260, y: num(pos.y) ?? 80 },
+      ...(Object.keys(options).length ? { options } : {}),
     });
+    if (Array.isArray(n.depends_on)) deps.push({ to: id, from: n.depends_on.map(str).filter((x): x is string => !!x), when: n.when });
   });
-  const ids = new Set(nodes.map((n) => n.id));
+  const kindOf = new Map(nodes.map((n) => [n.id, n.kind]));
   const edges: WfEdge[] = [];
-  const rawEdges = Array.isArray(g.edges) ? g.edges : [];
-  for (const e of rawEdges) {
-    if (!isObj(e)) continue;
-    const from = str(e.from) ?? str(e.source);
-    const to = str(e.to) ?? str(e.target);
-    if (!from || !to || !ids.has(from) || !ids.has(to)) continue;
-    const b = e.branch ?? e.when ?? e.condition;
-    edges.push({ from, to, ...(b === true || b === "true" ? { branch: "true" as const } : b === false || b === "false" ? { branch: "false" as const } : {}) });
+  for (const d of deps) {
+    for (const from of d.from) {
+      if (!kindOf.has(from)) continue;
+      const branch = kindOf.get(from) === "condition" ? (d.when === false ? "false" : "true") : undefined;
+      edges.push({ from, to: d.to, ...(branch ? { branch } : {}) });
+    }
   }
-  // Older/simple graphs list steps in order with `next` or no edges at all: chain them.
-  if (!rawEdges.length && nodes.length > 1 && !Array.isArray(g.edges)) {
-    for (let i = 1; i < nodes.length; i++) edges.push({ from: nodes[i - 1].id, to: nodes[i].id });
+  if (Array.isArray(g.edges)) {
+    for (const e of g.edges) {
+      if (!isObj(e)) continue;
+      const from = str(e.from) ?? str(e.source);
+      const to = str(e.to) ?? str(e.target);
+      if (!from || !to || !kindOf.has(from) || !kindOf.has(to)) continue;
+      const b = e.branch ?? e.when;
+      edges.push({ from, to, ...(b === true || b === "true" ? { branch: "true" as const } : b === false || b === "false" ? { branch: "false" as const } : {}) });
+    }
   }
   return { nodes, edges };
 }
 
-export function graphToWire(g: WfGraph): WfGraph {
-  return {
-    nodes: g.nodes.map((n) => ({ id: n.id, kind: n.kind, name: n.name, config: n.config, position: { x: Math.round(n.position.x), y: Math.round(n.position.y) } })),
-    edges: g.edges.map((e) => ({ from: e.from, to: e.to, ...(e.branch ? { branch: e.branch } : {}) })),
-  };
+/** The canvas as the server's `steps` graph (dependencies from incoming edges, `when` from a condition branch). */
+export function graphToWire(g: WfGraph): WireGraph {
+  const order = topoOrder(g) ?? g.nodes.map((n) => n.id);
+  const byId = new Map(g.nodes.map((n) => [n.id, n]));
+  const steps: WireStep[] = [];
+  const layout: WireGraph["layout"] = {};
+  for (const id of order) {
+    const n = byId.get(id);
+    if (!n) continue;
+    const incoming = g.edges.filter((e) => e.to === id);
+    const branch = incoming.find((e) => e.branch)?.branch;
+    const step: WireStep = { key: n.id, kind: n.kind, config: n.config };
+    if (n.name.trim()) step.name = n.name.trim();
+    if (incoming.length) step.depends_on = [...new Set(incoming.map((e) => e.from))];
+    if (branch === "false") step.when = false;
+    for (const k of OPTION_KEYS) if (n.options?.[k] !== undefined) step[k] = n.options[k];
+    steps.push(step);
+    layout[n.id] = { x: Math.round(n.position.x), y: Math.round(n.position.y) };
+  }
+  return { steps, layout };
 }
-
 export function newStepId(kind: string, existing: Iterable<string>): string {
   const taken = new Set(existing);
   const base = kind.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "").toLowerCase() || "step";
@@ -112,7 +165,10 @@ export function validateGraph(g: WfGraph, catalog: StepKind[]): GraphIssue[] {
   const ids = new Set<string>();
   for (const n of g.nodes) {
     if (ids.has(n.id)) issues.push({ nodeId: n.id, message: `Duplicate step id ${n.id}.` });
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(n.id)) issues.push({ nodeId: n.id, message: `Step id ${n.id}: lowercase letters, digits and _ only.` });
     ids.add(n.id);
+    const branches = new Set(g.edges.filter((e) => e.to === n.id && e.branch).map((e) => e.branch));
+    if (branches.size > 1) issues.push({ nodeId: n.id, message: `${n.name || n.id}: it can't follow both the "yes" and the "no" branch.` });
     const k = stepKind(catalog, n.kind);
     const missing = missingRequired(k.schema, n.config);
     if (missing.length) issues.push({ nodeId: n.id, message: `${n.name || k.label}: fill in ${missing.join(", ")}.` });
@@ -122,8 +178,7 @@ export function validateGraph(g: WfGraph, catalog: StepKind[]): GraphIssue[] {
     }
   }
   if (g.nodes.length && !topoOrder(g)) issues.push({ message: "The workflow has a cycle; steps must flow one way." });
-  const roots = g.nodes.filter((n) => !g.edges.some((e) => e.to === n.id));
-  if (g.nodes.length > 1 && roots.length > 1) issues.push({ message: `Only one first step is allowed; ${roots.map((r) => r.name || r.id).join(", ")} have no incoming connection.` });
+
   return issues;
 }
 
@@ -212,7 +267,8 @@ export interface AgentConfig {
   description: string;
   model_tier: string;
   allowed_tools: string[];
-  scopes: string[];
+  /** tool kind -> {config key: allowed values} (apps.automation.agents). */
+  tool_scopes: Record<string, Record<string, string[]>>;
   max_steps: number;
   approval_required_for: string[];
   is_active: boolean;
@@ -326,7 +382,15 @@ export function mapApproval(raw: unknown): Approval {
 
 export function mapAgent(raw: unknown): AgentConfig {
   const r = isObj(raw) ? raw : {};
-  const scopes = Array.isArray(r.scopes) ? strings(r.scopes) : Array.isArray(r.tool_scopes) ? strings(r.tool_scopes) : isObj(r.tool_scopes) ? Object.keys(r.tool_scopes) : [];
+  const tool_scopes: AgentConfig["tool_scopes"] = {};
+  if (isObj(r.tool_scopes)) {
+    for (const [tool, keys] of Object.entries(r.tool_scopes)) {
+      if (!isObj(keys)) continue;
+      const entry: Record<string, string[]> = {};
+      for (const [k, vals] of Object.entries(keys)) if (Array.isArray(vals)) entry[k] = strings(vals);
+      tool_scopes[tool] = entry;
+    }
+  }
   const rules = r.approval_rules ?? r.approval_required_for;
   return {
     id: str(r.id) ?? "",
@@ -334,7 +398,7 @@ export function mapAgent(raw: unknown): AgentConfig {
     description: str(r.description) ?? "",
     model_tier: str(r.model_tier) ?? "fast",
     allowed_tools: strings(r.allowed_tools ?? r.tools),
-    scopes,
+    tool_scopes,
     max_steps: num(r.max_steps) ?? 8,
     approval_required_for: Array.isArray(rules) ? strings(rules) : isObj(rules) && Array.isArray(rules.impact) ? strings(rules.impact) : ["high"],
     is_active: r.is_active !== false,
@@ -351,4 +415,24 @@ export function approvalHref(a: Approval, slug: string): string | null {
   if (id("run_id")) return `/o/${slug}/automation/runs/${id("run_id")}`;
   if (id("workflow_id")) return `/o/${slug}/automation/workflows/${id("workflow_id")}`;
   return null;
+}
+
+/** `key = a, b; key2 = c` <-> `{key: [a, b], key2: [c]}` (agent tool scopes). */
+export function parseScopes(text: string): { scopes: Record<string, string[]>; error: string | null } {
+  const scopes: Record<string, string[]> = {};
+  for (const part of text.split(";").map((p) => p.trim()).filter(Boolean)) {
+    const eq = part.indexOf("=");
+    if (eq < 1) return { scopes: {}, error: `"${part}" should look like key = value1, value2` };
+    const key = part.slice(0, eq).trim();
+    const values = part.slice(eq + 1).split(",").map((v) => v.trim()).filter(Boolean);
+    if (!values.length) return { scopes: {}, error: `${key} needs at least one value` };
+    scopes[key] = values;
+  }
+  return { scopes, error: null };
+}
+
+export function formatScopes(scopes: Record<string, string[]> | undefined): string {
+  return Object.entries(scopes ?? {})
+    .map(([k, v]) => `${k} = ${v.join(", ")}`)
+    .join("; ");
 }

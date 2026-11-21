@@ -130,16 +130,30 @@ function VersionsTab({ model }: { model: MlModel }) {
   const { slug, can } = useOrgContext();
   const promote = usePromoteVersion(slug, model.id);
   const [pending, setPending] = React.useState<{ v: ModelVersion; stage: Stage } | null>(null);
+  const [requested, setRequested] = React.useState<{ version: number; approvalId: string } | null>(null);
   const canPromote = can("ml.promote");
   const current = model.versions.find((v) => v.stage === "production");
   const metricKeys = Array.from(new Set(model.versions.flatMap((v) => Object.keys(v.metrics)))).slice(0, 4);
 
   return (
     <>
+      {requested && (
+        <Card role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 border-info/40 bg-info-soft p-4 text-sm">
+          <span>
+            <Badge tone="info" className="mr-2">
+              Approval requested
+            </Badge>
+            Version {requested.version} moves to production once an approver with ml.promote accepts it (password re-authentication required).
+          </span>
+          <Button size="sm" variant="secondary" asChild>
+            <Link href={`/o/${slug}/automation?tab=approvals`}>Open approvals</Link>
+          </Button>
+        </Card>
+      )}
       <Card>
         <CardHeader
           title="Versions"
-          description="One production version per model; promoting another archives the previous one. Every promotion is audited."
+          description="One production version per model; promoting another archives the previous one. Production promotion goes through an approval. Every promotion is audited."
           actions={!canPromote && <Badge tone="outline">Promotion needs ml.promote</Badge>}
         />
         <div className="scrollbar-thin overflow-x-auto px-5 pb-4">
@@ -217,8 +231,8 @@ function VersionsTab({ model }: { model: MlModel }) {
         description={
           pending?.stage === "production"
             ? current && current.version !== pending.v.version
-              ? `Version ${current.version} is in production now and will be archived. Prediction API calls switch to version ${pending.v.version} immediately.`
-              : "Prediction API calls will use this version."
+              ? `This requests an approval. Once approved, version ${current.version} is archived and prediction API calls switch to version ${pending.v.version}.`
+              : "This requests an approval. Once approved, prediction API calls use this version."
             : pending?.stage === "archived"
               ? "Archived versions stop serving predictions."
               : "Staging versions can be tried in the playground before promotion."
@@ -229,8 +243,9 @@ function VersionsTab({ model }: { model: MlModel }) {
           if (!pending) return;
           try {
             const res = await promote.mutateAsync({ version: pending.v.version, stage: pending.stage });
-            const approval = res && typeof res === "object" && "approval_id" in res;
-            toast.success(approval ? "Approval requested. The version changes stage once it is approved." : `Version ${pending.v.version} is now ${pending.stage}`);
+            const approvalId = res && typeof res === "object" && "approval_id" in res ? String((res as { approval_id: unknown }).approval_id) : null;
+            if (approvalId) setRequested({ version: pending.v.version, approvalId });
+            toast.success(approvalId ? "Approval requested. The version changes stage once it is approved." : `Version ${pending.v.version} is now ${pending.stage}`);
             setPending(null);
           } catch (e) {
             toast.error(errorMessage(e));

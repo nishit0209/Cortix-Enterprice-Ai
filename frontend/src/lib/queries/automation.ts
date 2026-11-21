@@ -123,7 +123,7 @@ export function useCreateWorkflow(org: string) {
   const inv = useInvalidate(org);
   return useMutation({
     mutationFn: async (body: { name: string; description?: string; graph?: WfGraph }) =>
-      mapWorkflow(await api.post<unknown>(`${base(org)}/workflows`, { ...body, graph: body.graph ? graphToWire(body.graph) : { nodes: [], edges: [] } })),
+      mapWorkflow(await api.post<unknown>(`${base(org)}/workflows`, { name: body.name, description: body.description, ...(body.graph ? { graph: graphToWire(body.graph) } : {}) })),
     onSuccess: inv,
   });
 }
@@ -206,7 +206,7 @@ export interface AgentInput {
   description?: string;
   model_tier: string;
   allowed_tools: string[];
-  scopes: string[];
+  tool_scopes: Record<string, Record<string, string[]>>;
   max_steps: number;
   approval_required_for: string[];
 }
@@ -214,8 +214,7 @@ export interface AgentInput {
 export function useSaveAgent(org: string) {
   const inv = useInvalidate(org);
   return useMutation({
-    mutationFn: async ({ id, ...body }: AgentInput & { id?: string }) => {
-      const payload = { ...body, tool_scopes: body.scopes };
+    mutationFn: async ({ id, ...payload }: AgentInput & { id?: string }) => {
       return mapAgent(id ? await api.patch<unknown>(`${base(org)}/agents/${id}`, payload) : await api.post<unknown>(`${base(org)}/agents`, payload));
     },
     onSuccess: inv,

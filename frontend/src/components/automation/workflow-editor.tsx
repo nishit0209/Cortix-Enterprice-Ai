@@ -232,6 +232,34 @@ function EditorInner({ workflow, latest, versions, catalog, registryKnown }: { w
                 </Field>
                 <p className="font-mono text-[11px] text-fg-subtle">id: {selNode.id} · outputs at steps.{selNode.id}</p>
                 <ConfigForm key={selNode.id} schema={selKind.schema} value={selNode.config} onChange={(config) => api.current?.updateNode(selNode.id, { config })} disabled={!canManage} />
+                <p className="text-[11px] text-fg-subtle">Values may reference the run, e.g. {"{{ trigger.dataset_id }}"} or {"{{ steps.<id>.output.row_count }}"}.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      ["retries", "Retries", 0, 5],
+                      ["retry_backoff_s", "Backoff (s)", 0, 3600],
+                      ["timeout_s", "Timeout (s)", 1, 3600],
+                    ] as const
+                  ).map(([key, label, min, max]) => (
+                    <Field key={key} id={`opt-${key}`} label={label}>
+                      <Input
+                        id={`opt-${key}`}
+                        type="number"
+                        min={min}
+                        max={max}
+                        value={selNode.options?.[key] ?? ""}
+                        disabled={!canManage}
+                        onChange={(e) => {
+                          const next = { ...(selNode.options ?? {}) };
+                          const v = e.target.value === "" ? undefined : Math.max(min, Math.min(max, Math.trunc(Number(e.target.value))));
+                          if (v === undefined || Number.isNaN(v)) delete next[key];
+                          else next[key] = v;
+                          api.current?.updateNode(selNode.id, { options: next });
+                        }}
+                      />
+                    </Field>
+                  ))}
+                </div>
                 {(byNode[selNode.id] ?? []).map((m) => (
                   <p key={m} className="text-xs text-danger">
                     {m}

@@ -26,7 +26,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { ShieldAlert, TriangleAlert } from "lucide-react";
 import { stepKind, type StepKind } from "@/lib/automation/catalog";
-import { newStepId, topoOrder, type WfGraph } from "@/lib/automation/graph";
+import { newStepId, topoOrder, type StepOptions, type WfGraph } from "@/lib/automation/graph";
 import { cn } from "@/lib/utils";
 import { DND_TYPE, stepIcon } from "./workflow-canvas-shared";
 
@@ -34,6 +34,7 @@ export interface WfNodeData extends Record<string, unknown> {
   kind: string;
   name: string;
   config: Record<string, unknown>;
+  options?: StepOptions;
 }
 export type WfFlowNode = Node<WfNodeData, "wf">;
 
@@ -87,7 +88,7 @@ const nodeTypes = { wf: WfNodeView };
 
 function toFlow(g: WfGraph): { nodes: WfFlowNode[]; edges: Edge[] } {
   return {
-    nodes: g.nodes.map((n) => ({ id: n.id, type: "wf" as const, position: n.position, data: { kind: n.kind, name: n.name, config: n.config } })),
+    nodes: g.nodes.map((n) => ({ id: n.id, type: "wf" as const, position: n.position, data: { kind: n.kind, name: n.name, config: n.config, options: n.options } })),
     edges: g.edges.map((e) => ({
       id: `${e.from}->${e.to}${e.branch ? `:${e.branch}` : ""}`,
       source: e.from,
@@ -101,7 +102,7 @@ function toFlow(g: WfGraph): { nodes: WfFlowNode[]; edges: Edge[] } {
 
 export function fromFlow(nodes: WfFlowNode[], edges: Edge[]): WfGraph {
   return {
-    nodes: nodes.map((n) => ({ id: n.id, kind: n.data.kind, name: n.data.name, config: n.data.config, position: n.position })),
+    nodes: nodes.map((n) => ({ id: n.id, kind: n.data.kind, name: n.data.name, config: n.data.config, position: n.position, ...(n.data.options ? { options: n.data.options } : {}) })),
     edges: edges.map((e) => ({ from: e.source, to: e.target, ...(e.sourceHandle === "true" || e.sourceHandle === "false" ? { branch: e.sourceHandle } : {}) })),
   };
 }
@@ -171,7 +172,7 @@ function CanvasInner({
   const isValidConnection = React.useCallback(
     (c: Connection | Edge) => {
       if (!c.source || !c.target || c.source === c.target) return false;
-      if (edges.some((e) => e.target === c.target)) return false; // one incoming connection per step
+      if (edges.some((e) => e.source === c.source && e.target === c.target)) return false;
       const g = fromFlow(nodes, [...edges, { id: "x", source: c.source, target: c.target, sourceHandle: c.sourceHandle ?? null }]);
       return topoOrder(g) !== null;
     },
