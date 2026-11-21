@@ -17,3 +17,6 @@ class DocumentsConfig(AppConfig):
         register_asset_exists("document", document_exists)
         # chunks stored while the local embedding model was unavailable get their vectors later
         register_reembedder(Reembedder("documents.chunks", REEMBED_SCAN_SQL, reembed_pending))
+        from .steps import register_steps
+
+        register_steps()  # automation step kind documents.process (no-op without apps.automation)

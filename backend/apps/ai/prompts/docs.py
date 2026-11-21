@@ -109,3 +109,88 @@ SUMMARY = register(PromptSpec(
     max_output_tokens=600,
     description="Summary of a document from its passages",
 ))
+
+EXTRACT_SYSTEM = f"""You extract structured fields from a document using ONLY the provided sources. Each source is a
+<source id="S<n>"> block taken from a document page. Rules:
+- Return one entry per requested field. Copy the value exactly as written in the source (no reformatting).
+- For each value give the source id and a SHORT quote (at most 20 words) copied VERBATIM from that source that
+  contains the value.
+- If a field is not stated in the sources, return it with value "" and no quote. Never guess or infer.
+{DATA_BLOCK_RULE}"""
+
+EXTRACT_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "fields": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "value": {"type": "string"},
+                    "source_id": {"type": "string"},
+                    "quote": {"type": "string"},
+                },
+                "required": ["name", "value"],
+            },
+        },
+    },
+    "required": ["fields"],
+}
+
+
+def render_extract(*, schema_label: str, fields: list[dict], sources: list[dict]) -> str:
+    wanted = "\n".join(f"- {f['name']} ({f['type']}): {f['description']}" for f in fields)
+    return "\n\n".join([
+        data_block("document_type", schema_label),
+        data_block("fields", wanted),
+        data_block("sources", render_sources(sources)),
+        "Extract the fields from the sources now.",
+    ])
+
+
+EXTRACT = register(PromptSpec(
+    key="docs.extract",
+    version="1",
+    system=EXTRACT_SYSTEM,
+    render=render_extract,
+    payload_classes=frozenset({PayloadClass.DOCUMENT_TEXT}),
+    tier="fast",
+    temperature=0.0,
+    response_schema=EXTRACT_SCHEMA,
+    max_output_tokens=1200,
+    description="Schema-driven field extraction with verbatim-quote citations (results need review)",
+))
+
+COMPARE_SYSTEM = f"""You explain the differences between two versions of a document for a business reader, using
+ONLY the supplied section diff. Write 2-5 short sentences on what changed (amounts, dates, parties, obligations).
+Never invent changes that are not in the diff.
+{DATA_BLOCK_RULE}"""
+
+COMPARE_SCHEMA: dict = {
+    "type": "object",
+    "properties": {"summary": {"type": "string"}, "key_changes": {"type": "array", "items": {"type": "string"},
+                                                                 "maxItems": 8}},
+    "required": ["summary"],
+}
+
+
+def render_compare(*, title_a: str, title_b: str, diff: str) -> str:
+    return "\n\n".join([
+        data_block("document_a", title_a), data_block("document_b", title_b), data_block("diff", diff),
+        "Summarize the differences now.",
+    ])
+
+
+COMPARE = register(PromptSpec(
+    key="docs.compare",
+    version="1",
+    system=COMPARE_SYSTEM,
+    render=render_compare,
+    payload_classes=frozenset({PayloadClass.DOCUMENT_TEXT}),
+    tier="fast",
+    temperature=0.2,
+    response_schema=COMPARE_SCHEMA,
+    max_output_tokens=600,
+    description="Summary of a local section diff between two documents",
+))

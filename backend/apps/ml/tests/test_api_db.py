@@ -5,45 +5,10 @@ The dataset is ingested through the real upload path (synthetic churn data); obj
 
 from __future__ import annotations
 
-import random
-
 import pytest
 from rest_framework.test import APIClient
 
-from apps.datasets.tests.helpers import _cleanup_test_warehouse, csv_bytes, ingest  # noqa: F401
-
 pytestmark = pytest.mark.django_db(transaction=False)
-
-
-def _churn_rows(n: int = 240) -> list[list]:
-    rnd = random.Random(7)
-    rows = [["customer_id", "age", "plan", "monthly_spend", "tenure_months", "churned"]]
-    for i in range(n):
-        plan = rnd.choice(["basic", "plus", "pro"])
-        tenure = rnd.randint(1, 60)
-        spend = round(rnd.uniform(10, 200), 2)
-        risk = 0.7 if tenure < 12 else 0.15
-        risk += 0.15 if plan == "basic" else 0.0
-        rows.append([10_000 + i, rnd.randint(18, 75), plan, spend, tenure, int(rnd.random() < risk)])
-    return rows
-
-
-@pytest.fixture
-def env(two_orgs, api_client_for, memory_storage, django_capture_on_commit_callbacks):
-    a = two_orgs.a
-    owner = api_client_for(a.owner)
-    _resp, dataset = ingest(owner, a.org, "churn.csv", csv_bytes(_churn_rows()), django_capture_on_commit_callbacks,
-                            name="Churn training")
-    assert dataset["status"] == "ready", dataset
-
-    class Env:
-        pass
-
-    e = Env()
-    e.a, e.b, e.owner, e.dataset_id, e.capture = a, two_orgs.b, owner, dataset["id"], django_capture_on_commit_callbacks
-    e.base = f"/api/v1/orgs/{a.slug}/ml"
-    e.client_for = api_client_for
-    return e
 
 
 def _project(env, **extra):
@@ -92,7 +57,8 @@ def test_project_eda_recommendations_and_leakage(env):
     assert project["id"] in {p["id"] for p in listed["items"]}
 
 
-def test_train_compare_register_promote_predict_monitor(env):
+def test_train_compare_register_promote_predict_monitor(env, settings):
+    settings.ML_PRODUCTION_REQUIRES_APPROVAL = False  # the W4 direct flow; approvals: test_w5_automation_db
     project = _project(env)
     lr = _train(env, project["id"], "logistic_regression")
     rf = _train(env, project["id"], "random_forest")
@@ -135,7 +101,7 @@ def test_train_compare_register_promote_predict_monitor(env):
 
     with env.a.tenant():
         log = PredictionLog.objects.get(model_id=model_id)
-    assert log.caller_type == "user" and log.n_rows == 2 and len(log.input_sha256) == 64
+    assert log.caller_type == "user" and log.n_rows == 2 and len(log.input_hash) == 64
     assert "55.5" not in str(log.feature_counts)  # binned counts only, never the raw inputs
 
 
@@ -164,15 +130,18 @@ def test_predict_with_api_key_is_org_bound(env):
 
 def test_permissions_and_cross_org(env):
     project, _exp, reg = _registered(env)
-    analyst = env.client_for(env.a.analyst)  # ml.view only
-    assert analyst.get(f"{env.base}/projects/{project['id']}").status_code == 200
-    assert analyst.post(f"{env.base}/projects", {"name": "x", "dataset_id": env.dataset_id, "target": "churned"},
-                        format="json").status_code == 403
-    scientist = env.client_for(env.a.user("data_scientist"))  # ml.manage, no ml.promote
-    assert scientist.post(f"{env.base}/models/{reg['model_id']}/versions/1/promote", {"stage": "production"},
-                          format="json").status_code == 403
-    viewer = env.client_for(env.a.viewer)  # no ml.view
-    assert viewer.get(f"{env.base}/projects").status_code == 403
+    from apps.core.tests.fixtures import member_with_permissions
+
+    viewer = env.client_for(env.a.viewer)  # ml.view only
+    assert viewer.get(f"{env.base}/projects/{project['id']}").status_code == 200
+    assert viewer.post(f"{env.base}/projects", {"name": "x", "dataset_id": env.dataset_id, "target": "churned"},
+                       format="json").status_code == 403
+    analyst = env.client_for(env.a.analyst)  # ml.manage, no ml.promote
+    for stage in ("staging", "production"):
+        assert analyst.post(f"{env.base}/models/{reg['model_id']}/versions/1/promote", {"stage": stage},
+                            format="json").status_code == 403
+    no_ml = env.client_for(member_with_permissions(env.a.org, {"org.view", "datasets.view"}))
+    assert no_ml.get(f"{env.base}/projects").status_code == 403
 
     intruder = env.client_for(env.b.owner)
     for path in (f"/projects/{project['id']}", f"/models/{reg['model_id']}"):

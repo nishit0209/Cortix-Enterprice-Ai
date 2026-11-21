@@ -173,7 +173,7 @@ class PredictionLog(TenantModel):
     caller_type = models.CharField(max_length=8, choices=CALLER_TYPES)
     caller_id = models.UUIDField(null=True, blank=True)
     api_key_prefix = models.CharField(max_length=32, blank=True, default="")
-    input_sha256 = models.CharField(max_length=64)
+    input_hash = models.CharField(max_length=64)  # sha256 hex of the canonical request rows
     feature_counts = models.JSONField(default=dict)  # drift.bin_counts output
     explain = models.BooleanField(default=False)
     request_id = models.CharField(max_length=64, blank=True, default="")

@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import CLASSIFICATIONS, Document, DocumentChunk, DocumentEntity, DocumentPage, DocumentTable
+from .models import (
+    CLASSIFICATIONS,
+    Document,
+    DocumentChunk,
+    DocumentCollection,
+    DocumentEntity,
+    DocumentPage,
+    DocumentTable,
+    ExtractionResult,
+)
+from .structured import schema_keys
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -12,7 +22,7 @@ class DocumentSerializer(serializers.ModelSerializer):
             "id", "title", "filename", "mime", "file_kind", "size_bytes", "sha256", "classification",
             "classification_attested_at", "doc_type", "status", "page_count", "language", "chunk_count",
             "ocr_pages", "ocr_unavailable_pages", "error", "error_code", "warnings", "uploaded_by", "last_job_id",
-            "created_at", "updated_at", "processed_at", "embedding_status",
+            "created_at", "updated_at", "processed_at", "embedding_status", "collection_id",
         ]
         read_only_fields = fields
 
@@ -44,13 +54,20 @@ class DocumentDetailSerializer(DocumentSerializer):
 
 class DocumentUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
+    collection_id = serializers.UUIDField(required=False, allow_null=True)
     title = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
     classification = serializers.ChoiceField(choices=[c for c, _ in CLASSIFICATIONS], required=False)
     attest = serializers.BooleanField(required=False, default=False)
 
 
 class DocumentUpdateSerializer(serializers.Serializer):
-    title = serializers.CharField(max_length=255)
+    title = serializers.CharField(max_length=255, required=False)
+    collection_id = serializers.UUIDField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError("Give title and/or collection_id.")
+        return attrs
 
 
 class ClassificationSerializer(serializers.Serializer):
@@ -88,10 +105,72 @@ class EntitySerializer(serializers.ModelSerializer):
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentTable
-        fields = ["id", "index", "page", "title", "header", "rows", "n_rows", "n_cols", "truncated"]
+        fields = ["id", "index", "page", "title", "header", "rows", "n_rows", "n_cols", "truncated",
+                  "promoted_dataset_id"]
         read_only_fields = fields
 
 
 class AskSerializer(serializers.Serializer):
     question = serializers.CharField(max_length=1000)
     document_ids = serializers.ListField(child=serializers.UUIDField(), required=False, max_length=50)
+
+
+class CollectionSerializer(serializers.ModelSerializer):
+    document_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentCollection
+        fields = ["id", "name", "description", "classification", "created_by", "created_at", "updated_at",
+                  "document_count"]
+        read_only_fields = ["id", "created_by", "created_at", "updated_at", "document_count"]
+
+    def get_document_count(self, obj) -> int:
+        value = getattr(obj, "n_documents", None)
+        return value if value is not None else obj.documents.count()
+
+
+class CollectionWriteSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200, required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    classification = serializers.ChoiceField(choices=[c for c, _ in CLASSIFICATIONS], required=False)
+
+
+class ExtractSerializer(serializers.Serializer):
+    schema_key = serializers.ChoiceField(choices=schema_keys())
+    mode = serializers.ChoiceField(choices=["local", "ai"], required=False, default="local")
+
+
+class ExtractionSerializer(serializers.ModelSerializer):
+    fields_found = serializers.SerializerMethodField()
+    fields_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExtractionResult
+        fields = ["id", "document_id", "schema_key", "method", "status", "result", "field_citations",
+                  "field_confidence", "corrections", "reason", "fields_found", "fields_total", "approval_request_id",
+                  "created_by", "reviewed_by", "reviewed_at", "review_note", "created_at", "updated_at"]
+        read_only_fields = fields
+
+    def get_fields_found(self, obj) -> int:
+        return sum(1 for v in (obj.result or {}).values() if v not in (None, "", []))
+
+    def get_fields_total(self, obj) -> int:
+        return len(obj.result or {})
+
+
+class ReviewSerializer(serializers.Serializer):
+    decision = serializers.ChoiceField(choices=["approve", "reject"])
+    corrections = serializers.DictField(required=False, default=dict)
+    note = serializers.CharField(required=False, allow_blank=True, default="", max_length=2000)
+
+
+class CompareSerializer(serializers.Serializer):
+    a = serializers.UUIDField()
+    b = serializers.UUIDField()
+    summary = serializers.BooleanField(required=False, default=False)
+
+
+class PromoteTableSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    classification = serializers.ChoiceField(choices=[c for c, _ in CLASSIFICATIONS], required=False)
+    attest = serializers.BooleanField(required=False, default=False)

@@ -10,7 +10,8 @@
     GET        ml/experiments/compare?ids=a,b       side by side, best by the primary metric
     POST       ml/experiments/{id}/register         -> 201 model version (ml.manage)
     GET        ml/models Â· ml/models/{id} Â· ml/models/{id}/versions
-    POST       ml/models/{id}/versions/{v}/promote  {stage} (ml.promote; one production version per model)
+    POST       ml/models/{id}/versions/{v}/promote  {stage} (ml.promote; one production version per model;
+                                                   production -> 202 + approval_id, applied on approval)
     POST       ml/models/{id}/predict               rows <= 1000 (+ explain); session ml.view or API key ml.predict
     POST       ml/models/{id}/batch-predictions     202 + job; writes a new dataset (ml.manage)
     GET        ml/models/{id}/monitoring            drift (PSI) + volume + performance
@@ -216,9 +217,14 @@ class ModelViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         services.get_version(model, int(version))
         ser = s.PromoteSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        mv = services.promote(model, int(version), ser.validated_data["stage"], user_id=_uid(request),
-                              request=request)
-        return Response(s.VersionSerializer(mv).data)
+        outcome, obj = services.request_promotion(model, int(version), ser.validated_data["stage"],
+                                                  user_id=_uid(request), request=request)
+        if outcome == "pending":  # CONTRACT W5: production promotion waits for an approval (202 + approval_id)
+            return Response({"status": "pending_approval", "approval_id": str(obj.id), "model_id": str(model.id),
+                             "version": int(version), "stage": "production",
+                             "model_version": s.VersionSerializer(services.get_version(model, int(version))).data},
+                            status=status.HTTP_202_ACCEPTED)
+        return Response(s.VersionSerializer(obj).data)
 
     @action(detail=True, methods=["post"])
     def predict(self, request, pk=None, org=None):
