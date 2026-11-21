@@ -3,7 +3,9 @@
 Document 1-* DocumentPage (text per page, extraction method / OCR status)
          1-* DocumentChunk (heading-aware chunks, page refs, local e5 embedding + stored tsvector)
          1-* DocumentEntity (regex entities, PII flagged)
-         1-* DocumentTable (tables from PDF pages, DOCX, XLSX sheets, CSV)
+         1-* DocumentTable (tables from PDF pages, DOCX, XLSX sheets, CSV; promotable to a dataset)
+         1-* ExtractionResult (schema-driven fields with page citations; needs review)
+DocumentCollection 1-* Document (optional grouping)
 """
 
 from __future__ import annotations
@@ -27,8 +29,30 @@ PAGE_METHODS = [(m, m) for m in ("text", "ocr", "ocr_unavailable", "ocr_failed",
 ENTITY_KINDS = [(k, k) for k in ("email", "phone", "date", "amount", "pan", "gstin", "aadhaar", "org")]
 
 
+EXTRACTION_STATUSES = [(s, s) for s in ("extracted", "needs_review", "approved", "rejected")]
+EXTRACTION_METHODS = [("local", "local"), ("gemini", "gemini")]
+
+
+class DocumentCollection(TenantModel):
+    """A named group of documents (e.g. "Supplier invoices FY26")."""
+
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default="")
+    classification = models.CharField(max_length=20, choices=CLASSIFICATIONS, default="internal")
+    created_by = models.UUIDField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["org", "name"], name="doc_collection_name_uniq")]
+
+    def __str__(self) -> str:  # pragma: no cover - admin/debug only
+        return self.name
+
+
 class Document(TenantModel):
     title = models.CharField(max_length=255)
+    collection = models.ForeignKey(DocumentCollection, null=True, blank=True, on_delete=models.SET_NULL,
+                                   related_name="documents")
     filename = models.CharField(max_length=255)
     mime = models.CharField(max_length=120)
     file_kind = models.CharField(max_length=10)  # pdf | docx | xlsx | csv | txt
@@ -139,9 +163,37 @@ class DocumentTable(TenantModel):
     n_rows = models.IntegerField(default=0)
     n_cols = models.IntegerField(default=0)
     truncated = models.BooleanField(default=False)
+    promoted_dataset_id = models.UUIDField(null=True, blank=True)  # set by POST document-tables/{id}/promote
 
     class Meta:
         ordering = ["index"]
         constraints = [
             models.UniqueConstraint(fields=["org", "document", "index"], name="doc_table_uniq"),
         ]
+
+
+class ExtractionResult(TenantModel):
+    """Structured fields extracted from a document for one schema (invoice / receipt / resume).
+
+    `result`: field -> value (null when not found). `field_citations`: field -> [{page, start, end, quote}] or null;
+    an uncited field is always null. Results start as `needs_review`; a reviewer approves (optionally correcting
+    fields) or rejects them."""
+
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="extractions")
+    schema_key = models.CharField(max_length=40)
+    method = models.CharField(max_length=10, choices=EXTRACTION_METHODS, default="local")
+    result = models.JSONField(default=dict)
+    field_citations = models.JSONField(default=dict)
+    field_confidence = models.JSONField(default=dict)
+    corrections = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=EXTRACTION_STATUSES, default="needs_review")
+    reason = models.CharField(max_length=60, blank=True, default="")  # why the local method was used
+    approval_request_id = models.UUIDField(null=True, blank=True)
+    created_by = models.UUIDField(null=True, blank=True)
+    reviewed_by = models.UUIDField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["org", "document", "-created_at"], name="doc_extraction_doc_idx")]

@@ -10,6 +10,7 @@
                                                                otherwise an extractive answer (no LLM)
     summarize(document, mode)           -> dict               extractive (local) by default; Gemini when allowed
     document_classification(id) / document_exists(id)         registered with apps.core.registry ("document")
+    collections, extract/review_extraction, compare, promote_table   W5 Phase 8 rows (implemented in .intel)
 """
 
 from __future__ import annotations
@@ -183,7 +184,7 @@ def _apply_classification(doc: Document, classification: str, *, attest: bool, u
 
 
 def create_document(fileobj, *, title: str = "", classification: str | None = None, attest: bool = False,
-                    user_id=None, request=None):
+                    user_id=None, request=None, collection_id=None):
     size = int(getattr(fileobj, "size", 0) or 0)
     limit = filetypes.max_upload_bytes()
     if size > limit:
@@ -207,6 +208,13 @@ def create_document(fileobj, *, title: str = "", classification: str | None = No
         sha256=digest.hexdigest(), status="processing", uploaded_by=user_id,
     )
     _apply_classification(doc, classification or "internal", attest=attest, user_id=user_id)
+    if collection_id:
+        from .intel import get_collection
+
+        try:
+            doc.collection = get_collection(collection_id)
+        except NotFound as exc:
+            raise ValidationError({"collection_id": ["Unknown collection."]}) from exc
     doc.storage_key = storage.org_key("documents", str(doc.id), _SAFE_NAME_RE.sub("_", filename)[:120] or "file")
     try:
         storage.put_object(doc.storage_key, raw, doc.mime)
@@ -751,3 +759,26 @@ def reembed_pending(embedder=None, limit: int = 500) -> int:
             embedding_status="complete", updated_at=timezone.now())
     log.info("documents: embedded %d pending chunk(s) in %d document(s)", done, len(doc_ids))
     return done
+
+
+# --------------------------------------------------------------------------------------- W5 re-exports
+from .intel import (  # noqa: E402
+    compare,
+    create_collection,
+    delete_collection,
+    extract,
+    get_collection,
+    get_extraction,
+    get_table,
+    promote_table,
+    review_extraction,
+    set_document_collection,
+    update_collection,
+)
+
+__all__ = [
+    "ask", "compare", "create_collection", "create_document", "delete_collection", "delete_document", "extract",
+    "get_collection", "get_document", "get_extraction", "get_table", "hybrid_search", "process_now", "promote_table",
+    "reembed_pending", "reprocess", "review_extraction", "set_classification", "set_document_collection",
+    "summarize", "update_collection", "update_document",
+]

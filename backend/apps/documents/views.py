@@ -12,13 +12,20 @@
     GET    documents/{id}/summary?mode=extractive|generative
     POST   documents/{id}/classification   {classification, attest}
     POST   documents/{id}/reprocess        -> 202 + job
+    POST   documents/{id}/extract          {schema_key, mode?=local|ai} -> 201 extraction (needs review)
+    GET    documents/{id}/extractions
+    POST   documents/compare               {a, b, summary?} -> local section diff (+ policy-gated summary)
+    GET/POST            document-collections            GET/PATCH/DELETE document-collections/{id}
+    GET    document-extractions/{id}       POST document-extractions/{id}/review {decision, corrections?, note?}
+    GET    document-tables/{id}            POST document-tables/{id}/promote {name?, classification?, attest?}
 """
 
 from __future__ import annotations
 
+from django.db.models import Count
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -29,17 +36,32 @@ from apps.core.tenancy.views import TenantGenericViewSet
 
 from . import filetypes, services
 from .exceptions import DocumentNotReady, DocumentRejected, DocumentTooLarge
-from .models import Document, DocumentChunk, DocumentEntity, DocumentPage, DocumentTable
+from .models import (
+    Document,
+    DocumentChunk,
+    DocumentCollection,
+    DocumentEntity,
+    DocumentPage,
+    DocumentTable,
+    ExtractionResult,
+)
 from .serializers import (
     AskSerializer,
     ChunkSerializer,
     ClassificationSerializer,
+    CollectionSerializer,
+    CollectionWriteSerializer,
+    CompareSerializer,
     DocumentDetailSerializer,
     DocumentSerializer,
     DocumentUpdateSerializer,
     DocumentUploadSerializer,
     EntitySerializer,
+    ExtractionSerializer,
+    ExtractSerializer,
     PageSerializer,
+    PromoteTableSerializer,
+    ReviewSerializer,
     TableSerializer,
 )
 
@@ -67,7 +89,8 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
     required_permissions = {
         "list": "documents.view", "retrieve": "documents.view", "pages": "documents.view",
         "chunks": "documents.view", "entities": "documents.view", "tables": "documents.view",
-        "summary": "documents.view", "search": "documents.view",
+        "summary": "documents.view", "search": "documents.view", "extractions": "documents.view",
+        "compare": "documents.view", "extract": "documents.manage",
         "create": "documents.manage", "partial_update": "documents.manage", "destroy": "documents.manage",
         "classification": "documents.manage", "reprocess": "documents.manage",
         "ask": "documents.ask",
@@ -80,7 +103,7 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
         qs = Document.objects.all()
         if self.action == "list":
             params = self.request.query_params
-            for field in ("status", "doc_type", "classification"):
+            for field in ("status", "doc_type", "classification", "collection_id"):
                 value = params.get(field)
                 if value:
                     qs = qs.filter(**{field: value})
@@ -110,7 +133,8 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
         data = ser.validated_data
         doc, job = services.create_document(
             data["file"], title=data.get("title", ""), classification=data.get("classification"),
-            attest=data.get("attest", False), user_id=request.user.pk, request=request)
+            attest=data.get("attest", False), user_id=request.user.pk, request=request,
+            collection_id=data.get("collection_id"))
         return Response({"document": DocumentSerializer(doc).data, **job_links(request, job)},
                         status=status.HTTP_202_ACCEPTED)
 
@@ -118,7 +142,13 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
         doc = self.get_object()  # another org's id answers 404 before the body is validated
         ser = DocumentUpdateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        doc = services.update_document(doc, title=ser.validated_data["title"], request=request)
+        data = ser.validated_data
+        doc = services.update_document(doc, title=data.get("title"), request=request)
+        if "collection_id" in data:
+            try:
+                doc = services.set_document_collection(doc, data["collection_id"], request=request)
+            except NotFound as exc:
+                raise ValidationError({"collection_id": ["Unknown collection."]}) from exc
         return Response(DocumentDetailSerializer(doc).data)
 
     def destroy(self, request, *args, **kwargs):
@@ -203,3 +233,117 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
         ser.is_valid(raise_exception=True)
         ids = services.resolve_document_ids(ser.validated_data.get("document_ids"))
         return Response(services.ask(ser.validated_data["question"], document_ids=ids, user_id=request.user.pk))
+
+    # ------------------------------------------------------------------------------------- W5 actions
+    @action(detail=True, methods=["post"])
+    def extract(self, request, *args, **kwargs):
+        doc = self.get_object()  # another org's id answers 404 before the body is validated
+        ser = ExtractSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        mode = ser.validated_data["mode"]
+        if mode == "ai" and not tenant_has_perm(request, "documents.ask"):
+            raise PermissionDenied("AI extraction needs the documents.ask permission.")
+        result = services.extract(doc, ser.validated_data["schema_key"], mode=mode, user_id=request.user.pk,
+                                  request=request)
+        return Response(ExtractionSerializer(result).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get"])
+    def extractions(self, request, *args, **kwargs):
+        doc = self.get_object()
+        qs = ExtractionResult.objects.filter(document=doc).order_by("-created_at")[:100]
+        return Response({"items": ExtractionSerializer(qs, many=True).data})
+
+    @action(detail=False, methods=["post"])
+    def compare(self, request, *args, **kwargs):
+        ser = CompareSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        if d["a"] == d["b"]:
+            raise ValidationError({"b": ["Choose two different documents."]})
+        if d["summary"] and not tenant_has_perm(request, "documents.ask"):
+            raise PermissionDenied("An AI summary of the differences needs the documents.ask permission.")
+        a, b = services.get_document(d["a"]), services.get_document(d["b"])
+        return Response(services.compare(a, b, summary=d["summary"], user_id=request.user.pk))
+
+
+class DocumentCollectionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGenericViewSet):
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = {"list": "documents.view", "retrieve": "documents.view", "*": "documents.manage"}
+    serializer_class = CollectionSerializer
+
+    def get_queryset(self):
+        return DocumentCollection.objects.annotate(n_documents=Count("documents")).order_by("name")
+
+    def get_object(self):
+        coll = services.get_collection(self.kwargs.get("pk"))
+        return self.get_queryset().get(id=coll.id)
+
+    def create(self, request, *args, **kwargs):
+        ser = CollectionWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        if not d.get("name"):
+            raise ValidationError({"name": ["A name is required."]})
+        coll = services.create_collection(name=d["name"], description=d.get("description", ""),
+                                          classification=d.get("classification", "internal"),
+                                          user_id=request.user.pk, request=request)
+        return Response(CollectionSerializer(coll).data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        coll = self.get_object()
+        ser = CollectionWriteSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        services.update_collection(coll, ser.validated_data, request=request)
+        return Response(CollectionSerializer(self.get_object()).data)
+
+    def destroy(self, request, *args, **kwargs):
+        services.delete_collection(self.get_object(), request=request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ExtractionViewSet(mixins.RetrieveModelMixin, TenantGenericViewSet):
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = {"retrieve": "documents.view", "*": "documents.manage"}
+    serializer_class = ExtractionSerializer
+
+    def get_queryset(self):
+        return ExtractionResult.objects.all()
+
+    def get_object(self):
+        return services.get_extraction(self.kwargs.get("pk"))
+
+    @action(detail=True, methods=["post"])
+    def review(self, request, *args, **kwargs):
+        result = self.get_object()
+        ser = ReviewSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        result = services.review_extraction(result, decision=d["decision"], corrections=d.get("corrections"),
+                                            note=d.get("note", ""), user_id=request.user.pk, request=request)
+        return Response(ExtractionSerializer(result).data)
+
+
+class DocumentTableViewSet(mixins.RetrieveModelMixin, TenantGenericViewSet):
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = {"retrieve": "documents.view", "*": "datasets.create"}
+    serializer_class = TableSerializer
+
+    def get_queryset(self):
+        return DocumentTable.objects.all()
+
+    def get_object(self):
+        return services.get_table(self.kwargs.get("pk"))
+
+    @action(detail=True, methods=["post"])
+    def promote(self, request, *args, **kwargs):
+        table = self.get_object()
+        if not tenant_has_perm(request, "documents.view"):
+            raise PermissionDenied()
+        ser = PromoteTableSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        out = services.promote_table(table, user_id=request.user.pk, name=d.get("name", ""),
+                                     classification=d.get("classification"), attest=d.get("attest", False),
+                                     request=request)
+        code = status.HTTP_201_CREATED if out["status"] == "ready" else status.HTTP_202_ACCEPTED
+        return Response(out, status=code)
