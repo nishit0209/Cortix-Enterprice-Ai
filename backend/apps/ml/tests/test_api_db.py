@@ -178,7 +178,10 @@ def test_batch_predictions_publish_a_dataset(env, monkeypatch):
 
     _project_, _exp, reg = _registered(env)
     model_id = reg["model_id"]
-    env.owner.post(f"{env.base}/models/{model_id}/versions/1/promote", {"stage": "production"}, format="json")
+    # production promotion needs an approval (W5); batch scoring serves the staging version
+    promoted = env.owner.post(f"{env.base}/models/{model_id}/versions/1/promote", {"stage": "staging"}, format="json")
+    assert promoted.status_code == 200, promoted.content
+    assert promoted.json()["stage"] == "staging"
     published = {}
 
     def fake_publish_frame(*, name, frame, user_id, classification="internal", attest=False, dataset_id=None,
