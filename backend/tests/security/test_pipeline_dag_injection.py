@@ -155,7 +155,9 @@ def test_hostile_derive_expressions_never_run(pipelines, expression):
             # DEFECT (data_engineering): apps/pipelines/steps.py:23 NewName has no identifier pattern, so a pipeline
             # publishes columns that break the ingest invariant (apps/datasets/ingest/columns.py: snake_case ASCII,
             # PostgreSQL-safe). Remove this mark once NewName is restricted to ^[a-z_][a-z0-9_]{0,62}$.
-            marks=pytest.mark.xfail(strict=True, reason="defect: pipeline rename/derive names are not validated"),
+            marks=pytest.mark.xfail(
+                strict=True, reason="defect: pipeline rename/derive names are not validated"
+            ),
         ),
     ],
     ids=["filter-raw-sql", "filter-sql-key", "python-exec", "sql-raw", "type-traversal", "rename-to-sql"],
@@ -181,7 +183,9 @@ def test_graph_structure_violations_are_rejected(pipelines):
     )
     two_dst["edges"].append(["s1", "dst2"])
     huge = {
-        "nodes": [{"id": f"n{i}", "type": "transform.rename", "config": {"mapping": {}}} for i in range(5000)],
+        "nodes": [
+            {"id": f"n{i}", "type": "transform.rename", "config": {"mapping": {}}} for i in range(5000)
+        ],
         "edges": [[f"n{i}", f"n{i + 1}"] for i in range(4999)],
     }
     for name, dag in (

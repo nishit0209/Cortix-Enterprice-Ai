@@ -246,7 +246,8 @@ def _gate():
 
 
 def _call_gate(gate, org_id, payload):
-    params = list(inspect.signature(gate).parameters)
+    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    params = [p for p in inspect.signature(gate).parameters.values() if p.kind in positional]
     with tenant_context(org_id):
         return gate(org_id, payload) if len(params) >= 2 else gate(payload)
 

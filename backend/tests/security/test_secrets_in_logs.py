@@ -79,9 +79,13 @@ def test_job_flows_do_not_log_settings_secrets(canaries, capture_all, settings, 
     _assert_clean(canaries, stream, capture_all.text)
 
 
-def test_readiness_errors_expose_only_exception_types(canaries, capture_all, monkeypatch, client):
+def test_readiness_errors_expose_only_exception_types(canaries, capture_all, monkeypatch, client, settings):
     """/readyz is unauthenticated: dependency errors must not echo DSNs, passwords or keys."""
     from apps.core import storage, views
+
+    # configure the optional services so their checks run (as built they report "not_configured" otherwise)
+    settings.REDIS_URL = f"redis://:{canaries.db_password}@redis:6379/0"
+    settings.STORAGE_BACKEND = "s3"
 
     class _BrokenConn:
         def cursor(self):
@@ -105,11 +109,11 @@ def test_readiness_errors_expose_only_exception_types(canaries, capture_all, mon
     resp = client.get("/readyz")
     assert resp.status_code == 503
     body = resp.json()
-    assert body["checks"] == {
-        "database": "error: OperationalError",
-        "redis": "error: ConnectionError",
-        "object_storage": "error: RuntimeError",
-    }
+    checks = body["checks"]
+    assert checks["database"] == "error: OperationalError"
+    assert checks["redis"] == "error: ConnectionError"
+    assert checks["storage"] == "error: RuntimeError"
+    assert all(v in ("ok", "fs", "s3", "not_configured") or v.startswith("error: ") for v in checks.values())
     _assert_clean(canaries, resp.content.decode(), capture_all.text)
 
 
@@ -149,8 +153,12 @@ def test_api_key_secret_is_returned_once_and_never_logged(canaries, capture_all,
     if not route_exists(url):
         pytest.skip("API keys not implemented yet (Backend agent, wave 1)")
     client = api_client_for(a.owner)
-    created = client.post(url, {"name": "canary", "scopes": []}, format="json")
-    assert created.status_code == 201
+    # as built: scopes must be non-empty and creating a key re-authenticates with the password
+    from testing.factories import TEST_PASSWORD
+
+    body = {"name": "canary", "scopes": ["datasets.view"], "password": TEST_PASSWORD}
+    created = client.post(url, body, format="json")
+    assert created.status_code == 201, created.content[:300]
     secret = created.json()["secret"]
     listing = client.get(url).content.decode()
     assert secret not in listing

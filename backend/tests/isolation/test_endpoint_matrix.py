@@ -14,6 +14,8 @@ other agents add later are covered automatically:
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from testing.client import api_client_for
@@ -45,9 +47,27 @@ def _values(route: Route, world) -> dict[str, str]:
     return factory(world) if factory else {}
 
 
+# Minimal VALID bodies for routes that validate the body before the object lookup: an empty body would stop at
+# 400 and never reach the cross-org lookup the IDOR probe is about. (path regex, method) -> body
+PROBE_BODIES = [
+    (re.compile(r"/bi/messages/[^/]+/feedback$"), "post", {"value": "up"}),
+    (re.compile(r"/documents/[^/]+$"), "patch", {"title": "QA probe"}),
+    (re.compile(r"/documents/[^/]+/classification$"), "post", {"classification": "internal"}),
+]
+
+
+def _probe_body(method: str, path: str) -> dict:
+    return next((body for rx, m, body in PROBE_BODIES if m == method and rx.search(path)), {})
+
+
 def _call(client, method: str, path: str):
     if method in UNSAFE_METHODS:
-        return getattr(client, method)(path, {}, format="json")
+        resp = getattr(client, method)(path, _probe_body(method, path), format="json")
+        if resp.status_code == 415:
+            # multipart-only routes (uploads): DRF parses the body before the CSRF/tenant gate, so probe the gate
+            # with a body the route accepts
+            resp = getattr(client, method)(path, {}, format="multipart")
+        return resp
     return client.get(path)
 
 
