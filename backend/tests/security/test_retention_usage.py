@@ -4,7 +4,7 @@ Retention
   * every append-only table is protected at the database level: its `append_only` trigger runs the STRICT
     `nexora_forbid_mutation` function (DELETE refused even for nexora_ops). The only exceptions are tables
     created with `ops_may_delete` (short-lived event streams such as core.JobEvent), listed explicitly here;
-  * a retention run with policies for EVERY supported target and a zero-day window deletes no row of any strict
+  * a retention run with policies for EVERY registered target, evaluated 30 days ahead, deletes no row of any strict
     append-only table;
   * a DRY RUN changes nothing at all (row counts of every tenant table are identical before and after);
   * the retention-policies API refuses an append-only target.
@@ -18,7 +18,6 @@ DB-backed. Each block skips cleanly until its feature exists (RetentionPolicy mo
 
 from __future__ import annotations
 
-import inspect
 import json
 from pathlib import Path
 
@@ -113,40 +112,47 @@ def _field(model, *hints, kind=None):
     return None
 
 
+def _registered_targets() -> list[str]:
+    """Retention targets as built: registered at runtime (apps.governance.retention), not model choices."""
+    from apps.governance import retention
+
+    return sorted(getattr(retention, "_targets", {}))
+
+
 def _make_policies(world, *, dry_run: bool) -> list:
+    """One active policy per REGISTERED target with the shortest window (retain_days has a DB minimum of 1)."""
+    from apps.governance import retention
+
     Model = _retention_model()
-    target = _field(Model, "target", "resource", "kind", "table")
-    days = _field(Model, "day", "retain", "keep", "max_age", kind={"IntegerField", "PositiveIntegerField",
-                                                                    "PositiveSmallIntegerField", "SmallIntegerField"})
-    if target is None or days is None or not target.choices:
-        pytest.skip(f"RetentionPolicy shape not recognised: {[f.name for f in Model._meta.concrete_fields]}")
-    dry = _field(Model, "dry", kind={"BooleanField"})
-    mode = _field(Model, "mode")
-    action = _field(Model, "action")
+    targets = _registered_targets()
+    if not targets:
+        pytest.skip("no retention target registered")
     created = []
     with world.tenant():
-        for value, _label in target.choices:
-            values = {target.name: value, days.name: 0}
-            if dry is not None:
-                values[dry.name] = dry_run
-            if mode is not None and mode.choices:
-                wanted = "dry_run" if dry_run else "apply"
-                values[mode.name] = next((c for c, _ in mode.choices if wanted in c), mode.choices[0][0])
-            if action is not None and action.choices:
-                values[action.name] = next((c for c, _ in action.choices if "delete" in c), action.choices[0][0])
-            for f in Model._meta.concrete_fields:
-                if f.name in ("created_by", "owner", "created_by_id") and f.null is False:
-                    values[f.attname] = world.owner.pk
-            created.append(Model.objects.create(**values))
+        for key in targets:
+            action = "delete" if "delete" in retention.get_target(key).actions else retention.get_target(key).actions[0]
+            created.append(Model.objects.create(org_id=world.id, name=f"qa {key}", target=key, retain_days=1,
+                                                action=action, mode="dry_run" if dry_run else "enforce",
+                                                is_active=True, created_by=world.owner.pk))
     return created
 
 
 def _run_retention(world, *, dry_run: bool) -> None:
-    job = _retention_job()
-    fn = job.fn
-    params = inspect.signature(fn).parameters
-    kwargs = {"dry_run": dry_run} if "dry_run" in params else {}
-    fn(**kwargs)
+    """Run the periodic job body for the org 30 days in the FUTURE, so every seeded row is past the cutoff (the
+    strongest case). `run_retention` iterates orgs on the ops connection, which cannot see this test's
+    uncommitted rows, so the per-org body runs directly inside the org's tenant context."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.governance import retention
+
+    with world.tenant():
+        out = retention.run_for_current_org(now=timezone.now() + timedelta(days=30))
+    errors = {k: v["error"] for k, v in out.items() if v.get("error")}
+    assert errors == {}, f"retention policies failed: {errors}"
+    applied = [v for v in out.values() if v.get("applied")]
+    assert bool(applied) is (not dry_run), out
 
 
 def _seed_activity(world, capture) -> None:
@@ -171,10 +177,6 @@ def test_dry_run_changes_nothing(two_orgs, memory_storage, fake_redis, fake_embe
     _make_policies(a, dry_run=True)
     tables = _tenant_tables()
     before = _counts(a, tables)
-    if "dry_run" not in inspect.signature(_retention_job().fn).parameters and _field(
-        _retention_model(), "dry", kind={"BooleanField"}
-    ) is None and _field(_retention_model(), "mode") is None:
-        pytest.skip("no dry-run switch found on the job or the policy")
     _run_retention(a, dry_run=True)
     after = _counts(a, tables)
     changed = {t: (before[t], after[t]) for t in tables if before[t] != after[t]}
