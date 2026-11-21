@@ -26,7 +26,7 @@ import { EmptyState, ErrorState, Progress, Skeleton } from "@/components/ui/feed
 import { Badge } from "@/components/ui/badge";
 import { FeatureStatusBadge, POLICY_LABELS } from "@/components/ui/status";
 import { ActivityList } from "@/components/activity/activity-list";
-import { RowsByDatasetChart, RunsDonut } from "@/components/dashboard/charts";
+import { RowsByDatasetChart, RunsDonut } from "@/components/lazy-charts";
 import { useActivity, useAiStatus, useAiUsage, useDataStats, useInsights } from "@/lib/queries/org";
 import type { DataStats } from "@/lib/types";
 import { useQueryHistory } from "@/lib/queries/bi";

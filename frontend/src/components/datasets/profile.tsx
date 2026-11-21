@@ -4,7 +4,7 @@ import * as React from "react";
 import { Fingerprint, Hash, KeyRound, ListTree, Type } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { HistogramChart } from "@/components/dashboard/charts";
+import { HistogramChart } from "@/components/lazy-charts";
 import type { ColumnStats, DatasetColumn } from "@/lib/types";
 import { cn, formatNumber, formatPercent } from "@/lib/utils";
 

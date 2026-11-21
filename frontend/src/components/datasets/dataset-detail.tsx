@@ -56,7 +56,7 @@ import type { Dataset, DatasetPreview, QualityReport, QualityRule } from "@/lib/
 import { ColumnProfileCard } from "./profile";
 import { ClassifyDialog } from "./classify-dialog";
 import { SemanticTab } from "./semantic-tab";
-import { LineageGraphView } from "@/components/lineage/lineage-graph";
+import { LineageGraphView } from "@/components/lazy-charts";
 
 export function DatasetDetail() {
   const { id } = useParams<{ id: string }>();

@@ -32,7 +32,8 @@ import { useBatchPredict, useMlModel, useMlMonitoring, usePredict, usePromoteVer
 import type { Paginated } from "@/lib/types";
 import { cn, formatDateTime, formatNumber, formatRelative } from "@/lib/utils";
 import { MlError, StageBadge, TaskBadge } from "./common";
-import { ContributionBars, DistributionCompare, PsiBars, fmtMetric } from "./ml-charts";
+import { fmtMetric } from "./format";
+import { ContributionBars, DistributionCompare, PsiBars } from "@/components/lazy-charts";
 
 export function ModelView() {
   const { id } = useParams<{ id: string }>();

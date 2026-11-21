@@ -23,7 +23,8 @@ import type { Experiment, MlProject } from "@/lib/ml/types";
 import { useCompareExperiments, useMlExperiment, useMlExperiments, useRegisterExperiment } from "@/lib/queries/ml";
 import { cn, formatRelative } from "@/lib/utils";
 import { MlError } from "./common";
-import { ConfusionHeatmap, CurveChart, HBarChart, MetricBarsChart, ResidualScatter, fmtMetric } from "./ml-charts";
+import { fmtMetric } from "./format";
+import { ConfusionHeatmap, CurveChart, HBarChart, MetricBarsChart, ResidualScatter } from "@/components/lazy-charts";
 
 const MAX_COMPARE = 4;
 
