@@ -19,6 +19,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CATEGORY_LABELS, stepKind, type StepCategory, type StepKind } from "@/lib/automation/catalog";
 import { graphToWire, validateGraph, type WfGraph, type Workflow, type WorkflowVersion } from "@/lib/automation/graph";
+import { isApiError } from "@/lib/api";
 import { errorMessage } from "@/lib/errors";
 import { useDeleteWorkflow, usePublishWorkflow, useSaveVersion, useStartRun, useStepCatalog, useUpdateWorkflow, useWorkflow, useWorkflowVersions } from "@/lib/queries/automation";
 import { formatRelative } from "@/lib/utils";
@@ -76,13 +77,21 @@ function EditorInner({ workflow, latest, versions, catalog, registryKnown }: { w
   const update = useUpdateWorkflow(slug, workflow.id);
   const del = useDeleteWorkflow(slug);
 
-  const onChange = React.useCallback((g: WfGraph) => setGraph(g), []);
+  const [serverIssues, setServerIssues] = React.useState<Record<string, string[]>>({});
+  const lastJson = React.useRef(JSON.stringify(graphToWire(initial)));
+  const onChange = React.useCallback((g: WfGraph) => {
+    const json = JSON.stringify(graphToWire(g));
+    if (json === lastJson.current) return; // selection-only changes
+    lastJson.current = json;
+    setGraph(g);
+    setServerIssues({});
+  }, []);
   const issues = React.useMemo(() => validateGraph(graph, catalog), [graph, catalog]);
   const byNode = React.useMemo(() => {
-    const m: Record<string, string[]> = {};
-    for (const i of issues) if (i.nodeId) (m[i.nodeId] ??= []).push(i.message);
+    const m: Record<string, string[]> = { ...serverIssues };
+    for (const i of issues) if (i.nodeId) (m[i.nodeId] = [...(m[i.nodeId] ?? [])]).push(i.message);
     return m;
-  }, [issues]);
+  }, [issues, serverIssues]);
   const dirty = JSON.stringify(graphToWire(graph)) !== savedJson;
   const nameDirty = name.trim() !== workflow.name && name.trim().length > 0;
   const published = workflow.current_version ? (versions.find((v) => v.version === workflow.current_version) ?? null) : null;
@@ -101,7 +110,16 @@ function EditorInner({ workflow, latest, versions, catalog, registryKnown }: { w
       toast.success(`Saved version ${v.version || ""}`.trim());
       return v;
     } catch (e) {
-      toast.error(errorMessage(e));
+      // apps.automation reports graph problems as errors[{field: "graph.<step>.<field>", message}].
+      if (isApiError(e) && e.errors.length) {
+        const m: Record<string, string[]> = {};
+        for (const err of e.errors) {
+          const step = /^graph\.([a-z][a-z0-9_]*)\./.exec(err.field ?? "")?.[1];
+          if (step && graph.nodes.some((n) => n.id === step)) (m[step] ??= []).push(err.message ?? "Invalid");
+        }
+        setServerIssues(m);
+        toast.error(Object.keys(m).length ? "The server rejected some steps. See the highlighted steps." : (e.errors[0]?.message ?? errorMessage(e)));
+      } else toast.error(errorMessage(e));
       return null;
     }
   };
