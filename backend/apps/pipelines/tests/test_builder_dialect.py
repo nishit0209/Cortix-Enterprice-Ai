@@ -223,3 +223,28 @@ def test_nesting_up_to_the_parse_bound_still_parses():
     depth = expressions.MAX_PARSE_DEPTH
     assert expressions.parse_text("(" * depth + "a" + ")" * depth) == {"col": "a"}
     assert expressions.parse_text("--a") == {"op": "neg", "args": [{"op": "neg", "args": [{"col": "a"}]}]}
+
+
+# ------------------------------------------------------------------------------------------- security regression
+@pytest.mark.parametrize("node_type", ["rename", "transform.rename"])
+@pytest.mark.parametrize("new_name", ["x; DROP TABLE y", "Amount", "a b", "1col", "x\"y", "../x", "a" * 64])
+def test_rename_to_unsafe_identifiers_is_rejected_in_both_dialects(node_type, new_name):
+    step = {"id": "r", "type": node_type, "config": {"mapping": {"amount": new_name}}}
+    validation = validate_dag(_chain(step))
+    assert not validation.ok
+    assert any(e["node_id"] == "r" for e in validation.payload()["errors"])
+
+
+@pytest.mark.parametrize("step", [
+    {"id": "d", "type": "derive", "config": {"name": "x; DROP TABLE y", "expression": "amount * 2"}},
+    {"id": "p", "type": "sql.raw", "config": {"sql": "SELECT 1"}},
+    {"id": "p", "type": "python.exec", "config": {"code": "import os"}},
+    {"id": "f", "type": "filter", "config": {"sql": "1=1"}},
+])
+def test_raw_or_sql_carrying_steps_are_rejected(step):
+    assert not validate_dag(_chain(step)).ok
+
+
+def test_safe_rename_is_accepted():
+    step = {"id": "r", "type": "rename", "config": {"mapping": {"amount": "order_amount"}}}
+    assert validate_dag(_chain(step)).ok
