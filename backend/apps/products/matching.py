@@ -47,6 +47,7 @@ from apps.quality.services import fold, proximity
 DEFAULT_WEIGHTS = {"name": 0.40, "sku": 0.20, "size": 0.15, "price": 0.15, "brand": 0.10}
 DEFAULT_AUTO = 0.90
 DEFAULT_REVIEW = 0.75
+DIFFERENT_SKU_CAP = 0.7
 MAPPING_FIELDS = ("sku", "name", "brand", "category", "price", "pack_size", "unit", "attributes", "external_id")
 
 LEGACY_PREFIXES = ("OLD", "LEGACY", "OBS", "DISC")
@@ -301,7 +302,8 @@ def normalize_record(raw: Mapping[str, Any], *, aliases: Mapping[str, str] | Non
         "sku": normalize_sku(raw.get("sku")), "sku_raw": _text(raw.get("sku")) or None,
         "sku_stem": sku_stem(raw.get("sku")),
         "name": name or None, "core_name": core_name(name, brand) or None,
-        "brand": brand, "brand_display": _text(raw.get("brand")) or (brand_raw or None),
+        "brand": brand, "brand_display": _text(raw.get("brand")) or parenthesised_brand(name)
+        or {brand_key(k): k for k in known_brands}.get(brand_key(brand_raw)) or (brand_raw or None),
         "category": category or None, "category_key": brand_key(category) or None,
         "quantity": list(quantity) if quantity else None,
         "price": round(price, 2) if price is not None and price >= 0 else None,
@@ -350,7 +352,14 @@ def _sku_sim(a: Mapping, b: Mapping) -> float | None:
         return 1.0
     if a.get("sku_stem") and a.get("sku_stem") == b.get("sku_stem"):
         return 0.9
+    if sku_shape(a["sku"]) != sku_shape(b["sku"]):
+        return None  # different SKU schemes (e.g. two suppliers' codes): not comparable, no evidence either way
     return 0.0
+
+
+def sku_shape(sku: str) -> str:
+    """The SKU's scheme: letters -> A, digit runs -> 9 ("AELE0098" -> "A9", "SB00033Y" -> "A9A")."""
+    return re.sub(r"A+", "A", re.sub(r"9+", "9", re.sub(r"[A-Z]", "A", re.sub(r"\d", "9", sku))))
 
 
 def _size_sim(a: Mapping, b: Mapping) -> float | None:
@@ -389,6 +398,8 @@ def score_pair(a: Mapping[str, Any], b: Mapping[str, Any], weights: Mapping[str,
         score, rules = max(score, 0.97), [*rules, "same_sku"]
     if feats["size"] == 0.0:
         score, rules = min(score, 0.45), [*rules, "different_pack_size"]
+    if feats["sku"] == 0.0:  # two different codes of the same SKU scheme (one catalog) are two products
+        score, rules = min(score, DIFFERENT_SKU_CAP), [*rules, "different_sku"]
     if feats["brand"] == 0.0:
         score, rules = min(score, 0.5), [*rules, "different_brand"]
     if feats["name"] is not None and feats["name"] < 0.6:
@@ -438,6 +449,8 @@ def resolve(records: Mapping[Any, Mapping[str, Any]], *, weights: Mapping[str, f
         if pair in rejected or pair in confirmed:
             continue
         result = score_pair(records[pair[0]], records[pair[1]], weights)
+        if "different_sku" in result.rules:
+            uf.forbid(*pair)  # never chained together through a third record either
         status = decide(result.score, auto=auto, review=review)
         if status:
             matches[pair] = (result, status)
