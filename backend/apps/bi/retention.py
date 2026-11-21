@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from django.db.models import Q
 from django.db.models.functions import Coalesce
 
 from .models import Conversation, Message
@@ -23,8 +22,10 @@ def old_conversations(cutoff: datetime):
 
 
 def archivable_messages(cutoff: datetime):
+    # Only messages that still hold at least one result row. (An `exclude(rows=[] | archived=True)` matched NOTHING
+    # when the `archived` key is absent: NULL comparisons make the NOT(...) NULL in SQL.)
     return (Message.objects.filter(conversation__in=old_conversations(cutoff).values("id"))
-            .filter(result__isnull=False).exclude(Q(result__rows=[]) | Q(result__archived=True)))
+            .filter(result__isnull=False, result__rows__0__isnull=False))
 
 
 def count(cutoff: datetime, action: str) -> int:

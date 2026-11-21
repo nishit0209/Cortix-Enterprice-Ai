@@ -52,6 +52,8 @@ def _check_dataset(dataset_id) -> None:
 
 
 class DatasetScopedViewSet(TenantGenericViewSet):
+    # Subclasses list this base FIRST, before the DRF mixins: otherwise the mixins' perform_create/update/destroy
+    # win the MRO and the dataset id + audit records are skipped (500 on create: dataset_id NULL).
     permission_classes = PERMS
     required_permissions = "governance.policy.edit"
     lookup_value_regex = UUID_RE
@@ -96,8 +98,8 @@ class DatasetScopedViewSet(TenantGenericViewSet):
                 for k, v in dict(data).items() if k not in ("created_at", "updated_at")}
 
 
-class DatasetAclViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin,
-                        DatasetScopedViewSet):
+class DatasetAclViewSet(DatasetScopedViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
+                        mixins.DestroyModelMixin):
     serializer_class = DatasetAclSerializer
     model = DatasetAcl
     audit_prefix = "governance.acl"
@@ -110,15 +112,15 @@ class DatasetAclViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.D
         super().perform_create(serializer)
 
 
-class ColumnPolicyViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.RetrieveModelMixin,
-                          mixins.UpdateModelMixin, mixins.DestroyModelMixin, DatasetScopedViewSet):
+class ColumnPolicyViewSet(DatasetScopedViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
+                          mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     serializer_class = ColumnPolicySerializer
     model = ColumnPolicy
     audit_prefix = "governance.column_policy"
 
 
-class RowPolicyViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.RetrieveModelMixin,
-                       mixins.UpdateModelMixin, mixins.DestroyModelMixin, DatasetScopedViewSet):
+class RowPolicyViewSet(DatasetScopedViewSet, mixins.ListModelMixin, mixins.CreateModelMixin,
+                       mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin):
     serializer_class = RowPolicySerializer
     model = RowPolicy
     audit_prefix = "governance.row_policy"

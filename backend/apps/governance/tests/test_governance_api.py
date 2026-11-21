@@ -21,7 +21,10 @@ COLUMNS = {"sales": ["order_id", "region", "amount", "email"]}
 
 
 @pytest.fixture
-def ds():
+def ds(monkeypatch):
+    """A synthetic dataset id. These API tests exercise governance on its own, so the dataset-existence check is
+    stubbed (any id exists) for the test only; the real datasets checker is restored afterwards."""
+    monkeypatch.setitem(registry._exists, "dataset", lambda asset_id: True)
     return uuid4()
 
 
@@ -92,14 +95,11 @@ def test_governance_permissions_and_isolation(org, other_org, owner, owner_clien
 
 
 def test_unknown_dataset_is_404_when_datasets_registered(org, owner_client, ds):
-    registry.register_asset_exists("dataset", lambda asset_id: asset_id == ds)
-    try:
-        assert owner_client.get(url(org, ds, "acl")).status_code == 200
-        assert owner_client.get(url(org, uuid4(), "acl")).status_code == 404
-        assert owner_client.post(url(org, uuid4(), "policy-preview"), {"user_id": str(uuid4())},
-                                 format="json").status_code == 404
-    finally:
-        registry._exists.pop("dataset", None)
+    registry._exists["dataset"] = lambda asset_id: asset_id == ds  # restored by the `ds` fixture's monkeypatch
+    assert owner_client.get(url(org, ds, "acl")).status_code == 200
+    assert owner_client.get(url(org, uuid4(), "acl")).status_code == 404
+    assert owner_client.post(url(org, uuid4(), "policy-preview"), {"user_id": str(uuid4())},
+                             format="json").status_code == 404
 
 
 # --- column policies ----------------------------------------------------------------------------------------------
@@ -294,3 +294,27 @@ def test_policy_preview(org, owner_client, ds):
                              format="json").status_code == 400
     assert client_for(analyst).post(url(org, ds, "policy-preview"), {"user_id": str(analyst.id)},
                                     format="json").status_code == 403
+
+
+def test_policy_viewsets_store_the_dataset_id_and_audit_every_write(org, owner_client, ds):
+    """Regression: the DRF mixins once shadowed DatasetScopedViewSet.perform_* (MRO), so create hit a NULL
+    dataset_id (500) and no write was audited."""
+    from apps.governance import views
+
+    for cls in (views.DatasetAclViewSet, views.ColumnPolicyViewSet, views.RowPolicyViewSet):
+        for name in ("perform_update", "perform_destroy"):
+            assert getattr(cls, name).__qualname__.startswith("DatasetScopedViewSet."), (cls, name)
+    col = owner_client.post(url(org, ds, "column-policies"),
+                            {"column_name": "email", "principal_type": "everyone", "action": "deny"}, format="json")
+    row = owner_client.post(url(org, ds, "row-policies"),
+                            {"name": "eu", "principal_type": "everyone",
+                             "predicate": {"all": [{"col": "region", "op": "=", "value": "EU"}]}}, format="json")
+    assert col.status_code == 201 and row.status_code == 201, (col.content, row.content)
+    assert col.json()["dataset_id"] == str(ds) and row.json()["dataset_id"] == str(ds)
+    assert owner_client.patch(url(org, ds, f"row-policies/{row.json()['id']}"), {"is_active": False},
+                              format="json").status_code == 200
+    assert owner_client.delete(url(org, ds, f"column-policies/{col.json()['id']}")).status_code == 204
+    with tenant_context(org.id):
+        actions = set(AuditEvent.objects.values_list("action", flat=True))
+    assert {"governance.column_policy.create", "governance.row_policy.create", "governance.row_policy.update",
+            "governance.column_policy.delete"} <= actions
