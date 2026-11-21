@@ -257,7 +257,7 @@ function CustomerList() {
   );
 }
 
-function ReviewQueue() {
+export function ReviewQueue() {
   const { slug } = useOrgContext();
   const [status, setStatus] = React.useState("pending_review");
   const list = useCustomerMatches(slug, status);
