@@ -237,11 +237,14 @@ def train_customer_projects(*, org_id, user_id, features_dataset_id, horizon_day
             continue
         with tenant_context(org_id):
             best = services.recommendations(project)["candidates"][:1]
-            _c, _job, _snap, run = services.start_experiments(
+            created, _job, snap, run = services.start_experiments(
                 project, user_id=user_id, data={"algorithms": [b["algorithm"] for b in best]}, inline=True)
             best_id = (run or {}).get("best_experiment_id")
             if not best_id:
-                out["models"][key] = {"status": "failed", "experiments": (run or {}).get("experiments", [])}
+                snap.refresh_from_db()
+                errors = [e.error for e in created if (e.refresh_from_db() or e.error)]
+                out["models"][key] = {"status": "failed", "experiments": (run or {}).get("experiments", []),
+                                      "error": snap.error or (errors[0] if errors else "Training failed.")}
                 continue
             version = services.register(services.get_experiment(best_id), user_id=user_id,
                                         data={"model_name": project.name})

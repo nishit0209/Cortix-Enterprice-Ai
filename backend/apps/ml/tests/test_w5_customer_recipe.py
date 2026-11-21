@@ -84,7 +84,7 @@ def test_recipe_creates_and_trains_churn_and_clv(two_orgs, api_client_for, memor
                      name="Customers (synthetic)")
     _r, ods = ingest(owner, a.org, "orders.csv", csv_bytes(orders), django_capture_on_commit_callbacks,
                      name="Orders (synthetic)")
-    assert cds["status"] == "ready" and ods["status"] == "ready", (cds, ods)
+    assert cds["status"] == "ready" and ods["status"] == "ready", (cds.get("last_error"), ods.get("last_error"))
     with django_capture_on_commit_callbacks(execute=True), a.tenant():
         published = services.publish_customer_features(user_id=a.owner.pk, customers_dataset_id=cds["id"],
                                                        orders_dataset_id=ods["id"])
@@ -108,7 +108,8 @@ def test_recipe_creates_and_trains_churn_and_clv(two_orgs, api_client_for, memor
     assert "clv_next_180d" not in churn.features and "churned" not in clv.features
     for key in ("churn", "clv"):
         model = out["models"][key]
-        assert model["stage"] == "production" and model["metrics"]["primary_value"] is not None, model
+        assert model.get("stage") == "production", model
+        assert model["metrics"]["primary_value"] is not None, model
     # C360 scoring path: predict_frame on the feature rows
     with a.tenant():
         from apps.ml.data import governed_frame
