@@ -65,7 +65,7 @@ def _trained(world, capture, *, promote_to: str | None = "production") -> dict:
     exp = ml.train(client, world.slug, project_id, capture, algorithm=algorithm)
     model_id, version = ml.register(client, world.slug, str(ml.pick(exp, "id")))
     if promote_to:
-        resp = ml.promote(client, world.slug, model_id, version, promote_to)
+        resp = ml.promote_effective(world, client, model_id, version, promote_to)
         assert resp.status_code == 200, resp.content[:400]
     features = ml.project_features(project)
     sample = ml.feature_rows(rows[:5], features)
@@ -150,7 +150,9 @@ def test_no_ml_route_accepts_an_uploaded_pickle(two_orgs, ml_env, django_capture
     client = t["client"]
     probed = 0
     for route in tenant_routes():
-        if not route.pattern.lstrip("^").startswith("ml/"):
+        # route.pattern is the FULL pattern ("api/v1/orgs/<slug:org>/ml/..."): look at what follows the org segment
+        after_org = route.pattern.split(">/", 1)[-1].lstrip("^")
+        if not after_org.startswith("ml/"):
             continue
         try:
             factory = factory_for(route)
@@ -268,5 +270,5 @@ def test_prediction_log_stores_no_raw_rows(two_orgs, ml_env, django_capture_on_c
     for log in logs:
         values = model_to_dict(log)
         assert any(isinstance(v, int) and v == len(rows) for v in values.values()), "n_rows is recorded"
-        hashes = [v for k, v in values.items() if "hash" in k]
+        hashes = [v for k, v in values.items() if "hash" in k or "sha256" in k]  # as built: input_sha256
         assert hashes and all(isinstance(h, str) and len(h) >= 32 for h in hashes), values

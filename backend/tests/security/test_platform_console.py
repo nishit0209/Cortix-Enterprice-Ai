@@ -29,7 +29,9 @@ REPO = Path(__file__).resolve().parents[3]
 SALES = REPO / "testdata" / "generated" / "sales.csv"
 
 pytestmark = [
-    pytest.mark.django_db,
+    # the console reads on the `ops` alias (BYPASSRLS, its own connection): what it must see has to be committed, and
+    # `orgs_organization` is RLS-protected, so the tests read orgs through that alias too
+    pytest.mark.django_db(transaction=True, databases="__all__"),
     pytest.mark.skipif(not ROUTES, reason="/api/v1/platform/* not routed yet (Backend W4 apps.platform_admin)"),
 ]
 
@@ -81,7 +83,7 @@ def test_non_platform_users_get_404_on_every_platform_route(two_orgs, route):
     assert key.get(path).status_code in (401, 403, 404)
     from apps.orgs.models import Organization
 
-    assert Organization.objects.get(id=a.id).status == "active", "a refused call must not change the org"
+    assert Organization.objects.using("ops").get(id=a.id).status == "active", "a refused call must not change the org"
 
 
 def _sales_canaries() -> list[str]:
