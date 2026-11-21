@@ -3,7 +3,7 @@
 Unit tests need no DB. The API tests are TRANSACTIONAL (`databases="__all__"`): the platform services read and write
 on the `ops` alias, a separate connection (nexora_ops, BYPASSRLS) that cannot see a test transaction's rows.
 They prove: everyone but a platform admin gets 404; payloads carry counts/status only (never tenant row values);
-suspend -> members get 403 `org_suspended`, API keys 401, reactivate restores access; every action lands in the
+suspend -> members and their API keys get 403 `org_suspended`, reactivate restores access; every action lands in the
 append-only PlatformAuditEvent (which the app role cannot even read); model quotas; the log ring; the command.
 """
 
@@ -190,7 +190,8 @@ def test_suspend_blocks_members_and_api_keys_then_reactivate_restores_access():
     assert client_for(make_user()).get(org_url(org, "jobs")).status_code == 404  # non-members learn nothing
     keyed = client_for(None)
     keyed.credentials(HTTP_AUTHORIZATION=f"Bearer {raw}")
-    assert keyed.get(org_url(org, "datasets")).status_code == 401
+    keyed_denied = keyed.get(org_url(org, "datasets"))  # a valid key of a suspended org: 403 like its members
+    assert keyed_denied.status_code == 403 and keyed_denied.json()["code"] == "org_suspended"
     assert admin.post(P + f"orgs/{org.id}/suspend", {"reason": "again"}, format="json").status_code == 409
 
     events = list(PlatformAuditEvent.objects.using("ops").filter(target_id=str(org.id)).order_by("occurred_at"))

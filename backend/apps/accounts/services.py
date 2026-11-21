@@ -166,17 +166,19 @@ class ApiKeyRecord:
     created_by: UUID
     creator_permissions: frozenset[str]
     last_used_at: datetime | None
+    org_status: str = "active"
 
 
 def lookup_api_key(prefix: str) -> ApiKeyRecord | None:
     """Pre-tenant lookup through the SECURITY DEFINER function `nexora_api_key_lookup`.
 
-    Only returns keys whose org is active and whose creator is still an active member of that org.
+    Only returns keys whose org is active or suspended (`org_status`; authentication answers 403 `org_suspended`
+    for the latter) and whose creator is still an active member of that org.
     """
     with connection.cursor() as cur:
         cur.execute(
             "SELECT api_key_id, org_id, org_slug, key_hash, scopes, expires_at, revoked_at, created_by, "
-            "creator_permissions, last_used_at FROM nexora_api_key_lookup(%s)",
+            "creator_permissions, last_used_at, org_status FROM nexora_api_key_lookup(%s)",
             [prefix],
         )
         row = cur.fetchone()
@@ -193,6 +195,7 @@ def lookup_api_key(prefix: str) -> ApiKeyRecord | None:
         created_by=row[7],
         creator_permissions=frozenset(row[8] or ()),
         last_used_at=row[9],
+        org_status=row[10] or "active",
     )
 
 
