@@ -43,7 +43,7 @@ def no_ocr(monkeypatch):
 @pytest.fixture
 def upload(api_client_for, fake_storage, no_ocr, django_capture_on_commit_callbacks):
     def _upload(world, name: str, data: bytes, **fields) -> Document:
-        client = api_client_for(world.analyst)
+        client = api_client_for(world.user("data_engineer"))
         with django_capture_on_commit_callbacks(execute=True):
             resp = client.post(_url(world), {"file": _file(name, data), **fields}, format="multipart")
         assert resp.status_code == 202, resp.content

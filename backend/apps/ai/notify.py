@@ -9,6 +9,7 @@ config and budgets"), i.e. the people who can raise the budget.
 
 from __future__ import annotations
 
+import importlib
 import logging
 from contextlib import nullcontext
 from datetime import datetime
@@ -51,7 +52,8 @@ def quota_message(scope: str, resets_at: datetime | None) -> tuple[str, str]:
 def notify_quota_exhausted(scope: str, resets_at: datetime | None) -> bool:
     """Notify the org admins once (the caller de-duplicates per day). Returns True when a notification was sent."""
     try:
-        from apps.core import notifications
+        # import_module consults sys.modules first (a package attribute lookup would bypass replacements there)
+        notifications = importlib.import_module("apps.core.notifications")
     except ImportError:
         return False
     title, body = quota_message(scope, resets_at)

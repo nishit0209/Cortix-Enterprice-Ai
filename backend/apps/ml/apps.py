@@ -6,3 +6,8 @@ class MlConfig(AppConfig):
     label = "ml"
     verbose_name = "ML workspace"
     default_auto_field = "django.db.models.BigAutoField"
+
+    def ready(self):
+        from . import serving
+
+        serving.register_periodic_job()  # "ml.drift" hourly: PSI drift (+ label performance) per serving model

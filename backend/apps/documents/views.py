@@ -115,9 +115,10 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
                         status=status.HTTP_202_ACCEPTED)
 
     def partial_update(self, request, *args, **kwargs):
+        doc = self.get_object()  # another org's id answers 404 before the body is validated
         ser = DocumentUpdateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        doc = services.update_document(self.get_object(), title=ser.validated_data["title"], request=request)
+        doc = services.update_document(doc, title=ser.validated_data["title"], request=request)
         return Response(DocumentDetailSerializer(doc).data)
 
     def destroy(self, request, *args, **kwargs):
@@ -126,9 +127,10 @@ class DocumentViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, TenantGe
 
     @action(detail=True, methods=["post"])
     def classification(self, request, *args, **kwargs):
+        doc = self.get_object()
         ser = ClassificationSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        doc = services.set_classification(self.get_object(), ser.validated_data["classification"],
+        doc = services.set_classification(doc, ser.validated_data["classification"],
                                           attest=ser.validated_data.get("attest", False),
                                           user_id=request.user.pk, request=request)
         return Response(DocumentDetailSerializer(doc).data)

@@ -17,10 +17,29 @@ class DocumentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+DOWNLOAD_URL_TTL_S = 600
+
+
 class DocumentDetailSerializer(DocumentSerializer):
+    """Detail payload. `download_url` is a short-lived signed link to the original upload (`apps.core.storage.
+    presigned_get`: `/api/v1/files/<token>` on the fs backend, an S3 presigned URL otherwise). Only the detail
+    route returns it, after its `documents.view` check; `null` when the stored key is unusable."""
+
+    download_url = serializers.SerializerMethodField()
+    download_url_expires_in = serializers.SerializerMethodField()
+
     class Meta(DocumentSerializer.Meta):
-        fields = [*DocumentSerializer.Meta.fields, "languages", "doc_type_scores", "summary"]
+        fields = [*DocumentSerializer.Meta.fields, "languages", "doc_type_scores", "summary", "download_url",
+                  "download_url_expires_in"]
         read_only_fields = fields
+
+    def get_download_url(self, obj) -> str | None:
+        from .services import document_download_url
+
+        return document_download_url(obj, expires_s=DOWNLOAD_URL_TTL_S)
+
+    def get_download_url_expires_in(self, obj) -> int:
+        return DOWNLOAD_URL_TTL_S
 
 
 class DocumentUploadSerializer(serializers.Serializer):
