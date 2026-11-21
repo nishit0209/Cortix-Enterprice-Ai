@@ -8,20 +8,16 @@
 > - **Mock**: UI or demo data only.
 > - **Planned**: not built.
 >
-> **Last integration: wave 3 merged (2026-11-20).** Each W3 branch was independently reviewed: 22 findings, all fixed by their owners, none rejected. **Results on `main`:**
-> - **Backend pytest:** 2,385 passed and 4 skipped. **1,643 DB-backed tests have not run**: there is no database yet, by user choice; the user creates it at the end.
-> - **14 known non-DB failures, each assigned for W4:**
->   - 7 signed-URL tests still expect 403. The contract now says 404 for tampered and 410 for expired (QA).
->   - 1 Windows overwrite-while-downloading case in fs storage (Backend).
->   - 2 AI quota-notification unit tests hit the DB after merging the real `notify` (AI/ML).
->   - 2 cassette-lookup tests whose question is now answered by the improved builder (QA).
->   - g39 now XPASSes because the builder gap is fixed (QA removes the marker).
->   - 1 raw-psycopg tenancy test that needs a DB.
-> - **SQL attack corpus:** fully green.
+> **Last integration: wave 4 merged (2026-11-21). FIRST FULL RUN AGAINST THE REAL LOCAL POSTGRESQL 17:**
+> - **Backend pytest:** **4,840 passed**, 22 failed, 2 errors, 8 skipped (down from 98 failures on the first real-DB run).
+>   - Remaining failures are mostly test-side, assigned for the final wave:
+>     - platform-console and retention tests read RLS tables outside a tenant context, or need `transaction=True` with the ops alias (QA);
+>     - the SSRF obfuscated-loopback hosts ARE refused (400) but with error code `invalid` instead of `connector_host_invalid` (DE);
+>     - C360/P360/ML permission tests and 2 ML security tests (DE/AI-ML/QA);
+>     - 2 live-Postgres connector tests need a dedicated read-only source role (environment).
 > - **Static checks:** ruff, `manage.py check`, `makemigrations --check`, import-linter (2/2) and the conventions check are green.
-> - **Frontend:** lint, typecheck, 180/180 vitest and `next build` are green.
->
-> **Runtime target (user decision 2026-11-20):** a plain local PostgreSQL only. Redis, MinIO and pgvector are optional, and their fallbacks are now built (W3).
+> - **Frontend:** lint, typecheck, 255/255 vitest and `next build` are green.
+> - **Local runtime:** the app runs against the user's PostgreSQL (`readyz`: database, cache, storage fs, thread runner, scheduler all ok). All migrations are applied.
 
 | Area | Module | Status | Evidence / notes |
 |---|---|---|---|
@@ -44,7 +40,9 @@
 | UI | Design system, shell, auth, dashboard, datasets, settings, audit | Prototype | Builds. Not yet run against the live backend. |
 | UI | Ask AI workspace, SQL editor, history; sources, pipeline builder, runs, lineage, quality, semantic; documents | Prototype | 120 vitest tests. Not yet run against the live backend. |
 | W3 | Dashboards + widgets (viewer-policy refresh, sharing), notifications, AI quota UX, `seed_demo` (real ingestion), no-mock UI audit | Prototype | Unit and component tests pass. DB/e2e tests written, not run. |
-| W4 | ML workspace (real training/prediction on CPU), governance UI, admin console, Customer 360 + Product 360 data foundations | Planned | Wave 4 (in progress). |
+| W4 | ML workspace (EDA, recommendations, sklearn/XGBoost/statsmodels training, SHAP, registry, promote, predict API with API keys, batch, PSI drift) | Prototype | Engine and API tests pass on the real DB, except 1 permissions test + 2 ML security tests (final wave). |
+| W4 | Customer 360 (identity resolution, review queue, profiles, timeline, RFM segments) + Product 360 (normalize, match, corrections on approve, quality, search) | Prototype | DE: 1,092/1,092 owned DB tests pass. ER on testdata: customers F1 1.00; supplier products F1 0.90. |
+| W4 | Governance UI, retention job, org usage, platform super-admin console | Prototype | Backend: 554/555 owned DB tests pass; platform QA tests need test-side fixes. |
 | W5 | Customer 360, Product 360, document intelligence completion | Planned | |
 | W6 | Workflow automation with approvals, usage analytics | Planned | |
 | W7 | Hardening, performance, final manual setup/test guide | Planned | |
