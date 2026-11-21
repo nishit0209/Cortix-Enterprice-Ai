@@ -46,6 +46,7 @@ function nodeToWire(n: PipelineDagNode, input: SchemaColumn[] | null): { type: s
       return { type: "source.dataset", config: { dataset_id: c.dataset_id, ...(strList(c.columns).length ? { columns: strList(c.columns) } : {}) } };
     case "destination": {
       const cfg: Record<string, unknown> = c.target === "existing" ? { dataset_id: c.dataset_id } : { name: String(c.dataset_name ?? c.name ?? "").trim() };
+      if (c.target === "existing" && c.mode === "append") cfg.mode = "append";
       if (c.classification && c.classification !== "internal") cfg.classification = c.classification;
       if (typeof c.description === "string" && c.description.trim()) cfg.description = c.description.trim();
       return { type: "destination.dataset", config: cfg };
@@ -173,7 +174,7 @@ function nodeFromWire(type: string, c: Record<string, unknown>): Record<string, 
     case "destination.dataset":
     case "destination":
       return c.dataset_id
-        ? { target: "existing", dataset_id: c.dataset_id, dataset_name: "", classification: c.classification ?? "internal" }
+        ? { target: "existing", dataset_id: c.dataset_id, dataset_name: "", mode: c.mode === "append" ? "append" : "new_version", classification: c.classification ?? "internal" }
         : { target: "new", dataset_name: c.name ?? c.dataset_name ?? "", classification: c.classification ?? "internal", ...(c.description ? { description: c.description } : {}) };
     case "cast": {
       if (Array.isArray(c.casts)) return c;

@@ -272,7 +272,7 @@ export const STEP_CATALOG: StepSpec[] = [
     type: "destination",
     label: "Dataset output",
     category: "destination",
-    description: "Write the result as a new dataset, or as a new version of an existing one.",
+    description: "Write the result as a new dataset, or as a new version of an existing one (replacing or appending to its rows).",
     inputs: 1,
     outputs: 0,
     fields: [
@@ -288,6 +288,16 @@ export const STEP_CATALOG: StepSpec[] = [
       },
       { key: "dataset_name", label: "New dataset name", kind: "text", required: true, placeholder: "Sales (clean)", showIf: { key: "target", in: ["new"] } },
       { key: "dataset_id", label: "Dataset", kind: "dataset", required: true, showIf: { key: "target", in: ["existing"] } },
+      {
+        key: "mode",
+        label: "Rows of the new version",
+        kind: "select",
+        showIf: { key: "target", in: ["existing"] },
+        options: [
+          { value: "new_version", label: "Replace: only this run's rows" },
+          { value: "append", label: "Append: current rows + this run's rows" },
+        ],
+      },
       {
         key: "classification",
         label: "Classification",

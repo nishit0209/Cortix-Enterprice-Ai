@@ -1,6 +1,6 @@
 /** Pure helpers for dashboard KPI deltas (only computed from real data; null when there is nothing to compare). */
 
-import type { AiUsage, Dataset } from "./types";
+import type { AiUsage, DataStats, Dataset } from "./types";
 
 export function pctChange(current: number | null | undefined, previous: number | null | undefined): number | null {
   if (current === null || current === undefined || previous === null || previous === undefined) return null;
@@ -32,4 +32,18 @@ export function dailyRequests(usage: Pick<AiUsage, "daily" | "range"> | null | u
     out.push({ day, requests: byDay.get(day) ?? 0 });
   }
   return out;
+}
+
+/** Previous-period values for KPI deltas: the flat W4 `*_prev` fields win over the older `previous` object. */
+export function previousStats(s: DataStats | null | undefined): { datasets: number | null; rows_total: number | null; avg_quality: number | null; pipelines_active: number | null } | null {
+  if (!s) return null;
+  const pick = (flat: number | null | undefined, legacy: number | null | undefined) => (flat !== undefined && flat !== null ? flat : (legacy ?? null));
+  const p = s.previous ?? {};
+  const out = {
+    datasets: pick(s.datasets_prev, p.datasets),
+    rows_total: pick(s.rows_total_prev, p.rows_total),
+    avg_quality: pick(s.avg_quality_prev, p.avg_quality),
+    pipelines_active: p.pipelines_active ?? null,
+  };
+  return Object.values(out).some((v) => v !== null) ? out : null;
 }
