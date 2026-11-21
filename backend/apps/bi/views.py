@@ -171,12 +171,13 @@ class MessageFeedbackView(TenantAPIView):
     required_permissions = "bi.chat"
 
     def post(self, request, org, pk):
-        ser = FeedbackSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        # Resolve the message BEFORE validating the body: an unknown/foreign id is 404 whatever is posted.
         message = (Message.objects.select_related("conversation")
                    .filter(id=pk, role="assistant", conversation__user_id=request.user.pk).first())
         if message is None:
             raise NotFound()
+        ser = FeedbackSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
         return Response(services.apply_feedback(message, ser.validated_data["value"], user_id=request.user.pk))
 
 
