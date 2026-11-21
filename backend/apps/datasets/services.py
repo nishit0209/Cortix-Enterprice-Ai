@@ -23,6 +23,7 @@ import re
 import shutil
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from dataclasses import replace as dc_replace
 from typing import Any
 from uuid import UUID
@@ -465,6 +466,92 @@ def load_current_frame(dataset_id, columns: Sequence[str] | None = None) -> pl.D
     return load_version_frame(require_ready_version(dataset), columns)
 
 
+@dataclass(frozen=True)
+class GovernedFrame:
+    """Rows/columns of a dataset's current version as one user may use them (see governed_frame)."""
+
+    frame: pl.DataFrame
+    dataset: Dataset
+    version: DatasetVersion
+    allowed: tuple[str, ...]            # columns the user may use unmasked
+    excluded_by_policy: tuple[str, ...]  # denied or masked columns (never loaded)
+    rows_filtered: int                   # rows removed by row policies
+
+
+def policy_columns(user_id, dataset_id, *, privilege: str = "query"):
+    """-> (dataset, version, policy, allowed, excluded) for the current ready version (governance.effective_policy).
+
+    `allowed` = columns the user may read unmasked; `excluded` = denied or masked columns. Raises NotFound when the
+    user fails the dataset ACL for `privilege` (CONTRACT: unauthorized resources are 404) and DatasetNotReady."""
+    from apps.governance.services import DatasetAccessDenied, effective_policy
+
+    dataset = get_dataset(dataset_id)
+    version = require_ready_version(dataset)
+    tables, columns_by_table = version_schema(dataset, version)
+    try:
+        policy = effective_policy(user_id, dataset.id, tables, columns_by_table, privilege=privilege)
+    except DatasetAccessDenied as exc:
+        raise NotFound() from exc
+    logical = next(iter(tables))
+    allowed_set = set(policy.allowed_columns.get(logical, ()))
+    masked = {col for (table, col) in (policy.column_masks or {}) if table == logical}
+    all_columns = columns_by_table[logical]
+    allowed = tuple(c for c in all_columns if c in allowed_set and c not in masked)
+    excluded = tuple(c for c in all_columns if c not in allowed)
+    return dataset, version, policy, allowed, excluded
+
+
+def row_predicate_expr(conditions) -> pl.Expr | None:
+    """Polars expression of a governance RowPredicate's ANDed (column, op, value) conditions."""
+    expr = None
+    for column, op, value in conditions or ():
+        col = pl.col(column)
+        if op in ("in", "not_in"):
+            values = list(value) if isinstance(value, list | tuple | set | frozenset) else [value]
+            part = col.cast(pl.String).is_in([str(v) for v in values])
+            part = part if op == "in" else ~part
+        elif op == "is_null":
+            part = col.is_null()
+        elif op == "not_null":
+            part = col.is_not_null()
+        else:
+            lit = pl.lit(value)
+            part = {"=": col == lit, "!=": col != lit, "<": col < lit, "<=": col <= lit, ">": col > lit,
+                    ">=": col >= lit}.get(op)
+            if part is None:
+                raise ValueError(f"unsupported row-policy operator {op!r}")
+        part = part.fill_null(False)
+        expr = part if expr is None else expr & part
+    return expr
+
+
+def governed_frame(user_id, dataset_id, columns: Sequence[str], *, privilege: str = "query",
+                   limit: int | None = None) -> GovernedFrame:
+    """The requested columns of the current version under the user's policy (dataset ACL, column deny/mask, row
+    policies). Requested columns the user may not use unmasked are NOT loaded and are listed in
+    `excluded_by_policy`; callers (ML, Customer 360, Product 360) refuse or skip them."""
+    dataset, version, policy, allowed, excluded = policy_columns(user_id, dataset_id, privilege=privilege)
+    wanted = [c for c in dict.fromkeys(columns) if c in allowed]
+    logical = next(iter(policy.tables))
+    predicate = (policy.row_predicates or {}).get(logical)
+    conditions = tuple(predicate.conditions) if predicate is not None else ()
+    extra = [c for c, _op, _v in conditions if c not in wanted]
+    if not wanted:
+        raise ValidationError({"columns": ["None of the requested columns may be used under your data policy."],
+                               "excluded_by_policy": list(columns)})
+    frame = load_version_frame(version, [*wanted, *extra], limit=None if conditions else limit)
+    filtered = 0
+    if conditions:
+        expr = row_predicate_expr(conditions)
+        before = frame.height
+        frame = frame.filter(expr)
+        filtered = before - frame.height
+        if limit is not None:
+            frame = frame.head(limit)
+    frame = frame.select(wanted)
+    return GovernedFrame(frame, dataset, version, allowed, tuple(c for c in columns if c in excluded), filtered)
+
+
 def _quote_ident(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
@@ -485,7 +572,7 @@ def preview(dataset: Dataset, *, user_id, limit: int = 100, version_no: int | No
     tables, columns_by_table = version_schema(dataset, version)
     logical = next(iter(tables))
     policy = effective_policy(user_id, dataset.id, tables, columns_by_table, privilege="read")
-    policy = dc_replace(policy, row_cap=limit)
+    policy = dc_replace(policy, row_cap=limit + 1)  # one extra row tells whether the preview is truncated
     allowed = policy.allowed_columns.get(logical, frozenset())
     visible = [c for c in cols if c["name"] in allowed]
     body = {"version": version.version, "columns": [], "rows": [], "row_count": 0, "truncated": False}
@@ -493,7 +580,7 @@ def preview(dataset: Dataset, *, user_id, limit: int = 100, version_no: int | No
         return body
     masks = {c: m for (t, c), m in policy.column_masks.items() if t == logical}
     statement = "SELECT {} FROM {} LIMIT {}".format(  # noqa: S608 - identifiers quoted; re-validated by the guard
-        ", ".join(_quote_ident(c["name"]) for c in visible), _quote_ident(logical), int(limit)
+        ", ".join(_quote_ident(c["name"]) for c in visible), _quote_ident(logical), int(limit) + 1
     )
     checked = sqlguard.validate(statement, policy)
     if not checked.ok:
@@ -510,9 +597,9 @@ def preview(dataset: Dataset, *, user_id, limit: int = 100, version_no: int | No
 
     body.update({
         "columns": [{"name": m.name, "type": col_type(m.name), "masked": m.name in masks} for m in result.columns],
-        "rows": rows_to_jsonable(result.rows),
-        "row_count": result.row_count,
-        "truncated": result.truncated,
+        "rows": rows_to_jsonable(result.rows[:limit]),
+        "row_count": min(result.row_count, limit),
+        "truncated": result.truncated or result.row_count > limit,
     })
     return body
 

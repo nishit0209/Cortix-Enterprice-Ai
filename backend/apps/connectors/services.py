@@ -42,7 +42,7 @@ from . import (
     ssrf,
 )
 from .base import BaseConnector, Batch, TableInfo, connector_class
-from .exceptions import ConnectorError, ImportTooLarge, SourceInUse, SourceNotReady
+from .exceptions import ConnectorError, ImportTooLarge, InvalidHost, SourceInUse, SourceNotReady
 from .models import Credential, DataSource, SourceImport
 from .values import to_text
 
@@ -100,7 +100,10 @@ def validate_config(type_: str, config: dict[str, Any]) -> dict[str, Any]:
             errors.setdefault(f"config.{loc}" if loc != "config" else "config", []).append(msg)
         raise ValidationError(errors) from None
     public = model.public() if hasattr(model, "public") else model.model_dump()
-    ssrf.precheck_host(public["host"])  # network-free: IP literals and internal names fail fast
+    try:
+        ssrf.precheck_host(public["host"])  # network-free: IP literals and internal names fail fast
+    except InvalidHost as exc:  # a malformed host is a validation error (400); a forbidden one stays 422
+        raise ValidationError({"config.host": [str(exc.detail)]}) from None
     return public
 
 

@@ -7,6 +7,7 @@
     evaluate_version(version, frame=None)                    -> QualityReport (all of the above)
     report_payload(version)                                  -> dict (API shape)
     create_rule / update_rule / delete_rule                  (validated, audited)
+    UnionFind, candidate_pairs, reconcile_clusters, pair_key, soundex, fold, proximity   (entity resolution, pure)
 """
 
 from __future__ import annotations
@@ -25,6 +26,16 @@ from . import engine
 from .duplicates import find_duplicates
 from .engine import EvalContext, RuleOutcome, RuleSpec
 from .models import QualityReport, QualityResult, QualityRule
+from .resolution import (  # noqa: F401 - re-exported for Customer 360 / Product 360
+    BlockingStats,
+    UnionFind,
+    candidate_pairs,
+    fold,
+    pair_key,
+    proximity,
+    reconcile_clusters,
+    soundex,
+)
 
 KEY_NAME_HINTS = ("id", "_id", "_key", "_code", "_no")
 
