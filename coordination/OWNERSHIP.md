@@ -35,6 +35,7 @@
 | 27 | `testdata/**` | qa_security |
 | 28 | `e2e/**` | qa_security |
 | 29 | `perf/**` | qa_security |
+| 290 | `backend/tests/FINAL_VERIFICATION.md` | qa_security |
 | 30 | `frontend/**` | frontend |
 | 31 | `coordination/handoffs/*/backend.md` | backend |
 | 32 | `coordination/handoffs/*/data_engineering.md` | data_engineering |
