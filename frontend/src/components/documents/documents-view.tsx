@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { FileSearch, FileText, Library, Search, Upload } from "lucide-react";
+import { FileDiff, FileSearch, FileText, Library, Search, Upload } from "lucide-react";
 import { useOrgContext } from "@/components/shell/org-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import type { DocumentItem } from "@/lib/types";
 import { formatBytes, formatDateTime, formatNumber, formatRelative } from "@/lib/utils";
 import { DocumentAskPanel, Highlighted } from "./ask-panel";
 import { DocumentUploadDialog } from "./document-upload-dialog";
+import { CollectionsPanel, ComparePanel } from "./document-extras";
 
 export function DocumentsView() {
   const { slug, can } = useOrgContext();
@@ -28,6 +29,8 @@ export function DocumentsView() {
   const docs = useDocuments(slug);
   const [uploading, setUploading] = React.useState(false);
   const [tab, setTab] = React.useState("library");
+  const [collection, setCollection] = React.useState<string | null>(null);
+  const shown = React.useMemo(() => (collection ? (docs.data ?? []).filter((d) => d.collection_id === collection) : docs.data), [docs.data, collection]);
   const titles = React.useMemo(() => new Map((docs.data ?? []).map((d) => [d.id, d.title])), [docs.data]);
   const unavailable = docs.isError && isUnavailableEndpoint(docs.error);
 
@@ -100,13 +103,18 @@ export function DocumentsView() {
             <TabsTrigger value="search">
               <Search /> Search
             </TabsTrigger>
+            <TabsTrigger value="compare">
+              <FileDiff /> Compare
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="library">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+              <div className="min-w-0 space-y-4">
+              <CollectionsPanel selected={collection} onSelect={setCollection} />
               <DataTable
                 caption="Documents"
                 columns={columns}
-                data={docs.data}
+                data={shown}
                 loading={docs.isLoading}
                 error={docs.isError ? docs.error : undefined}
                 onRetry={() => void docs.refetch()}
@@ -130,15 +138,25 @@ export function DocumentsView() {
                   />
                 }
               />
+              </div>
               {can("documents.ask") && (
                 <div className="xl:sticky xl:top-20 xl:self-start">
-                  <DocumentAskPanel org={slug} onCitation={(c) => router.push(`/o/${slug}/documents/${c.document_id}?page=${c.page}`)} />
+                  <DocumentAskPanel
+                    key={collection ?? "all"}
+                    org={slug}
+                    documentIds={collection ? (shown ?? []).map((d) => d.id) : undefined}
+                    title={collection ? "Ask this collection" : undefined}
+                    onCitation={(c) => router.push(`/o/${slug}/documents/${c.document_id}?page=${c.page}`)}
+                  />
                 </div>
               )}
             </div>
           </TabsContent>
           <TabsContent value="search">
             <SearchPanel org={slug} titles={titles} onOpen={(id, page) => router.push(`/o/${slug}/documents/${id}?page=${page}`)} />
+          </TabsContent>
+          <TabsContent value="compare">
+            <ComparePanel />
           </TabsContent>
         </Tabs>
       )}
