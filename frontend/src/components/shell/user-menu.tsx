@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Keyboard, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Keyboard, LogOut, Monitor, Moon, Settings, ShieldHalf, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/avatar";
 import {
@@ -79,6 +79,11 @@ export function UserMenu({ onOpenCommand }: { onOpenCommand: () => void }) {
         <DropdownMenuItem onSelect={() => router.push(`/o/${slug}/settings`)}>
           <Settings /> Organization settings
         </DropdownMenuItem>
+        {me.user.is_platform_admin && (
+          <DropdownMenuItem onSelect={() => router.push("/platform")}>
+            <ShieldHalf /> Platform console
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onSelect={onOpenCommand} shortcut={<Kbd>⌘K</Kbd>}>
           <Keyboard /> Command menu
         </DropdownMenuItem>

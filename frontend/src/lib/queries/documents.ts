@@ -86,15 +86,44 @@ export function useDeleteDocument(org: string) {
   });
 }
 
+interface DocumentSearchResponse {
+  results?: DocumentSearchHit[];
+  items?: DocumentSearchHit[];
+  search_mode?: string | null;
+  search_mode_reason?: string | null;
+  search_mode_message?: string | null;
+  retrieval?: { pending_embeddings?: number | null } | null;
+}
+
+export interface DocumentSearchResult {
+  hits: DocumentSearchHit[];
+  /** `hybrid` / `vector` / `fulltext` (W3). */
+  mode: string | null;
+  /** Shown when the search fell back to full-text (e.g. embeddings unavailable or still pending). */
+  message: string | null;
+  pendingEmbeddings: number;
+}
+
+/** Normalize the search payload; `message` only when the backend reports a full-text fallback. */
+export function normalizeSearch(res: DocumentSearchResponse | DocumentSearchHit[]): DocumentSearchResult {
+  if (Array.isArray(res)) return { hits: res, mode: null, message: null, pendingEmbeddings: 0 };
+  const mode = res.search_mode ?? null;
+  return {
+    hits: res.results ?? res.items ?? [],
+    mode,
+    message: mode === "fulltext" ? (res.search_mode_message ?? null) : null,
+    pendingEmbeddings: Number(res.retrieval?.pending_embeddings ?? 0) || 0,
+  };
+}
+
 /** GET /documents/search?q=&k=&document_ids= (hybrid vector + full-text search, RRF-fused). */
 export function useDocumentSearch(org: string) {
   return useMutation({
     mutationFn: async (body: { query: string; limit?: number; document_ids?: string[] }) => {
-      const res = await api.get<{ results?: DocumentSearchHit[]; items?: DocumentSearchHit[] } | DocumentSearchHit[]>(`${o(org)}/documents/search`, {
+      const res = await api.get<DocumentSearchResponse | DocumentSearchHit[]>(`${o(org)}/documents/search`, {
         query: { q: body.query, k: body.limit ?? 20, document_ids: body.document_ids?.length ? body.document_ids.join(",") : undefined },
       });
-      if (Array.isArray(res)) return res;
-      return res.results ?? res.items ?? [];
+      return normalizeSearch(res);
     },
   });
 }

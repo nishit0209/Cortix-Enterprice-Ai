@@ -49,7 +49,7 @@ function LineageNodeView({ data }: NodeProps<LNode>) {
         {meta.icon}
       </span>
       <div className="min-w-0">
-        <div className="truncate text-[12.5px] font-semibold text-fg">{restricted ? "Restricted assets" : data.label}</div>
+        <div className="truncate text-[12.5px] font-semibold text-fg">{data.label || (restricted ? "Restricted assets" : "")}</div>
         <div className="truncate text-[10.5px] uppercase tracking-[0.06em] text-fg-subtle">{meta.label}</div>
       </div>
       <Handle type="source" position={Position.Right} className="!size-2 !border-0 !bg-fg-subtle" isConnectable={false} />
@@ -67,7 +67,7 @@ export function toLineageFlow(graph: LineageGraph, rootId: string | null): { nod
       id: n.id,
       type: "lineage" as const,
       position: pos[n.id] ?? { x: 0, y: 0 },
-      data: { label: n.label, kind: n.type, root: n.id === rootId },
+      data: { label: n.label, kind: n.restricted ? "restricted" : n.type, root: n.id === rootId },
       draggable: true,
       connectable: false,
     })),

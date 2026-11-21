@@ -308,8 +308,20 @@ export interface DataStats {
   rows_total: number;
   avg_quality: number | null;
   pipelines_active: number;
-  runs_7d: { succeeded: number; failed: number };
+  /** `total` counts runs created in the window (any status); succeeded/failed count runs that finished in it. */
+  runs_7d: { succeeded: number; failed: number; total?: number };
   storage_bytes: number;
+  /** W3 additive fields (CONTRACT `/data-stats`). */
+  datasets_by_status?: { ready: number; processing: number; failed: number } | null;
+  pipelines_total?: number;
+  runs_active?: number;
+  sources?: number;
+  sources_active?: number;
+  /** W4 previous-period KPIs (state as of 7 days ago); absent or null when there is nothing to compare. */
+  datasets_prev?: number | null;
+  rows_total_prev?: number | null;
+  avg_quality_prev?: number | null;
+  storage_bytes_prev?: number | null;
   /** Optional: previous-period values for KPI deltas when the backend provides them. */
   previous?: Partial<Pick<DataStats, "datasets" | "rows_total" | "avg_quality" | "pipelines_active">> | null;
 }
@@ -373,7 +385,9 @@ export interface Insight {
 export interface AiUsage {
   range: { from: string; to: string; days: number; timezone: string };
   totals: { requests: number; input_tokens: number; output_tokens: number; cached_tokens: number; blocked: number; errors: number };
-  daily: Array<{ day: string; model: string; requests: number; input_tokens: number; output_tokens: number; blocked: number; errors: number }>;
+  daily: Array<{ day: string; model: string; requests: number; input_tokens: number; output_tokens: number; cached_tokens?: number; blocked: number; errors: number }>;
+  by_feature?: Array<{ feature: string; requests: number; input_tokens: number; output_tokens: number }>;
+  by_status?: Record<string, number>;
 }
 
 /* ---------- Conversational BI (W3) ---------- */
@@ -737,11 +751,15 @@ export interface LineageNode {
   id: string;
   type: string;
   label: string;
+  /** W3: true for the single collapsed node standing for assets the viewer may not see. */
+  restricted?: boolean;
 }
 
 export interface LineageGraph {
   nodes: LineageNode[];
   edges: Array<{ from: string; to: string; label?: string | null }>;
+  /** W3: number of linked assets hidden from the viewer (collapsed into one restricted node). */
+  restricted_count?: number;
 }
 
 /* ---------- Semantic layer (W2, `apps/semantic`) ---------- */
@@ -830,6 +848,8 @@ export interface DocumentItem {
   created_at: ISODate;
   updated_at?: ISODate;
   processed_at?: ISODate | null;
+  /** W3: `pending` while chunks wait for local embeddings (search falls back to full-text for them). */
+  embedding_status?: "none" | "complete" | "pending" | string;
   /* detail only */
   languages?: Record<string, number> | string[] | null;
   doc_type_scores?: Record<string, number> | null;

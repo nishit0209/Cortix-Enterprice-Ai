@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/feedback";
 import { ClassificationBadge, StatusBadge } from "@/components/ui/status";
+import { EmbeddingPendingBadge } from "./embedding-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResultTable } from "@/components/ask/result-table";
 import { errorMessage, isUnavailableEndpoint } from "@/lib/errors";
@@ -151,6 +152,7 @@ export function DocumentDetail() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="truncate text-xl font-semibold tracking-[-0.015em] text-fg">{d.title}</h1>
                 <StatusBadge status={d.status} />
+                <EmbeddingPendingBadge doc={d} />
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-fg-muted">
                 <ClassificationBadge value={d.classification} />

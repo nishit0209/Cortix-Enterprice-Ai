@@ -12,6 +12,7 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { ClassificationBadge, FeatureStatusBadge, StatusBadge } from "@/components/ui/status";
+import { EmbeddingPendingBadge } from "./embedding-badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip } from "@/components/ui/overlays";
 import { isUnavailableEndpoint } from "@/lib/errors";
@@ -48,7 +49,12 @@ export function DocumentsView() {
           </span>
         ),
       },
-      { id: "status", accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
+      { id: "status", accessorKey: "status", header: "Status", cell: ({ row }) => (
+          <span className="flex flex-wrap items-center gap-1">
+            <StatusBadge status={row.original.status} />
+            <EmbeddingPendingBadge doc={row.original} />
+          </span>
+        ) },
       { id: "classification", accessorKey: "classification", header: "Classification", cell: ({ row }) => <ClassificationBadge value={row.original.classification} /> },
       { id: "doc_type", accessorFn: (r) => r.doc_type ?? "", header: "Type", meta: { hideOnMobile: true }, cell: ({ row }) => (row.original.doc_type ? <Badge tone="outline">{row.original.doc_type}</Badge> : <span className="text-fg-subtle">—</span>) },
       { id: "pages", accessorFn: (r) => r.page_count ?? -1, header: "Pages", meta: { align: "right" }, cell: ({ row }) => formatNumber(row.original.page_count) },
@@ -190,14 +196,19 @@ export function SearchPanel({
           ))}
         </div>
       ) : search.data ? (
-        search.data.length === 0 ? (
-          <EmptyState compact icon={<FileSearch />} title="No matching passages" description="Try other words; search combines meaning and exact keywords." />
+        search.data.hits.length === 0 ? (
+          <EmptyState compact icon={<FileSearch />} title="No matching passages" description={search.data.message ?? "Try other words; search combines meaning and exact keywords."} />
         ) : (
           <ol className="space-y-2" aria-label="Search results">
             <li className="text-xs text-fg-muted">
-              {search.data.length} passage{search.data.length === 1 ? "" : "s"} for “{submitted}”
+              {search.data.hits.length} passage{search.data.hits.length === 1 ? "" : "s"} for “{submitted}”
             </li>
-            {search.data.map((h) => (
+            {search.data.message && (
+              <li role="note" className="rounded-control bg-info-soft px-3 py-2 text-xs text-info">
+                {search.data.message}
+              </li>
+            )}
+            {search.data.hits.map((h) => (
               <li key={h.chunk_id}>
                 <button
                   type="button"

@@ -28,8 +28,9 @@ import { FeatureStatusBadge, POLICY_LABELS } from "@/components/ui/status";
 import { ActivityList } from "@/components/activity/activity-list";
 import { RowsByDatasetChart, RunsDonut } from "@/components/dashboard/charts";
 import { useActivity, useAiStatus, useAiUsage, useDataStats, useInsights } from "@/lib/queries/org";
+import type { DataStats } from "@/lib/types";
 import { useQueryHistory } from "@/lib/queries/bi";
-import { datasetGrowth, dailyRequests, pctChange } from "@/lib/dashboard";
+import { datasetGrowth, dailyRequests, pctChange, previousStats } from "@/lib/dashboard";
 import { SourceBadge } from "@/components/ask/sql-code";
 import { VerdictBadge } from "@/components/ask/query-history";
 import { isAllowedVerdict } from "@/lib/chat/error-copy";
@@ -85,9 +86,10 @@ export default function DashboardPage() {
   // KPI deltas come only from real data (previous-period stats when the API sends them, dataset creation dates,
   // daily AI usage). Nothing is shown when there is nothing to compare against.
   const growth = React.useMemo(() => datasetGrowth(datasets.data ?? []), [datasets.data]);
-  const datasetsDelta = s?.previous?.datasets !== undefined ? pctChange(s.datasets, s.previous.datasets) : growth.pct;
-  const qualityDelta = s?.previous ? pctChange(toPercentScore(s.avg_quality), toPercentScore(s.previous.avg_quality)) : null;
-  const pipelinesDelta = s?.previous ? pctChange(s.pipelines_active, s.previous.pipelines_active) : null;
+  const prev = previousStats(s);
+  const datasetsDelta = prev?.datasets !== null && prev?.datasets !== undefined ? pctChange(s?.datasets, prev.datasets) : growth.pct;
+  const qualityDelta = prev ? pctChange(toPercentScore(s?.avg_quality), toPercentScore(prev.avg_quality)) : null;
+  const pipelinesDelta = prev ? pctChange(s?.pipelines_active, prev.pipelines_active) : null;
   const aiDaily = React.useMemo(() => dailyRequests(usage.data), [usage.data]);
   const aiDelta = aiDaily.length >= 2 ? pctChange(aiDaily[aiDaily.length - 1].requests, aiDaily[aiDaily.length - 2].requests) : null;
 
@@ -137,8 +139,8 @@ export default function DashboardPage() {
           icon={<Database />}
           loading={stats.isLoading}
           value={s ? formatNumber(s.datasets) : "—"}
-          hint={statHint(s ? `${formatNumber(s.rows_total, { compact: true })} rows · ${formatBytes(s.storage_bytes)}` : null)}
-          delta={datasetsDelta !== null ? { value: datasetsDelta, label: s?.previous ? "vs last period" : "last 7 days" } : null}
+          hint={statHint(s ? datasetsHint(s) : null)}
+          delta={datasetsDelta !== null ? { value: datasetsDelta, label: prev?.datasets !== null && prev?.datasets !== undefined ? "vs 7 days ago" : "last 7 days" } : null}
           href={`/o/${slug}/data/datasets`}
         />
         <StatCard
@@ -150,7 +152,7 @@ export default function DashboardPage() {
           delta={pipelinesDelta !== null ? { value: pipelinesDelta, label: "vs last period" } : null}
           href={`/o/${slug}/data/pipelines`}
           hint={statHint(
-            s ? `${formatNumber(s.runs_7d.succeeded + s.runs_7d.failed)} runs in the last 7 days` : null,
+            s ? pipelinesHint(s) : null,
           )}
         />
         <StatCard
@@ -579,4 +581,18 @@ function RecentQuestions({ slug, q }: { slug: string; q: ReturnType<typeof useQu
       </CardContent>
     </Card>
   );
+}
+
+function datasetsHint(s: DataStats): string {
+  const parts = [`${formatNumber(s.rows_total, { compact: true })} rows`, formatBytes(s.storage_bytes)];
+  const b = s.datasets_by_status;
+  if (b && (b.processing || b.failed)) parts.push(`${formatNumber(b.processing)} processing · ${formatNumber(b.failed)} failed`);
+  if (typeof s.sources === "number") parts.push(`${formatNumber(s.sources)} sources`);
+  return parts.join(" · ");
+}
+
+function pipelinesHint(s: DataStats): string {
+  const runs = s.runs_7d.total ?? s.runs_7d.succeeded + s.runs_7d.failed;
+  const active = s.runs_active ? ` · ${formatNumber(s.runs_active)} running now` : "";
+  return `${formatNumber(runs)} runs in the last 7 days${active}`;
 }
