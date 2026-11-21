@@ -28,7 +28,7 @@
 - After that run, the retention re-run passed 5/5, so the net result is 2312 passed, 1 failed, 20 skipped,
   1 xfailed.
 - The 1 failure is the E2E stage 5 (DE defect 1 below). The 11 automation tests skip until Backend W5 is merged.
-- conventions OK, ownership OK, ruff OK, manage.py check OK, makemigrations --check: no changes.
+- conventions OK, ownership OK except the mission-placed FINAL_VERIFICATION.md (see Requests), ruff OK, manage.py check OK, makemigrations --check: no changes.
 
 ## Defects for other agents
 1. **data_engineering:** apps/customers/services.py:933 `FEATURE_COLUMNS` / `features_frame()` has no label column.
@@ -48,3 +48,5 @@
   - the webhook headers: signature in `X-Nexora-Signature` (or `X-Signature`), unix timestamp in
     `X-Nexora-Timestamp`;
   - the decision body `{decision: approve|reject, comment, password}`.
+- **Integrator:** the mission puts `backend/tests/FINAL_VERIFICATION.md` at the tests root, which OWNERSHIP.md does
+  not assign (check_ownership flags only this file). Please add it to qa_security's ownership, or move it.
