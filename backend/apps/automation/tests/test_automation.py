@@ -646,3 +646,98 @@ def test_problem_json_content_type_on_drf_errors(org, owner_client, anon_client)
     assert r.status_code == 404 and r["Content-Type"] == "application/problem+json"
     r = anon_client.get(org_url(org, "workflows"))
     assert r.status_code in (401, 403) and r["Content-Type"] == "application/problem+json"
+
+
+# ------------------------------------------------------------------------------------------------ high-impact gate
+def _gate_approval(org, run_id, step_key) -> ApprovalRequest:
+    with tenant_context(org.id):
+        step = WorkflowStepRun.objects.get(run_id=run_id, step_key=step_key)
+        assert step.status == "waiting_approval" and step.approval_id
+        return ApprovalRequest.objects.get(id=step.approval_id)
+
+
+def test_high_impact_step_waits_for_a_high_impact_approval_then_runs(org, owner_client, run_now, test_steps):
+    calls = []
+    registry.register_step("test.counted", lambda ctx, cfg: calls.append(ctx.step_key) or {"ran": True},
+                           schema={"type": "object"}, impact="high")
+    try:
+        wf = make_workflow(owner_client, org, [{"key": "d", "kind": "test.counted", "config": {"n": 1}}])
+        run_id = start(owner_client, org, wf["id"], run_now)["run_id"]
+        assert calls == [] and get_run(owner_client, org, run_id)["status"] == "waiting_approval"
+        a = _gate_approval(org, run_id, "d")
+        assert a.impact == "high" and a.approver_permission == "approvals.decide" and a.payload["gate"] == "impact"
+        assert a.payload["details"] == {"n": 1}
+        # high impact: no password -> refused, still not executed
+        r = run_now(owner_client.post, decision_url(org, a.id), {"decision": "approve"}, format="json")
+        assert r.status_code in (400, 401, 403) and calls == []
+        r = run_now(owner_client.post, decision_url(org, a.id),
+                    {"decision": "approve", "password": DEFAULT_PASSWORD}, format="json")
+        assert r.status_code == 200, r.content
+        run = get_run(owner_client, org, run_id)
+        assert calls == ["d"] and run["status"] == "succeeded", run
+        assert steps_by_key(run)["d"]["output"] == {"ran": True} and steps_by_key(run)["d"]["attempt"] == 1
+        # rejected: the step never runs, the run fails
+        run_id = start(owner_client, org, wf["id"], run_now)["run_id"]
+        a = _gate_approval(org, run_id, "d")
+        r = run_now(owner_client.post, decision_url(org, a.id),
+                    {"decision": "reject", "password": DEFAULT_PASSWORD}, format="json")
+        assert r.status_code == 200, r.content
+        run = get_run(owner_client, org, run_id)
+        assert calls == ["d"] and run["status"] == "failed" and run["error"]["code"] == "approval_rejected"
+        # cancelled while gated: the gate approval is cancelled too
+        run_id = start(owner_client, org, wf["id"], run_now)["run_id"]
+        a = _gate_approval(org, run_id, "d")
+        assert owner_client.post(org_url(org, f"workflow-runs/{run_id}/cancel"), {}, format="json").status_code == 200
+        with tenant_context(org.id):
+            assert ApprovalRequest.objects.get(id=a.id).status == "cancelled"
+        assert calls == ["d"]
+    finally:
+        registry.unregister_step("test.counted")
+
+
+def test_high_impact_step_guarded_by_a_granted_approval_step_runs_once(org, owner_client, run_now, test_steps):
+    steps = [{"key": "ok", "kind": "approval", "config": {"title": "Ship?", "impact": "high"}},
+             {"key": "d", "kind": "test.danger", "depends_on": ["ok"], "config": {"target": "staging"}}]
+    wf = make_workflow(owner_client, org, steps)
+    run_id = start(owner_client, org, wf["id"], run_now)["run_id"]
+    a = _gate_approval(org, run_id, "ok")
+    r = run_now(owner_client.post, decision_url(org, a.id),
+                {"decision": "approve", "password": DEFAULT_PASSWORD}, format="json")
+    assert r.status_code == 200, r.content
+    run = get_run(owner_client, org, run_id)
+    assert run["status"] == "succeeded" and steps_by_key(run)["d"]["output"]["done"] is True
+    with tenant_context(org.id):
+        assert ApprovalRequest.objects.filter(payload__run_id=run_id).count() == 1  # no second approval
+
+
+@pytest.mark.parametrize("guard", [
+    {"key": "ok", "kind": "approval", "config": {"title": "Ship?"}},  # low-impact approval: no re-auth
+    {"key": "ok", "kind": "notify", "config": {"title": "not an approval"}},
+])
+def test_weak_or_missing_guard_still_gates_the_high_impact_step(org, owner_client, run_now, test_steps, guard):
+    wf = make_workflow(owner_client, org, [guard, {"key": "d", "kind": "test.danger", "depends_on": ["ok"],
+                                                   "config": {"target": "x"}}])
+    run_id = start(owner_client, org, wf["id"], run_now)["run_id"]
+    if guard["kind"] == "approval":
+        a = _gate_approval(org, run_id, "ok")
+        assert run_now(owner_client.post, decision_url(org, a.id), {"decision": "approve"},
+                       format="json").status_code == 200
+    run = get_run(owner_client, org, run_id)
+    assert run["status"] == "waiting_approval" and steps_by_key(run)["d"]["status"] == "waiting_approval", run
+    assert _gate_approval(org, run_id, "d").impact == "high"
+
+
+def test_step_catalog_and_validate_document_the_body_shape(org, owner_client):
+    body = owner_client.get(org_url(org, "automation/steps")).json()
+    example = body["workflow_body_example"]
+    assert body["graph_shape"]["step_fields"]["depends_on"]
+    r = owner_client.post(wurl(org, "validate"), {"graph": example["graph"]}, format="json")
+    assert r.status_code == 200 and r.json() == {"valid": True, "errors": []}
+    r = owner_client.post(wurl(org, "validate"), {"graph": {"nodes": []}}, format="json")
+    assert r.json()["valid"] is False and r.json()["example"] == example
+    r = owner_client.post(wurl(org), example, format="json")
+    assert r.status_code == 201, r.content
+    # notify accepts `message` as an alias of `body`
+    r = owner_client.post(wurl(org, "validate"), {"graph": {"steps": [
+        {"key": "s1", "kind": "notify", "config": {"title": "qa", "message": "qa"}}]}}, format="json")
+    assert r.json()["valid"] is True, r.content

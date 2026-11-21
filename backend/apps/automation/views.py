@@ -179,7 +179,11 @@ class WorkflowValidateView(TenantAPIView):
         from . import graph as graphmod
 
         errors = graphmod.validate(ser.validated_data["graph"])
-        return Response({"valid": not errors, "errors": errors})
+        body = {"valid": not errors, "errors": errors}
+        if errors:
+            body["graph_shape"] = graphmod.GRAPH_SHAPE
+            body["example"] = graphmod.WORKFLOW_BODY_EXAMPLE
+        return Response(body)
 
 
 class WorkflowPublishView(TenantAPIView):
@@ -333,7 +337,10 @@ class StepCatalogView(TenantAPIView):
     required_permissions = VIEW
 
     def get(self, request, org):
-        return Response({"items": services.step_catalog(), "events": list(services.EVENT_KINDS)})
+        from . import graph as graphmod
+
+        return Response({"items": services.step_catalog(), "events": list(services.EVENT_KINDS),
+                         "graph_shape": graphmod.GRAPH_SHAPE, "workflow_body_example": graphmod.WORKFLOW_BODY_EXAMPLE})
 
 
 # ------------------------------------------------------------------------------------------------ agents

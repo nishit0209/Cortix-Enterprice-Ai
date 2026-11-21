@@ -440,6 +440,7 @@ def request_approval(*, kind: str, title: str, payload: dict, approver_permissio
 
     if approver_permission not in PERMISSIONS:
         raise ValueError(f"unknown approver permission {approver_permission!r}")
+    requested_by = getattr(requested_by, "pk", requested_by)  # a User instance or its id
     if impact not in ("low", "medium", "high"):
         raise ValueError("impact must be low, medium or high")
     approval = ApprovalRequest.objects.create(
@@ -536,7 +537,10 @@ def _resume_from_approval(approval: ApprovalRequest) -> dict | None:
     step = WorkflowStepRun.objects.filter(id=approval.source_id).first() if approval.source_id else None
     if step is None:
         return None
-    if approval.status == "approved":
+    if approval.status == "approved" and (approval.payload or {}).get("gate") == runner.IMPACT_GATE:
+        # the runner's own gate in front of a high-impact step: re-arm the step so it now EXECUTES
+        runner.resume_step(step, status="pending")
+    elif approval.status == "approved":
         runner.resume_step(step, status="succeeded", output={
             "decision": "approved", "approval_id": str(approval.id),
             "decided_by": str(approval.decided_by) if approval.decided_by else None, "comment": approval.comment})

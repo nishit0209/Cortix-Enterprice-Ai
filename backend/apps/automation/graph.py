@@ -30,6 +30,30 @@ KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
 _STEP_FIELDS = {"key", "kind", "name", "config", "depends_on", "when", "retries", "retry_backoff_s", "timeout_s"}
 _TEMPLATE_RE = re.compile(r"\{\{\s*([A-Za-z0-9_.\-]+)\s*\}\}")
 
+# The accepted body of POST /workflows (and of POST /workflows/validate, POST /workflows/{id}/versions: {"graph"}).
+# Edges are expressed ONLY by `depends_on` on each step; each step's `config` must match its kind's `schema` from
+# GET /automation/steps (built-in `notify` takes title/body|message/link/recipients/user_ids/permission).
+WORKFLOW_BODY_EXAMPLE = {
+    "name": "Notify then approve",
+    "description": "optional",
+    "graph": {"steps": [
+        {"key": "s1", "kind": "notify", "config": {"title": "Hello", "body": "Started"}},
+        {"key": "s2", "kind": "approval", "depends_on": ["s1"],
+         "config": {"title": "Continue?", "impact": "high"}},
+    ]},
+}
+GRAPH_SHAPE = {
+    "steps": f"list (1..{MAX_STEPS}) of step objects",
+    "step_fields": {
+        "key": "required; ^[a-z][a-z0-9_]{0,63}$, unique", "kind": "required; a registered step kind",
+        "config": "object matching the kind's schema (default {})", "depends_on": "list of step keys (default [])",
+        "when": "bool; branch of a `condition` dependency to run on (default true)", "name": "optional label",
+        "retries": f"0..{MAX_RETRIES}", "retry_backoff_s": f"0..{MAX_BACKOFF_S}", "timeout_s": f"1..{MAX_TIMEOUT_S}",
+    },
+    "high_impact": "a step whose kind has impact=high pauses the run for a high-impact approval (approvals.decide, "
+                   "password re-auth) unless it directly depends_on an approved high-impact `approval` step.",
+}
+
 
 def _err(step: str | None, field: str, message: str) -> dict:
     return {"step": step, "field": field, "message": message}
