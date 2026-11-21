@@ -150,15 +150,8 @@ def test_hostile_derive_expressions_never_run(pipelines, expression):
         {"id": "p1", "type": "python.exec", "config": {"code": "import os; os.system('id')"}},
         {"id": "p1", "type": "sql.raw", "config": {"sql": "SELECT * FROM pg_shadow"}},
         {"id": "p1", "type": "../transform.rename", "config": {"mapping": {}}},
-        pytest.param(
-            {"id": "p1", "type": "transform.rename", "config": {"mapping": {"amount": "x; DROP TABLE y"}}},
-            # DEFECT (data_engineering): apps/pipelines/steps.py:23 NewName has no identifier pattern, so a pipeline
-            # publishes columns that break the ingest invariant (apps/datasets/ingest/columns.py: snake_case ASCII,
-            # PostgreSQL-safe). Remove this mark once NewName is restricted to ^[a-z_][a-z0-9_]{0,62}$.
-            marks=pytest.mark.xfail(
-                strict=True, reason="defect: pipeline rename/derive names are not validated"
-            ),
-        ),
+        # rename/derive target names are identifier-validated (apps/pipelines/steps.py NewName): refused with 400
+        {"id": "p1", "type": "transform.rename", "config": {"mapping": {"amount": "x; DROP TABLE y"}}},
     ],
     ids=["filter-raw-sql", "filter-sql-key", "python-exec", "sql-raw", "type-traversal", "rename-to-sql"],
 )

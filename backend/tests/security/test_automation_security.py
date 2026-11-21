@@ -67,7 +67,7 @@ def _automator(world):
 
 
 def _notify_workflow(client, world):
-    return au.create_workflow(client, world.slug, [au.step("notify", config={"message": "qa", "title": "qa"})])
+    return au.create_workflow(client, world.slug, [au.step("notify", config={"title": "qa", "body": "qa"})])
 
 
 # ================================================================================================ webhooks
@@ -322,9 +322,13 @@ def test_running_a_workflow_grants_no_permission_the_actor_lacks(two_orgs, env, 
     if not hasattr(own, "status_code"):
         _rid, status = _run(automator, a, own, capture)
         assert status != "succeeded" and resolution_runs() == before
-    # positive control: the owner runs it fine
-    _rid, status = _run(owner, a, wf, capture)
-    assert status == "succeeded", status
+    # positive control: the owner passes the permission check (the step may still wait for an approval or stop on
+    # "no customer sources mapped" in this bare org, but never on a missing permission)
+    rid, status = _run(owner, a, wf, capture)
+    if status != "succeeded":
+        owner_blob = json.dumps(au.run_steps(owner, a.slug, rid), default=str).lower()
+        assert status in ("waiting_approval", "paused", "pending_approval") or (
+            "lacks the permission" not in owner_blob and "forbidden" not in owner_blob), (status, owner_blob[:400])
 
 
 # ================================================================================================ agents

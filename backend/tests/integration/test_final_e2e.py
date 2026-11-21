@@ -140,24 +140,31 @@ def test_seed_to_bi_to_dashboard_to_ml_to_c360_to_automation(runtime, django_cap
         pytest.skip("stage 5 (Customer 360 scoring-runs) not routed")
     mapping = {"external_id": "customer_id", "name": "customer_name", "email": "email", "phone": "phone",
                "address": "city", "created_at": "signup_date", "dob": "date_of_birth"}
-    _ok(client.post(f"{base}/customers/sources", {"dataset_id": str(customers["id"]), "name": "E2E customers",
-                                                  "mapping": mapping, "field_mapping": mapping}, format="json"),
-        200, 201)
+    src = _ok(client.post(f"{base}/customers/sources", {"dataset_id": str(customers["id"]), "name": "E2E customers",
+                                                        "mapping": mapping}, format="json"), 200, 201)
+    # the seeded orders become order events (the training set's labels come from order history)
+    orders = find_seeded_dataset(datasets, "orders.csv")
+    _ok(client.post(f"{base}/customers/sources", {
+        "dataset_id": str(orders["id"]), "kind": "event", "link_source_id": str(src["id"]),
+        "mapping": {"customer_key": "customer_id", "occurred_at": "order_date", "amount": "amount",
+                    "event_id": "order_id", "event_type": "order", "channel": "channel"}}, format="json"), 200, 201)
     with capture(execute=True):
         _ok(client.post(f"{base}/customers/resolve", {}, format="json"), 200, 202)
     profiles = items(client.get(f"{base}/customers"))
     assert profiles, "resolution produced no customer profiles"
-    # the "customer project": a churn model trained on the published Customer 360 features (apps.customers
-    # publish_features -> datasets.publish_frame), so the scoring run can feed it the same features
+    # the "customer project": a churn model trained on the point-in-time Customer 360 TRAINING set (kind=training:
+    # features as of the cutoff + `churned` / `future_value` labels), so the scoring run feeds it the same features
     with capture(execute=True):
-        published = _ok(client.post(f"{base}/customers/features/publish", {}, format="json"), 200, 201, 202)
+        published = _ok(client.post(f"{base}/customers/features/publish", {"kind": "training"}, format="json"),
+                        200, 201, 202)
     features_ds = str(published["dataset_id"])
     columns = [c["name"] for c in _ok(client.get(f"{base}/datasets/{features_ds}/columns"))]
-    label = next((c for c in ("churned", "churn", "is_churned", "churn_label") if c in columns), None)
-    assert label, ("the Customer 360 features dataset carries no churn label, so no customer churn model can be "
-                   f"trained for scoring-runs (Data Engineering): columns {columns}")
+    assert {"churned", "future_value"} <= set(columns), f"training set without labels: {columns}"
+    label = "churned"
+    # never feed the other label (future_value) or the id to the churn model
+    c_features = [c for c in columns if c not in ("churned", "future_value", "profile_id")]
     c_project = ml.create_project(client, slug, dataset_id=features_ds, target=label, task_type="classification",
-                                  name="E2E customer churn")
+                                  features=c_features, name="E2E customer churn")
     c_project_id = str(ml.pick(c_project, "id"))
     c_exp = ml.train(client, slug, c_project_id, capture,
                      algorithm=ml.recommended(client, slug, c_project_id)[0])
@@ -181,7 +188,7 @@ def test_seed_to_bi_to_dashboard_to_ml_to_c360_to_automation(runtime, django_cap
         pytest.skip("stage 6 (automation) not routed")
     wf = au.create_workflow(client, slug, [
         au.step("bi.saved_query", "q", {"saved_query_id": str(saved_query_id)}),
-        au.step("notify", "n", {"message": "E2E revenue refreshed", "title": "E2E"}),
+        au.step("notify", "n", {"title": "E2E", "body": "E2E revenue refreshed"}),
     ])
     resp = au.start_run(client, slug, str(wf["id"]), capture)
     assert resp.status_code in au.OK, resp.content[:400]

@@ -160,46 +160,32 @@ def step(kind: str, key: str = "s1", config: dict | None = None) -> dict:
     return {"key": key, "kind": kind, "config": config or {}}
 
 
-def _step_styles(steps: list[dict]) -> list[list[dict]]:
-    return [
-        steps,
-        [{"id": s["key"], "type": s["kind"], "config": s["config"]} for s in steps],
-        [{"id": s["key"], "key": s["key"], "kind": s["kind"], "type": s["kind"], "config": s["config"]} for s in steps],
-    ]
-
-
-def _edges(steps: list[dict]) -> list[dict]:
-    keys = [s.get("key") or s.get("id") for s in steps]
-    return [{"source": a, "target": b, "from": a, "to": b} for a, b in zip(keys, keys[1:], strict=False)]
-
-
-def _bodies(name: str, steps: list[dict]) -> Iterator[dict]:
-    for styled in _step_styles(steps):
-        yield {"name": name, "graph": {"steps": styled, "edges": _edges(styled)}}
-        yield {"name": name, "graph": {"nodes": styled, "edges": _edges(styled)}}
-        yield {"name": name, "definition": {"steps": styled}}
-        yield {"name": name, "steps": styled}
+def _graph(steps: list[dict]) -> dict:
+    """As-built shape (apps/automation/graph.py): {"steps": [{key, kind, config, depends_on}]}, chained in order.
+    Step configs are validated against each kind's JSON schema (no additional properties)."""
+    out, prev = [], None
+    for s in steps:
+        item = {"key": s["key"], "kind": s["kind"], "config": s["config"]}
+        if prev is not None:
+            item["depends_on"] = [prev]
+        out.append(item)
+        prev = s["key"]
+    return {"steps": out}
 
 
 def create_workflow(client, slug: str, steps: list[dict], *, name: str | None = None, publish: bool = True,
                     expect_ok: bool = True):
-    """POST /workflows (then /publish). Returns the workflow JSON, or the last refusal response when
-    `expect_ok=False` and every body shape was refused."""
+    """POST /workflows (then /publish). Returns the workflow JSON, or the refusal response when `expect_ok=False`."""
     name = name or f"QA workflow {uuid.uuid4().hex[:8]}"
-    last = None
-    for body in _bodies(name, steps):
-        resp = client.post(f"{base(slug)}/workflows", body, format="json")
-        if resp.status_code in (200, 201):
-            wf = resp.json()
-            if publish:
-                publish_workflow(client, slug, str(wf["id"]))
-            return wf
-        last = resp
-        if resp.status_code != 400:
-            break  # 403/404/...: a refusal, not a shape problem
+    resp = client.post(f"{base(slug)}/workflows", {"name": name, "graph": _graph(steps)}, format="json")
+    if resp.status_code in (200, 201):
+        wf = resp.json()
+        if publish:
+            publish_workflow(client, slug, str(wf["id"]))
+        return wf
     if expect_ok:
-        raise AssertionError(f"POST workflows refused every body shape: {last.status_code} {last.content[:600]}")
-    return last
+        raise AssertionError(f"POST workflows refused: {resp.status_code} {resp.content[:600]}")
+    return resp
 
 
 def publish_workflow(client, slug: str, wf_id: str) -> None:
@@ -248,14 +234,9 @@ def request_approval(world, *, impact: str, permission: str, requested_by, title
 
     kwargs = {"kind": kind, "title": title, "payload": payload or {"qa": True}, "approver_permission": permission,
               "impact": impact}
-    with world.tenant():
-        for requester in (requested_by, getattr(requested_by, "pk", requested_by)):
-            try:
-                with transaction.atomic():
-                    return svc(**kwargs, requested_by=requester)
-            except (TypeError, ValueError):
-                continue
-    raise AssertionError("request_approval rejected both a User and a user id as requested_by")
+    requester = getattr(requested_by, "pk", requested_by)  # the service takes a user UUID, never a User/email
+    with world.tenant(), transaction.atomic():
+        return svc(**kwargs, requested_by=requester)
 
 
 def decide(client, slug: str, approval_id, decision: str = "approve", *, password: str | None = None,
