@@ -51,6 +51,16 @@ def user_payload(user) -> dict:
     }
 
 
+def set_platform_admin(user, flag: bool) -> bool:
+    """Set `User.is_platform_admin`; returns whether it changed (callers audit it)."""
+    flag = bool(flag)
+    if bool(user.is_platform_admin) == flag:
+        return False
+    user.is_platform_admin = flag
+    user.save(update_fields=["is_platform_admin"])
+    return True
+
+
 def find_user_by_email(email: str):
     from .models import User
 

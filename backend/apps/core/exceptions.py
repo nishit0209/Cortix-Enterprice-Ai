@@ -121,6 +121,8 @@ def problem_exception_handler(exc, context):
     if isinstance(exc, NexoraError) and exc.extra:
         body.update(exc.extra)
     response.data = body
+    # `content_type` (not just the header): DRF re-sets the header from it when the response is rendered.
+    response.content_type = "application/problem+json"
     response["Content-Type"] = "application/problem+json"
     return response
 
