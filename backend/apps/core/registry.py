@@ -76,3 +76,16 @@ def dataset_schema(dataset_id: UUID) -> DatasetSchema | None:
     if not _dataset_schema_provider:
         return None
     return _dataset_schema_provider[0](dataset_id)
+
+
+# Public webhook receiver (registered by apps.automation): POST /api/v1/hooks/<trigger_id> is served by
+# apps.core.hooks, which hands the raw request to it. fn(trigger_id, *, body: bytes, headers) -> (status, dict)
+_webhook_receiver: list[Callable[..., tuple[int, dict]]] = []
+
+
+def register_webhook_receiver(fn: Callable[..., tuple[int, dict]]) -> None:
+    _webhook_receiver[:] = [fn]
+
+
+def webhook_receiver() -> Callable[..., tuple[int, dict]] | None:
+    return _webhook_receiver[0] if _webhook_receiver else None

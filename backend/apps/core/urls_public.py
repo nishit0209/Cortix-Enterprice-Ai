@@ -3,7 +3,9 @@
 from django.urls import path
 
 from .files import download
+from .hooks import webhook
 
 urlpatterns = [
     path("files/<str:token>", download, name="storage-download"),
+    path("hooks/<uuid:trigger_id>", webhook, name="automation-webhook"),
 ]
