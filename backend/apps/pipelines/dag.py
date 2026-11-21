@@ -67,6 +67,8 @@ class DatasetDestinationCfg(_Cfg):
     dataset_id: UUID | None = None
     classification: Literal["internal", "confidential"] = "internal"
     description: Annotated[str, StringConstraints(max_length=2000)] = ""
+    # new_version: the run's rows ARE the new version; append: new version = current version's rows + the run's rows
+    mode: Literal["new_version", "append"] = "new_version"
 
     @model_validator(mode="after")
     def _one_target(self):

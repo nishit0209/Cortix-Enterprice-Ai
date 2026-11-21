@@ -7,6 +7,8 @@ NODE_TYPES = [
     for t in (
         "data_source", "upload", "dataset", "dataset_version", "pipeline", "pipeline_version", "pipeline_run",
         "semantic_model", "saved_query", "dashboard", "ml_model_version", "document",
+        # W4: producers of publish_frame outputs (ML batch predictions, Customer 360 / Product 360 exports)
+        "ml_model", "ml_experiment", "customer_source", "customer_segment", "product_source",
     )
 ]
 

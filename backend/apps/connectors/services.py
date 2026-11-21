@@ -42,7 +42,7 @@ from . import (
     ssrf,
 )
 from .base import BaseConnector, Batch, TableInfo, connector_class
-from .exceptions import ConnectorError, ImportTooLarge, SourceInUse, SourceNotReady
+from .exceptions import ConnectorError, ImportTooLarge, InvalidHost, SourceInUse, SourceNotReady
 from .models import Credential, DataSource, SourceImport
 from .values import to_text
 
@@ -99,8 +99,13 @@ def validate_config(type_: str, config: dict[str, Any]) -> dict[str, Any]:
             msg = str(err.get("msg", "Invalid value.")).removeprefix("Value error, ")
             errors.setdefault(f"config.{loc}" if loc != "config" else "config", []).append(msg)
         raise ValidationError(errors) from None
+    except InvalidHost as exc:  # raised by the config schema's host validator: malformed host -> 400
+        raise ValidationError({"config.host": [str(exc.detail)]}) from None
     public = model.public() if hasattr(model, "public") else model.model_dump()
-    ssrf.precheck_host(public["host"])  # network-free: IP literals and internal names fail fast
+    try:
+        ssrf.precheck_host(public["host"])  # network-free: IP literals and internal names fail fast
+    except InvalidHost as exc:  # a malformed host is a validation error (400); a forbidden one stays 422
+        raise ValidationError({"config.host": [str(exc.detail)]}) from None
     return public
 
 
@@ -115,11 +120,19 @@ def get_source(source_id) -> DataSource:
         raise NotFound() from exc
 
 
+def _stats_cutoff():
+    from apps.datasets.services import stats_cutoff
+
+    return stats_cutoff()
+
+
 def stats() -> dict[str, Any]:
     """data-stats contribution (registered with datasets.register_stats_provider): data sources from the DB."""
     return {
         "sources": DataSource.objects.count(),
         "sources_active": DataSource.objects.filter(status="active").count(),
+        # sources that existed at the previous-period cutoff and still exist (deleted sources leave no trace)
+        "sources_prev": DataSource.objects.filter(created_at__lte=_stats_cutoff()).count(),
     }
 
 

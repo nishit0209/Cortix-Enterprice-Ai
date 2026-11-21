@@ -198,6 +198,37 @@ def _metric_meta(m: MetricDefinition) -> dict:
             "synonyms": list(m.synonyms or ()), "table": m.table_name}
 
 
+MAX_KNOWN_VALUES = 50
+
+
+def known_values(stats: dict | None, *, is_pii: bool) -> tuple[list[str], bool] | None:
+    """(values, complete) from a column profile's `top_values` (text values only), or None.
+
+    PII columns never yield values (the profiler stores none for them either). `complete` is True when every
+    distinct value is listed. Used for `DatasetSemantics.columns_meta[*]["values"]` (local only: the LLM schema card
+    never copies this key, so no VALUES payload reaches Gemini)."""
+    if is_pii or not stats:
+        return None
+    top = stats.get("top_values") or []
+    values = [str(t["value"]) for t in top if isinstance(t, dict) and t.get("value") not in (None, "")]
+    if not values:
+        return None
+    values = values[:MAX_KNOWN_VALUES]
+    distinct = stats.get("distinct")
+    return values, isinstance(distinct, int) and distinct <= len(values)
+
+
+def profiled_values(version_id) -> dict[str, tuple[list[str], bool]]:
+    from apps.datasets.models import DatasetColumn
+
+    out = {}
+    for name, stats, is_pii in DatasetColumn.objects.filter(version_id=version_id).values_list("name", "stats", "is_pii"):
+        found = known_values(stats, is_pii=is_pii)
+        if found:
+            out[name] = found
+    return out
+
+
 def dataset_semantics(dataset_id: UUID | str) -> DatasetSemantics:
     """CONTRACT (nexora.contracts.DatasetSemantics): logical->physical tables, ALL columns, column metadata,
     active valid metrics and the schema hash of the dataset's current version. Policy filtering is the
@@ -208,6 +239,13 @@ def dataset_semantics(dataset_id: UUID | str) -> DatasetSemantics:
     table = model.tables.get()
     columns = list(table.columns.order_by("ordinal"))
     metrics = model.metrics.filter(is_active=True, status="valid").order_by("created_at")
+    known = profiled_values(version.id)
+    metas = []
+    for c in columns:
+        meta = _column_meta(c)
+        if c.role == "dimension" and not c.is_pii and c.name in known:
+            meta["values"], meta["values_complete"] = known[c.name]
+        metas.append(meta)
     return DatasetSemantics(
         dataset_id=dataset.id,
         dataset_version_id=version.id,
@@ -215,7 +253,7 @@ def dataset_semantics(dataset_id: UUID | str) -> DatasetSemantics:
         classification=dataset.classification,
         tables={table.logical_name: warehouse.physical_table(version)},
         columns_by_table={table.logical_name: tuple(c.name for c in columns)},
-        columns_meta={table.logical_name: tuple(_column_meta(c) for c in columns)},
+        columns_meta={table.logical_name: tuple(metas)},
         metrics=tuple(_metric_meta(m) for m in metrics),
         schema_hash=model.schema_hash,
     )

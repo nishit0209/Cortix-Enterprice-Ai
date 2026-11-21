@@ -40,7 +40,8 @@ class Upload(TenantModel):
 
 class Dataset(TenantModel):
     STATUS = [(s, s) for s in ("processing", "ready", "failed", "archived", "deleted")]
-    SOURCE_KINDS = [(s, s) for s in ("upload", "connector", "pipeline")]
+    # "derived": written by publish_frame (ML batch predictions, Customer 360 / Product 360 exports)
+    SOURCE_KINDS = [(s, s) for s in ("upload", "connector", "pipeline", "derived")]
 
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220)

@@ -17,12 +17,12 @@ from django.db import transaction
 log = logging.getLogger(__name__)
 
 # kinds (stable strings; the UI may group/filter on them)
-DATASET_READY = "dataset.ready"
-DATASET_FAILED = "dataset.failed"
+DATASET_READY = "dataset.ingest_finished"
+DATASET_FAILED = "dataset.ingest_failed"
 IMPORT_FINISHED = "import.finished"
 IMPORT_FAILED = "import.failed"
-PIPELINE_RUN_SUCCEEDED = "pipeline_run.succeeded"
-PIPELINE_RUN_FAILED = "pipeline_run.failed"
+PIPELINE_RUN_SUCCEEDED = "pipeline.run_succeeded"
+PIPELINE_RUN_FAILED = "pipeline.run_failed"
 
 TITLE_MAX = 200
 BODY_MAX = 1000

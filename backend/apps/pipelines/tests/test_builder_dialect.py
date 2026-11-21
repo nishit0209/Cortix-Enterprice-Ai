@@ -72,13 +72,22 @@ def test_explicit_canonical_keys_win_over_builder_keys():
     assert cfg["match"] == "all"
 
 
-def test_append_mode_and_bad_expressions_are_pinned_on_their_node():
-    dest = {"id": "out", "type": "destination", "config": {"dataset_name": "x", "mode": "append"}}
+def test_unknown_write_modes_and_bad_expressions_are_pinned_on_their_node():
+    dest = {"id": "out", "type": "destination", "config": {"dataset_name": "x", "mode": "upsert"}}
     bad = {"id": "tax", "type": "derive", "config": {"name": "t", "expression": "amount * (1.18"}}
     errors = validate_dag(_chain(bad, dest=dest)).payload()["errors"]
     by_node = {(e["node_id"], e["field"]): e["code"] for e in errors}
     assert by_node[("out", "nodes.out.config.mode")] == "unsupported_mode"
     assert by_node[("tax", "nodes.tax.config.expression")] == "invalid_expression"
+
+
+@pytest.mark.parametrize("mode,expected", [("append", "append"), ("new_version", "new_version"),
+                                           ("overwrite", "new_version"), ("", "new_version"), (None, "new_version")])
+def test_append_and_new_version_modes_are_accepted(mode, expected):
+    dest = {"id": "out", "type": "destination", "config": {"dataset_name": "x", "mode": mode}}
+    validation = validate_dag(_chain(dest=dest))
+    assert validation.ok, validation.payload()["errors"]
+    assert validation.destination.config.mode == expected
 
 
 def test_dotted_design_names_are_accepted():

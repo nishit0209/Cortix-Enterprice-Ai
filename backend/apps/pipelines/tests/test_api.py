@@ -240,14 +240,15 @@ def test_retries_are_bounded(env, django_capture_on_commit_callbacks, monkeypatc
     def always(self, *a, **k):
         raise RunFailure("warehouse_unavailable", "The warehouse is unavailable.")
 
+    original = runner.RunContext.load_dataset
     monkeypatch.setattr(runner.RunContext, "load_dataset", always)
     accepted = run_now(client, a, pid, django_capture_on_commit_callbacks)
     run = client.get(url(a, f"pipeline-runs/{accepted['run']['id']}")).json()
     assert run["status"] == "failed" and run["attempt"] == 3 and run["max_attempts"] == 3
+    monkeypatch.setattr(runner.RunContext, "load_dataset", original)  # undo() would also drop fixture patches
     assert [x["error_code"] for x in run["attempts"]] == ["warehouse_unavailable"] * 3
 
     # manual retry creates a NEW run linked to the failed one, on the same version
-    monkeypatch.undo()
     with django_capture_on_commit_callbacks(execute=True):
         retried = client.post(url(a, f"pipeline-runs/{run['id']}/retry"))
     assert retried.status_code == 202

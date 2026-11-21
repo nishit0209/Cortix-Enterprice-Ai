@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import Q
+from django.http import JsonResponse
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -113,7 +114,9 @@ class PipelineViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         pipeline = services.get_pipeline(kwargs["pk"])
         if request.method == "GET":
             sched = pipeline.schedules.first()
-            return Response(services.schedule_payload(sched) if sched else None)
+            if sched is None:  # JSON `null` (DRF renders a None body as empty, without a Content-Type)
+                return JsonResponse(None, safe=False)
+            return Response(services.schedule_payload(sched))
         if not request.tenant.has_perm("pipelines.manage"):
             self.permission_denied(request, message="Scheduling pipelines requires pipelines.manage.")
         if request.method == "DELETE":
