@@ -55,7 +55,12 @@ class FakeConnector(BaseConnector):
         if cursor_column:
             ci = names.index(cursor_column)
             pairs = sorted(zip(rows, out, strict=True), key=lambda p: p[0][ci])
-            out = [o for r, o in pairs if after is None or str(r[ci]) > str(after)]
+            def newer(value) -> bool:  # typed comparison, like the database's `col > %s`
+                if isinstance(value, int | float):
+                    return value > float(after)
+                return str(value) > str(after)
+
+            out = [o for r, o in pairs if after is None or newer(r[ci])]
         self.reads.append({"table": table, "columns": wanted, "after": after})
         meta = tuple(cols[i] for i in idx)
         if not out:

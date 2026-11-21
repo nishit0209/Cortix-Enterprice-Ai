@@ -216,7 +216,8 @@ def test_import_creates_dataset_through_the_standard_ingest(env, django_capture_
         job = Job.objects.get(id=resp.json()["job_id"])
         assert job.status == "succeeded" and job.result["dataset_id"] == str(imp.dataset_id)
         graph = lineage.graph("dataset", imp.dataset_id, depth=2)
-        assert {"id": sid, "type": "data_source", "label": "Shop replica"} in graph["nodes"]
+        assert any(n["id"] == sid and n["type"] == "data_source" and n["label"] == "Shop replica"
+                   for n in graph["nodes"])
     ds = client.get(url(a, f"datasets/{imp.dataset_id}")).json()
     assert ds["status"] == "ready" and ds["row_count"] == 30
     cols = [c["name"] for c in client.get(url(a, f"datasets/{imp.dataset_id}/columns")).json()]

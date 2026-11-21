@@ -99,6 +99,8 @@ def validate_config(type_: str, config: dict[str, Any]) -> dict[str, Any]:
             msg = str(err.get("msg", "Invalid value.")).removeprefix("Value error, ")
             errors.setdefault(f"config.{loc}" if loc != "config" else "config", []).append(msg)
         raise ValidationError(errors) from None
+    except InvalidHost as exc:  # raised by the config schema's host validator: malformed host -> 400
+        raise ValidationError({"config.host": [str(exc.detail)]}) from None
     public = model.public() if hasattr(model, "public") else model.model_dump()
     try:
         ssrf.precheck_host(public["host"])  # network-free: IP literals and internal names fail fast
