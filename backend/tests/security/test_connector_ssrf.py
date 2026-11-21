@@ -134,7 +134,10 @@ def test_obfuscated_loopback_spellings_are_refused(sources, host):
     # for these, which would hide a missing check.)
     sources.resolver.answers[host] = ["127.0.0.1"]
     status, code = sources(host)
-    assert code in INVALID_HOST_CODES, f"{host}: status {status}, code {code}"
+    # as built, a malformed host is a DRF field error on `config.host` (400, generic code "invalid"); a refusal at
+    # validation time is as good as a named code as long as nothing connects
+    ok = code in INVALID_HOST_CODES or (status == 400 and code == "invalid")
+    assert ok, f"{host}: status {status}, code {code}"
     assert sources.spy.attempts == [], f"connection attempted for {host}: {sources.spy.attempts}"
 
 

@@ -92,11 +92,20 @@ def _clusters(world, record_model: str, master_model: str, key_re: re.Pattern, a
     Record = django_apps.get_model(app, record_model)
     Master = django_apps.get_model(app, master_model)
     fk = next((f for f in Record._meta.concrete_fields if getattr(f, "related_model", None) is Master), None)
-    assert fk is not None, f"{record_model} has no FK to {master_model}"
+    master_of: dict | None = None
+    if fk is None:
+        # as built for customers: records join their profile through a link table (CustomerProfileLink)
+        link = next((m for m in django_apps.get_app_config(app).get_models()
+                     if {getattr(f, "related_model", None) for f in m._meta.concrete_fields} >= {Record, Master}), None)
+        assert link is not None, f"{record_model} has no FK or link table to {master_model}"
+        to_rec = next(f for f in link._meta.concrete_fields if getattr(f, "related_model", None) is Record)
+        to_master = next(f for f in link._meta.concrete_fields if getattr(f, "related_model", None) is Master)
+        with world.tenant():
+            master_of = dict(link.objects.values_list(to_rec.attname, to_master.attname))
     groups: dict[str, set[str]] = {}
     with world.tenant():
         for rec in Record.objects.all():
-            master = getattr(rec, fk.attname)
+            master = getattr(rec, fk.attname) if fk is not None else master_of.get(rec.pk)
             blob = " ".join(str(v) for v in model_to_dict(rec).values())
             keys = set(key_re.findall(blob))
             if master is None or not keys:

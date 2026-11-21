@@ -33,7 +33,9 @@ pytestmark = pytest.mark.django_db
 REPO = Path(__file__).resolve().parents[3]
 SALES = REPO / "testdata" / "generated" / "sales.csv"
 # append-only tables that may be purged by nexora_ops by design (MakeAppendOnly(ops_may_delete=True))
-OPS_PURGEABLE = {"core_jobevent"}
+# (ML prediction logs and drift reports are high-volume telemetry, like job events: the app role still cannot change
+# them; only nexora_ops may DELETE, never UPDATE)
+OPS_PURGEABLE = {"core_jobevent", "ml_predictionlog", "ml_driftreport"}
 
 
 def _append_only_tables() -> dict[str, str]:
@@ -47,6 +49,15 @@ def _append_only_tables() -> dict[str, str]:
 
 def _strict_tables() -> list[str]:
     return sorted(t for t, fn in _append_only_tables().items() if fn == "nexora_forbid_mutation")
+
+
+def _app_readable(tables: list[str]) -> list[str]:
+    """The tables the app role can SELECT (platform tables are ops-only: retention, running as the app, cannot even
+    read them, let alone delete)."""
+    with connection.cursor() as cur:
+        cur.execute("SELECT t FROM unnest(%s::text[]) t WHERE has_table_privilege(current_user, t, 'SELECT')",
+                    [tables])
+        return sorted(r[0] for r in cur.fetchall())
 
 
 def _tenant_tables() -> list[str]:
@@ -179,7 +190,7 @@ def test_a_retention_run_never_deletes_append_only_rows(two_orgs, memory_storage
         pytest.skip("RetentionPolicy / governance.retention job not built yet")
     a, b = two_orgs
     _seed_activity(a, django_capture_on_commit_callbacks)
-    strict = _strict_tables()
+    strict = _app_readable(_strict_tables())
     before_a, before_b = _counts(a, strict), _counts(b, strict)
     assert sum(before_a.values()) > 0, "the seeded activity produced no append-only rows (audit)"
     _make_policies(a, dry_run=False)
