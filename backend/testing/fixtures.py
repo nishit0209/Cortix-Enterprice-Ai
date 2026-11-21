@@ -13,6 +13,7 @@ Fixtures (all synthetic data):
     gated_fake_gemini                                          -> same, behind the REAL AIDataPolicy gate
     gated_gemini_engine                                        -> real GeminiEngine on AI/ML's FakeTransport
     memory_storage                                             -> MemoryObjectStorage patched into apps.core.storage
+    local_fs_storage                                           -> the REAL fs backend in a private tmp dir (root Path)
     fake_embedder                                              -> deterministic FakeEmbedder (no model download)
     network_spy                                                -> NetworkSpy (blocks non-local connections)
     fake_redis                                                 -> FakeRedis patched into apps.core.jobs
@@ -156,6 +157,19 @@ def memory_storage(monkeypatch):
     from .storage import MemoryObjectStorage
 
     return MemoryObjectStorage().install(monkeypatch)
+
+
+@pytest.fixture
+def local_fs_storage(settings, tmp_path):
+    """The REAL `STORAGE_BACKEND="fs"` backend of apps.core.storage, rooted in a private tmp directory.
+
+    Unlike `memory_storage` nothing is patched: every public storage function (put/get/open/exists/delete/presign)
+    runs the production code, so tests can tamper with stored bytes exactly as an attacker with disk access would."""
+    settings.STORAGE_BACKEND = "fs"
+    root = tmp_path / "storage"
+    root.mkdir()
+    settings.LOCAL_STORAGE_DIR = root
+    return root
 
 
 @pytest.fixture

@@ -26,3 +26,10 @@ npm run typecheck
 Selectors use accessible roles and labels (UI_UX_SPECIFICATION §3–5), never CSS classes (the only test id is the
 Dropzone's hidden `dropzone-input`), so they double as an accessibility contract for the frontend. They follow the
 frontend as merged on main (`frontend/src/components/**`, `frontend/src/lib/nav.ts`). Test users are synthetic (`*@example.test`).
+
+## W4 suites
+
+- `tests/ml.spec.ts`: ML workspace flow (wizard -> train -> metrics -> register -> promote -> predict) on the synthetic `churn.csv`.
+- `tests/governance-platform.spec.ts`: column mask -> policy preview; platform console gating.
+  The platform-admin half needs `E2E_PLATFORM_EMAIL` / `E2E_PLATFORM_PASSWORD` of a user flagged with`n  `manage.py create_platform_admin --email ...`; without them it is recorded as `not-exercised`.
+

@@ -14,6 +14,8 @@ other agents add later are covered automatically:
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from testing.client import api_client_for
@@ -45,9 +47,27 @@ def _values(route: Route, world) -> dict[str, str]:
     return factory(world) if factory else {}
 
 
+# Minimal VALID bodies for routes that validate the body before the object lookup: an empty body would stop at
+# 400 and never reach the cross-org lookup the IDOR probe is about. (path regex, method) -> body
+PROBE_BODIES = [
+    (re.compile(r"/bi/messages/[^/]+/feedback$"), "post", {"value": "up"}),
+    (re.compile(r"/documents/[^/]+$"), "patch", {"title": "QA probe"}),
+    (re.compile(r"/documents/[^/]+/classification$"), "post", {"classification": "internal"}),
+]
+
+
+def _probe_body(method: str, path: str) -> dict:
+    return next((body for rx, m, body in PROBE_BODIES if m == method and rx.search(path)), {})
+
+
 def _call(client, method: str, path: str):
     if method in UNSAFE_METHODS:
-        return getattr(client, method)(path, {}, format="json")
+        resp = getattr(client, method)(path, _probe_body(method, path), format="json")
+        if resp.status_code == 415:
+            # multipart-only routes (uploads): DRF parses the body before the CSRF/tenant gate, so probe the gate
+            # with a body the route accepts
+            resp = getattr(client, method)(path, {}, format="multipart")
+        return resp
     return client.get(path)
 
 
@@ -131,6 +151,47 @@ W2_CONTRACT_PATHS = [
     ("notification-read", f"notifications/{_ID}/read"),
     ("notifications-read-all", "notifications/read-all"),
     ("ai-status", "ai/status"),
+    # W4 (CONTRACT "W4 additions"; API_SPECIFICATION Phase 9 ML, Phase 6 Customer 360, Phase 7 Product 360,
+    # Phase 5 governance/usage rows). Each one skips until routed, then needs an isolation factory.
+    ("ml-projects", "ml/projects"),
+    ("ml-project", f"ml/projects/{_ID}"),
+    ("ml-project-eda", f"ml/projects/{_ID}/eda"),
+    ("ml-project-recommendations", f"ml/projects/{_ID}/recommendations"),
+    ("ml-project-snapshots", f"ml/projects/{_ID}/snapshots"),
+    ("ml-project-experiments", f"ml/projects/{_ID}/experiments"),
+    ("ml-experiment", f"ml/experiments/{_ID}"),
+    ("ml-experiment-register", f"ml/experiments/{_ID}/register"),
+    ("ml-model-promote", f"ml/models/{_ID}/versions/1/promote"),  # {v} = version number
+    ("ml-model-promote-by-id", f"ml/models/{_ID}/versions/{_ID}/promote"),  # or {v} = version id (one skips)
+    ("ml-model-predict", f"ml/models/{_ID}/predict"),
+    ("ml-model-batch-predictions", f"ml/models/{_ID}/batch-predictions"),
+    ("ml-model-monitoring", f"ml/models/{_ID}/monitoring"),
+    ("customers-sources", "customers/sources"),
+    ("customers-resolve", "customers/resolve"),
+    ("customers-matches", "customers/matches"),
+    ("customers-match-decision", f"customers/matches/{_ID}/decision"),
+    ("customers", "customers"),
+    ("customer", f"customers/{_ID}"),
+    ("customer-timeline", f"customers/{_ID}/timeline"),
+    ("customers-segments", "customers/segments"),
+    ("customers-segment-members", f"customers/segments/{_ID}/members"),
+    ("customers-scoring-runs", "customers/scoring-runs"),
+    ("products-sources", "products/sources"),
+    ("products-normalize", "products/normalize"),
+    ("products", "products"),
+    ("product", f"products/{_ID}"),
+    ("product-attributes", f"products/{_ID}/attributes"),
+    ("products-matches", "products/matches"),
+    ("products-match-decision", f"products/matches/{_ID}/decision"),
+    ("products-corrections", "products/corrections"),
+    ("products-correction-decision", f"products/corrections/{_ID}/decision"),
+    ("products-search", "products/search"),
+    ("products-enrich", "products/enrich"),
+    ("retention-policies", "retention-policies"),
+    ("retention-policy", f"retention-policies/{_ID}"),
+    ("access-history", "access-history"),
+    ("usage", "usage"),
+    ("ai-usage", "ai/usage"),
 ]
 
 

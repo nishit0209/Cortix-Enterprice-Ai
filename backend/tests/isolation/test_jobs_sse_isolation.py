@@ -15,19 +15,6 @@ from testing.factories import make_job
 pytestmark = pytest.mark.django_db
 
 
-class _AsyncFakeRedis:
-    """async facade over testing.fakes.FakeRedis for apps.core.sse.stream_events."""
-
-    def __init__(self, fake):
-        self.fake = fake
-
-    async def xread(self, streams, block=None, count=None):
-        return self.fake.xread(streams, count=count)
-
-    async def aclose(self):
-        return None
-
-
 def test_stream_key_is_org_scoped():
     org, job = uuid.uuid4(), uuid.uuid4()
     assert jobs.stream_key(org, job) == f"org:{org}:job:{job}"
@@ -83,7 +70,13 @@ def test_sse_access_check_matrix(two_orgs):
     a, b = two_orgs
     job_a = make_job(a.org, user=a.owner)
     assert _check_access(a.owner.pk, a.slug, job_a.id) == str(a.id)
-    assert _check_access(a.viewer.pk, a.slug, job_a.id) == str(a.id)
+    # CONTRACT "W3 as-built: Job-event SSE": following ANOTHER user's job needs `jobs.view_all`, otherwise 404
+    assert _check_access(a.viewer.pk, a.slug, job_a.id) is None
+    assert _check_access(a.analyst.pk, a.slug, job_a.id) is None
+    auditor = a.user("auditor")  # holds jobs.view_all
+    assert _check_access(auditor.pk, a.slug, job_a.id) == str(a.id)
+    own_viewer_job = make_job(a.org, user=a.viewer)
+    assert _check_access(a.viewer.pk, a.slug, own_viewer_job.id) == str(a.id)  # one's own job is always followable
     assert _check_access(b.owner.pk, b.slug, job_a.id) is None  # B member, B slug, A's job
     assert _check_access(b.owner.pk, a.slug, job_a.id) is None  # not a member of A
     assert _check_access(two_orgs.outsider.pk, a.slug, job_a.id) is None
@@ -97,11 +90,12 @@ def test_sse_http_status_codes(two_orgs):
     assert api_client_for(None).get(url).status_code == 401
     assert api_client_for(b.owner).get(url).status_code == 404
     assert api_client_for(b.owner).get(f"/api/v1/orgs/{b.slug}/jobs/{job_a.id}/events").status_code == 404
+    assert api_client_for(a.viewer).get(url).status_code == 404  # same org, another user's job, no view_all
 
 
-def test_sse_streams_only_the_requested_orgs_events(two_orgs, tenant, fake_redis, monkeypatch):
-    from apps.core import sse
-
+def test_sse_streams_only_the_requested_orgs_events(two_orgs, tenant, fake_redis):
+    """WSGI test client: the stream is the sync generator on `jobs.redis_client()` (patched by `fake_redis`,
+    which also pins JOB_EVENTS_BACKEND="redis"); no async iterator, so no Django warning."""
     a, b = two_orgs
     job_a = make_job(a.org, user=a.owner)
     job_b = make_job(b.org, user=b.owner)
@@ -110,12 +104,11 @@ def test_sse_streams_only_the_requested_orgs_events(two_orgs, tenant, fake_redis
     with tenant(a.org):
         jobs.publish(job_a.id, "status", {"status": "running"})
         jobs.finish(job_a.id, result={"ok": True})
-    monkeypatch.setattr(sse.aioredis, "from_url", lambda *_a, **_k: _AsyncFakeRedis(fake_redis))
     resp = api_client_for(a.owner).get(f"/api/v1/orgs/{a.slug}/jobs/{job_a.id}/events")
     assert resp.status_code == 200
     assert resp["Content-Type"].startswith("text/event-stream")
-    with pytest.warns(Warning):  # Django warns when a sync client consumes an async iterator
-        body = b"".join(resp).decode()
+    assert not getattr(resp, "is_async", False), "WSGI must get a sync generator (no buffering)"
+    body = b"".join(resp).decode()
     assert "event: status" in body and "event: result" in body and "event: done" in body
     assert "B-ONLY-SECRET" not in body
 

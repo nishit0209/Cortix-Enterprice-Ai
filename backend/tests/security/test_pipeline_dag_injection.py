@@ -11,6 +11,7 @@ Skips while the pipelines API is not merged.
 from __future__ import annotations
 
 import copy
+import itertools
 import json
 
 import pytest
@@ -47,12 +48,16 @@ def pipelines(two_orgs, memory_storage, fake_redis, fake_embedder, django_captur
         body = resp.json()
         return len(body["items"] if isinstance(body, dict) else body)
 
-    def submit(dag: dict, name: str = "QA pipeline") -> tuple[str, int, str | None]:
+    counter = itertools.count(1)
+
+    def submit(dag: dict, name: str | None = None) -> tuple[str, int, str | None]:
         """-> ("rejected"|"run_refused"|"run_failed"|"ran", http status, code)."""
+        name = name or f"QA pipeline {next(counter)}"
         before = versions(ds_a["id"])
         created = client.post(base, {"name": name, "dag": dag}, format="json")
         assert created.status_code < 500, created.content[:300]
         if created.status_code >= 400:
+            submit.last_error = created.json()
             return "rejected", created.status_code, created.json().get("code")
         assert created.status_code == 201, created.content[:300]
         pid = created.json()["id"]
@@ -71,13 +76,14 @@ def pipelines(two_orgs, memory_storage, fake_redis, fake_embedder, django_captur
         return {
             "nodes": [
                 {
-                    "key": "src",
+                    "id": "src",
                     "type": "source.dataset",
-                    "config": {"dataset_id": ds_a["id"], "version": "current"},
+                    "config": {"dataset_id": ds_a["id"]},
                 },
-                {"key": "s1", "type": "transform.rename", "config": {"map": {"amount": "amount_inr"}}},
+                # schema-preserving step: every run publishes a new version of ds_a with the same columns
+                {"id": "s1", "type": "clean.trim_whitespace", "config": {"columns": ["region"]}},
                 {
-                    "key": "dst",
+                    "id": "dst",
                     "type": "destination.dataset",
                     "config": {"dataset_id": ds_a["id"], "mode": "new_version"},
                 },
@@ -93,15 +99,15 @@ def pipelines(two_orgs, memory_storage, fake_redis, fake_embedder, django_captur
 def _with_step(dag: dict, step: dict) -> dict:
     dag = copy.deepcopy(dag)
     dag["nodes"].insert(2, step)
-    dag["edges"] = [["src", "s1"], ["s1", step["key"]], [step["key"], "dst"]]
+    dag["edges"] = [["src", "s1"], ["s1", step["id"]], [step["id"], "dst"]]
     return dag
 
 
 def _derive(expression: str) -> dict:
     return {
-        "key": "d1",
+        "id": "d1",
         "type": "transform.derive",
-        "config": {"column": "derived", "expression": expression},
+        "config": {"name": "derived", "expression": expression, "replace": True},
     }
 
 
@@ -110,8 +116,10 @@ def _refused(outcome: tuple[str, int, str | None]) -> bool:
 
 
 def test_positive_controls_are_accepted(pipelines):
-    assert pipelines(pipelines.baseline())[0] == "ran"
-    assert pipelines(_with_step(pipelines.baseline(), _derive("amount * 2")))[0] == "ran"
+    outcome = pipelines(pipelines.baseline())
+    assert outcome[0] == "ran", (outcome, json.dumps(getattr(pipelines, "last_error", None)))
+    outcome = pipelines(_with_step(pipelines.baseline(), _derive("amount * 2")))
+    assert outcome[0] == "ran", (outcome, json.dumps(getattr(pipelines, "last_error", None)))
 
 
 HOSTILE_EXPRESSIONS = [
@@ -137,12 +145,20 @@ def test_hostile_derive_expressions_never_run(pipelines, expression):
 @pytest.mark.parametrize(
     "step",
     [
-        {"key": "f1", "type": "transform.filter", "config": {"predicate": "1=1; DROP TABLE customers"}},
-        {"key": "f1", "type": "transform.filter", "config": {"sql": "region = 'North' OR 1=1"}},
-        {"key": "p1", "type": "python.exec", "config": {"code": "import os; os.system('id')"}},
-        {"key": "p1", "type": "sql.raw", "config": {"sql": "SELECT * FROM pg_shadow"}},
-        {"key": "p1", "type": "../transform.rename", "config": {"map": {}}},
-        {"key": "p1", "type": "transform.rename", "config": {"map": {"amount": "x; DROP TABLE y"}}},
+        {"id": "f1", "type": "transform.filter", "config": {"predicate": "1=1; DROP TABLE customers"}},
+        {"id": "f1", "type": "transform.filter", "config": {"sql": "region = 'North' OR 1=1"}},
+        {"id": "p1", "type": "python.exec", "config": {"code": "import os; os.system('id')"}},
+        {"id": "p1", "type": "sql.raw", "config": {"sql": "SELECT * FROM pg_shadow"}},
+        {"id": "p1", "type": "../transform.rename", "config": {"mapping": {}}},
+        pytest.param(
+            {"id": "p1", "type": "transform.rename", "config": {"mapping": {"amount": "x; DROP TABLE y"}}},
+            # DEFECT (data_engineering): apps/pipelines/steps.py:23 NewName has no identifier pattern, so a pipeline
+            # publishes columns that break the ingest invariant (apps/datasets/ingest/columns.py: snake_case ASCII,
+            # PostgreSQL-safe). Remove this mark once NewName is restricted to ^[a-z_][a-z0-9_]{0,62}$.
+            marks=pytest.mark.xfail(
+                strict=True, reason="defect: pipeline rename/derive names are not validated"
+            ),
+        ),
     ],
     ids=["filter-raw-sql", "filter-sql-key", "python-exec", "sql-raw", "type-traversal", "rename-to-sql"],
 )
@@ -160,14 +176,16 @@ def test_graph_structure_violations_are_rejected(pipelines):
     two_dst = copy.deepcopy(base)
     two_dst["nodes"].append(
         {
-            "key": "dst2",
+            "id": "dst2",
             "type": "destination.dataset",
             "config": {"dataset_id": pipelines.ds_a["id"], "mode": "new_version"},
         }
     )
     two_dst["edges"].append(["s1", "dst2"])
     huge = {
-        "nodes": [{"key": f"n{i}", "type": "transform.rename", "config": {"map": {}}} for i in range(5000)],
+        "nodes": [
+            {"id": f"n{i}", "type": "transform.rename", "config": {"mapping": {}}} for i in range(5000)
+        ],
         "edges": [[f"n{i}", f"n{i + 1}"] for i in range(4999)],
     }
     for name, dag in (
@@ -185,7 +203,7 @@ def test_dag_cannot_reference_another_orgs_dataset(pipelines):
     other = pipelines.ds_b["id"]
     for node_key in ("src", "dst"):
         dag = pipelines.baseline()
-        node = next(n for n in dag["nodes"] if n["key"] == node_key)
+        node = next(n for n in dag["nodes"] if n["id"] == node_key)
         node["config"]["dataset_id"] = other
         outcome = pipelines(dag)
         assert outcome[0] in ("rejected", "run_refused", "run_failed"), (
@@ -200,7 +218,7 @@ def test_dag_cannot_reference_another_orgs_dataset(pipelines):
 )
 def test_traversal_in_names_never_escapes_the_org_prefix(pipelines, name):
     dag = pipelines.baseline()
-    dag["nodes"][1]["key"] = "../../s1"
+    dag["nodes"][1]["id"] = "../../s1"
     dag["edges"] = [["src", "../../s1"], ["../../s1", "dst"]]
     other_before = pipelines.storage.keys_for(pipelines.other.id)
     outcome = pipelines(dag, name=name)

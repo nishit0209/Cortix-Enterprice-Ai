@@ -8,8 +8,9 @@ Security properties checked here (no database needed: storage never touches the 
   * path traversal / absolute / foreign-org / Windows-special keys are rejected and nothing is written outside
     the storage root (also when the key is otherwise valid for the active org);
   * another org's key cannot be read, listed, deleted or presigned from org A's context;
-  * signed URLs: a valid token streams the bytes; an EXPIRED token and a TAMPERED token get 403 (QA mission W3,
-    the status the frontend handles), never the file; a token cannot be re-pointed to another org's key;
+  * signed URLs (CONTRACT "W3 as-built additions: Signed file URLs"): a valid token streams the bytes; an EXPIRED
+    token gets 410 `download_expired`; a TAMPERED token or a deleted object gets 404 `not_found` (nothing
+    revealed), never the file; a token cannot be re-pointed to another org's key;
   * the download's Content-Disposition is sanitised (no CR/LF/quote injection, no path separators);
   * writes are atomic (no temp file is left behind, a reader never sees a partial file).
 
@@ -19,6 +20,7 @@ STORAGE_BACKEND="fs" must land below LOCAL_STORAGE_DIR, and the S3 client must n
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import threading
@@ -314,6 +316,12 @@ def _body(resp) -> bytes:
     return b"".join(resp.streaming_content) if getattr(resp, "streaming", False) else resp.content
 
 
+def _problem_code(resp, body: bytes) -> str | None:
+    """The stable problem+json `code` of a refused download (404 `not_found` / 410 `download_expired`)."""
+    assert resp["Content-Type"].startswith("application/problem+json"), resp["Content-Type"]
+    return json.loads(body.decode("utf-8")).get("code")
+
+
 @needs_files_route
 def test_signed_url_streams_the_object(fs):
     key = f"orgs/{ORG_A}/exports/report.csv"
@@ -328,7 +336,7 @@ def test_signed_url_streams_the_object(fs):
 
 
 @needs_files_route
-def test_expired_signed_url_is_403(fs, monkeypatch):
+def test_expired_signed_url_is_410_download_expired(fs, monkeypatch):
     key = f"orgs/{ORG_A}/exports/old.csv"
     with active(ORG_A):
         storage.put_bytes(key, b"old")
@@ -336,15 +344,17 @@ def test_expired_signed_url_is_403(fs, monkeypatch):
     real = time.time
     monkeypatch.setattr(time, "time", lambda: real() + 3600)  # django.core.signing reads time.time()
     resp = _download(_token(url))
-    assert resp.status_code == 403, f"expired link: want 403, got {resp.status_code}"
-    assert b"old" not in _body(resp)
+    assert resp.status_code == 410, f"expired link: want 410, got {resp.status_code}"
+    body = _body(resp)
+    assert b"old" not in body
+    assert _problem_code(resp, body) == "download_expired"
 
 
 @needs_files_route
 @pytest.mark.parametrize(
     "mutation", ["flip_last", "flip_first", "truncate", "append", "swap_payload", "empty_sig"]
 )
-def test_tampered_signed_url_is_403(fs, mutation):
+def test_tampered_signed_url_is_404(fs, mutation):
     key = f"orgs/{ORG_A}/exports/t.csv"
     key_b = f"orgs/{ORG_B}/exports/b.csv"
     with active(ORG_B):
@@ -369,9 +379,12 @@ def test_tampered_signed_url_is_403(fs, mutation):
         "empty_sig": f"{payload}:" if payload else token + ":",
     }[mutation]
     resp = _download(bad)
-    assert resp.status_code == 403, f"{mutation}: want 403, got {resp.status_code}"
+    assert resp.status_code == 404, f"{mutation}: want 404, got {resp.status_code}"
     body = _body(resp)
     assert b"mine" not in body and b"secret-of-b" not in body
+    assert _problem_code(resp, body) == "not_found"
+    text = body.decode("utf-8", "replace")
+    assert key not in text and key_b not in text  # nothing about the object is revealed
 
 
 @needs_files_route
@@ -382,8 +395,10 @@ def test_token_for_a_deleted_object_does_not_leak(fs):
         url = storage.presigned_get(key)
         storage.delete_object(key)
     resp = _download(_token(url))
-    assert resp.status_code in (403, 404)
-    assert b"gone" not in _body(resp)
+    assert resp.status_code == 404
+    body = _body(resp)
+    assert b"gone" not in body
+    assert _problem_code(resp, body) == "not_found"
 
 
 @needs_files_route

@@ -29,6 +29,15 @@ class Resolver:
             return real(host, port, family, type, proto, flags)
 
         monkeypatch.setattr(socket, "getaddrinfo", fake)
+        # The as-built guard binds `resolver=socket.getaddrinfo` as a keyword default at import time, so patching
+        # the socket module alone never reaches it: swap the bound default as well (restored by monkeypatch).
+        try:
+            from apps.connectors import ssrf
+        except ImportError:
+            ssrf = None
+        kwdefaults = getattr(getattr(ssrf, "resolve_and_check", None), "__kwdefaults__", None)
+        if kwdefaults and "resolver" in kwdefaults:
+            monkeypatch.setitem(kwdefaults, "resolver", fake)
         return self
 
 

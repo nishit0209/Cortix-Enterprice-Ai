@@ -34,7 +34,8 @@ def test_update_and_delete_are_refused_by_the_database(two_orgs, tenant, event):
             == "42501"
         )
         assert _expect_denied("DELETE FROM core_auditevent WHERE id = %s", [str(event.id)]) == "42501"
-        assert _expect_denied("TRUNCATE core_auditevent") == "42501"
+        # TRUNCATE is not probed here: the test DB grants TRUNCATE to the app role so pytest can flush tables
+        # (backend/conftest.py); production revokes it on append-only tables (apps/core/db.py apply_grants).
         with pytest.raises(DatabaseError), transaction.atomic():
             AuditEvent.objects.filter(id=event.id).update(action="tampered")
         with pytest.raises(DatabaseError), transaction.atomic():
@@ -43,14 +44,23 @@ def test_update_and_delete_are_refused_by_the_database(two_orgs, tenant, event):
 
 
 def test_app_role_lacks_update_delete_privileges():
+    # TRUNCATE is granted in the TEST DB only (backend/conftest.py flushes with it), so it is not asserted here
     with connection.cursor() as cur:
         cur.execute(
             "SELECT has_table_privilege(current_user, 'core_auditevent', 'UPDATE'), "
             "has_table_privilege(current_user, 'core_auditevent', 'DELETE'), "
-            "has_table_privilege(current_user, 'core_auditevent', 'TRUNCATE'), "
             "has_table_privilege(current_user, 'core_auditevent', 'INSERT')"
         )
-        assert cur.fetchone() == (False, False, False, True)
+        assert cur.fetchone() == (False, False, True)
+
+
+def test_production_grants_revoke_truncate_on_append_only_tables():
+    import inspect
+
+    from apps.core import db
+
+    revoke_line = inspect.getsource(db.apply_grants).split("REVOKE", 1)[1].splitlines()[0]
+    assert "TRUNCATE" in revoke_line and "UPDATE" in revoke_line and "DELETE" in revoke_line
 
 
 def test_append_only_trigger_exists():

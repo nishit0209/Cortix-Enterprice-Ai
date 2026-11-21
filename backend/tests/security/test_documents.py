@@ -180,10 +180,19 @@ def test_xxe_entities_are_never_expanded(docs, tmp_path, caplog):
 
 # ------------------------------------------------------------------------------------------------ AI policy
 def _ask(docs, question: str):
+    """As built (W3 ai_ml handoff), POST /documents/ask answers with one JSON body; an SSE build is also read.
+
+    Returns the SSE events by name, or {"answer": [body]} for the JSON shape. A policy refusal surfaces as an
+    `error` event / problem body with code `ai_policy_blocked`."""
     with_ask = f"{docs.base}/ask"
-    resp = docs.client.post(with_ask, {"question": question}, format="json", HTTP_ACCEPT="text/event-stream")
-    assert resp.status_code == 200, getattr(resp, "content", b"")[:300]
-    return events_by_name(parse_sse(read_stream(resp)))
+    resp = docs.client.post(with_ask, {"question": question}, format="json")
+    if getattr(resp, "streaming", False):
+        assert resp.status_code == 200, resp.status_code
+        return events_by_name(parse_sse(read_stream(resp)))
+    body = resp.json()
+    if resp.status_code != 200:
+        return {"error": [body]}
+    return {"answer": [body]}
 
 
 def _sent_text(parts) -> list[str]:
