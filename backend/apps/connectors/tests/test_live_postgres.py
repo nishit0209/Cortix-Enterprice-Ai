@@ -46,7 +46,9 @@ def _connector(user: str, password: str, schema: str | None = None) -> PostgresC
 @pytest.fixture
 def fixture_schema():
     """Create a schema + table as the owner role, readable by wh_executor only (host/port: the test connection's)."""
-    mig = _url("DATABASE_URL_MIGRATOR", "postgres://nexora_migrator:nexora_migrator_dev@localhost:5432/nexora_app")
+    from nexora.settings.base import _MIG_URL  # derived from SECRET_KEY like the app's own connections
+
+    mig = _url("DATABASE_URL_MIGRATOR", _MIG_URL)
     host, port = _host_port()
     exec_user, _ = _executor()
     params = {"host": host, "port": port, "dbname": connection.settings_dict["NAME"], "user": mig["USER"],

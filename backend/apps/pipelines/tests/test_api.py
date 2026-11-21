@@ -420,3 +420,51 @@ def test_cross_org_is_404(env, api_client_for, django_capture_on_commit_callback
     assert stolen.status_code == 400
     assert ("dag.nodes.src.config.dataset_id", "dataset_not_found") in {(e["field"], e["code"])
                                                                         for e in stolen.json()["errors"]}
+
+
+# --- W5: automation events + `pipelines.run` step ------------------------------------------------------------------
+@pytest.fixture
+def emitted(monkeypatch):
+    import sys
+    import types
+
+    import apps.automation as pkg
+
+    out = []
+    events = types.ModuleType("apps.automation.events")
+    events.emit = lambda kind, payload: out.append((kind, payload))
+    monkeypatch.setitem(sys.modules, "apps.automation.events", events)
+    monkeypatch.setattr(pkg, "events", events, raising=False)
+    return out
+
+
+def test_run_outcomes_are_automation_events(env, django_capture_on_commit_callbacks, emitted):
+    a, _b, client, orders, cities = env
+    ok = create_pipeline(client, a, {"name": "Evented", "dag": dag(orders["id"], *clean_steps(cities["id"]))})["id"]
+    accepted = run_now(client, a, ok, django_capture_on_commit_callbacks)
+    done = [p for k, p in emitted if k == "pipeline.run_succeeded"]
+    assert done and done[-1]["run_id"] == accepted["run"]["id"] and done[-1]["status"] == "succeeded"
+    assert done[-1]["pipeline_id"] == ok and done[-1]["output_dataset_version_id"] and done[-1]["org_id"] == str(a.org.id)
+    assert any(k == "dataset.ingest_finished" for k, _p in emitted)
+    bad = dag(orders["id"], {"id": "c", "type": "cast", "config": {"columns": {"city": "integer"}, "on_error": "fail"}})
+    pid = create_pipeline(client, a, {"name": "Evented fail", "dag": bad, "max_retries": 0})["id"]
+    failed_run = run_now(client, a, pid, django_capture_on_commit_callbacks)
+    failed = [p for k, p in emitted if k == "pipeline.run_failed"]
+    assert failed and failed[-1]["run_id"] == failed_run["run"]["id"] and failed[-1]["error_code"] == "cast_failed"
+
+
+def test_pipelines_run_step_runs_as_the_actor(env, django_capture_on_commit_callbacks):
+    import types
+
+    from apps.core.exceptions import Forbidden
+    from apps.pipelines.automation_steps import run_pipeline_step
+
+    a, _b, client, orders, cities = env
+    pid = create_pipeline(client, a, {"name": "Stepped", "dag": dag(orders["id"], *clean_steps(cities["id"]))})["id"]
+    with a.tenant():
+        with pytest.raises(Forbidden):
+            run_pipeline_step(types.SimpleNamespace(actor_id=a.users["viewer"].pk), {"pipeline_id": pid})
+        with django_capture_on_commit_callbacks(execute=True):
+            out = run_pipeline_step(types.SimpleNamespace(actor_id=a.owner.pk), {"pipeline_id": pid})
+    run = client.get(url(a, f"pipeline-runs/{out['run_id']}")).json()
+    assert run["status"] == "succeeded" and run["trigger"] == "automation", run

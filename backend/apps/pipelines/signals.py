@@ -56,6 +56,44 @@ def email_owner_on_failure(sender, *, org_id, run_id, pipeline_id, **kwargs) -> 
         log.warning("pipeline failure email not sent: %s", type(exc).__name__)
 
 
+def _run_event_payload(org_id, run_id) -> dict:
+    from .models import PipelineRun
+
+    with tenant_context(org_id):
+        run = PipelineRun.objects.select_related("pipeline").filter(id=run_id).first()
+        if run is None:
+            return {"run_id": str(run_id)}
+        return {
+            "run_id": str(run.id), "pipeline_id": str(run.pipeline_id), "pipeline_name": run.pipeline.name,
+            "number": run.number, "status": run.status, "trigger": run.trigger, "attempt": run.attempt,
+            "rows_out": run.rows_out, "error_code": run.error_code or None,
+            "output_dataset_id": str(run.output_dataset_id) if run.output_dataset_id else None,
+            "output_dataset_version_id": str(run.output_dataset_version_id) if run.output_dataset_version_id else None,
+        }
+
+
+def emit_run_failed_event(sender, *, org_id, run_id, pipeline_id, **kwargs) -> None:
+    """Receiver of `pipeline_run_failed` -> automation event `pipeline.run_failed` (CONTRACT W5). Never raises."""
+    from apps.datasets.automation import PIPELINE_RUN_FAILED, emit_event
+
+    try:
+        payload = _run_event_payload(org_id, run_id)
+    except Exception:  # noqa: BLE001 - the event still goes out with the ids
+        payload = {"run_id": str(run_id), "pipeline_id": str(pipeline_id)}
+    emit_event(PIPELINE_RUN_FAILED, payload, org_id=org_id)
+
+
+def emit_run_succeeded_event(*, org_id, run_id) -> None:
+    """Called after the commit of a succeeded run -> automation event `pipeline.run_succeeded`. Never raises."""
+    from apps.datasets.automation import PIPELINE_RUN_SUCCEEDED, emit_event
+
+    try:
+        payload = _run_event_payload(org_id, run_id)
+    except Exception:  # noqa: BLE001 - the event still goes out with the ids
+        payload = {"run_id": str(run_id)}
+    emit_event(PIPELINE_RUN_SUCCEEDED, payload, org_id=org_id)
+
+
 def finalize_on_ingest(sender, *, org_id, job_id, **kwargs) -> None:
     """Finalize the runs whose output ingestion `job_id` just finished. Never raises."""
     from . import runner

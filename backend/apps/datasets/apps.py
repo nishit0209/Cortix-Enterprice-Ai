@@ -16,7 +16,13 @@ class DatasetsConfig(AppConfig):
         from apps.lineage.services import register_node_resolver
 
         from . import lineage_nodes
+        from .automation import on_dataset_ingest_finished
         from .services import dataset_classification, dataset_exists, dataset_schema
+        from .signals import dataset_ingest_finished
+
+        # CONTRACT W5: every finished ingestion is the automation event `dataset.ingest_finished` (a no-op without
+        # matching workflows or without apps.automation).
+        dataset_ingest_finished.connect(on_dataset_ingest_finished, dispatch_uid="datasets.automation_ingest_event")
 
         register_asset_classifier("dataset", dataset_classification)
         register_asset_exists("dataset", dataset_exists)

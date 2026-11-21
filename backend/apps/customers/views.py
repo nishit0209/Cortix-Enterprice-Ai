@@ -22,9 +22,12 @@ GET    /customers/segments/{id}                customers.manage
 DELETE /customers/segments/{id}                customers.manage
 GET    /customers/segments/{id}/members        customers.manage  (cursor envelope)
 POST   /customers/segments/{id}/refresh        customers.manage
-POST   /customers/scoring-runs                 customers.manage  {score_type: churn|clv, model_id} 202 | 409
-                                                                  ml_model_required
-POST   /customers/features/publish             customers.manage  202 publish_frame of non-PII profile features
+GET    /customers/scoring-runs?score_type=     customers.view    scoring-run history (cursor envelope)
+POST   /customers/scoring-runs                 customers.manage  {score_type: churn|clv|next_best_action, model_id?}
+                                                                  202 {run_id, job_id, ...}; 409 ml_model_required
+                                                                  without a servable model (churn/clv only)
+POST   /customers/features/publish             customers.manage  {kind: current|training} 202 publish_frame of
+                                                                  non-PII features (training adds churned/future_value)
 """
 
 from __future__ import annotations
@@ -288,14 +291,26 @@ class SegmentRefreshView(TenantAPIView):
         return Response(services.segment_payload(segment))
 
 
-class ScoringRunView(TenantAPIView):
-    permission_classes = [IsAuthenticated, HasOrgPermission]
-    required_permissions = {"post": "customers.manage"}
+class ScoringRunView(_Paged):
+    required_permissions = {"get": "customers.view", "post": "customers.manage"}
+
+    def get(self, request, **kwargs):
+        from .models import CustomerScoringRun
+        from .scoring import run_payload
+
+        qs = CustomerScoringRun.objects.all()
+        score_type = request.query_params.get("score_type")
+        if score_type:
+            qs = qs.filter(score_type=score_type)
+        return self.page(request, qs, run_payload)
 
     def post(self, request, **kwargs):
-        job = services.start_scoring(request.data if isinstance(request.data, dict) else {}, user_id=request.user.pk,
-                                     request=request)
-        return Response(job_links(request, job), status=status.HTTP_202_ACCEPTED)
+        run, job = services.start_scoring(request.data if isinstance(request.data, dict) else {},
+                                          user_id=request.user.pk, request=request)
+        return Response({"run_id": str(run.id), "score_type": run.score_type,
+                         "model_id": str(run.model_id) if run.model_id else None,
+                         "model_version": run.model_version, "selection": run.selection, **job_links(request, job)},
+                        status=status.HTTP_202_ACCEPTED)
 
 
 class FeaturesPublishView(TenantAPIView):
@@ -303,7 +318,9 @@ class FeaturesPublishView(TenantAPIView):
     required_permissions = {"post": "customers.manage"}
 
     def post(self, request, **kwargs):
-        version = services.publish_features(user_id=request.user.pk, request=request)
+        data = request.data if isinstance(request.data, dict) else {}
+        version = services.publish_features(user_id=request.user.pk, kind=str(data.get("kind") or "current"),
+                                            request=request)
         body = {"dataset_id": str(version.dataset_id), "version_id": str(version.id), "version": version.version,
                 "status": version.status}
         if version.job_id:

@@ -118,7 +118,7 @@ def test_write_role_is_refused(env, django_capture_on_commit_callbacks, monkeypa
     ({**CONFIG, "host": "localhost"}, 422, "connector_host_forbidden"),
     ({**CONFIG, "options": "-c role=postgres"}, 400, "invalid"),
     ({**CONFIG, "sslmode": "disable"}, 400, "invalid"),
-    ({**CONFIG, "host": "http://db.example.com/x"}, 400, "invalid"),
+    ({**CONFIG, "host": "http://db.example.com/x"}, 400, "connector_host_invalid"),
 ])
 def test_create_rejects_unsafe_config(env, django_capture_on_commit_callbacks, settings, config, status, code):
     settings.ALLOW_PRIVATE_DB_HOSTS = False

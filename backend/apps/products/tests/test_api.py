@@ -204,12 +204,16 @@ def test_settings_and_permissions(env, api_client_for):
     assert resp.status_code == 200 and resp.json()["auto_threshold"] == 0.95
     assert client.patch(url(a, "products/settings"), {"auto_threshold": 0.5, "review_threshold": 0.8},
                         format="json").status_code == 400
+    # CONTRACT W4 grants: Analyst = view + manage + review; Viewer = products.view only.
     analyst = api_client_for(a.users["analyst"])
-    assert analyst.get(url(a, "products")).status_code == 200
-    assert analyst.post(url(a, "products/sources"), {"dataset_id": ds_a["id"], "mapping": MAP_A},
-                        format="json").status_code == 403
-    assert analyst.get(url(a, "products/matches")).status_code == 403
-    assert analyst.post(url(a, "products/normalize")).status_code == 403
+    assert analyst.get(url(a, "products/matches")).status_code == 200
+    viewer = api_client_for(a.users["viewer"])
+    assert viewer.get(url(a, "products")).status_code == 200
+    assert viewer.post(url(a, "products/sources"), {"dataset_id": ds_a["id"], "mapping": MAP_A},
+                       format="json").status_code == 403
+    assert viewer.get(url(a, "products/matches")).status_code == 403
+    assert viewer.post(url(a, "products/normalize")).status_code == 403
+    assert viewer.patch(url(a, "products/settings"), {"auto_threshold": 0.95}, format="json").status_code == 403
 
 
 def test_masked_columns_cannot_be_mapped(env, api_client_for):

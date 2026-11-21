@@ -477,6 +477,10 @@ def _succeed(run: PipelineRun, summary: dict) -> None:
     if run.job_id:
         jobs.finish(run.job_id, result=result)
     _notify_owner(run, ok=True)
+    from .signals import emit_run_succeeded_event
+
+    ids = {"org_id": run.org_id, "run_id": run.id}
+    transaction.on_commit(lambda: emit_run_succeeded_event(**ids))
 
 
 def fail_or_retry(org: UUID, run_id, failure: RunFailure) -> str:

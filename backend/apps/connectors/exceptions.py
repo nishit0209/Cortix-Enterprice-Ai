@@ -15,6 +15,20 @@ class InvalidHost(ConnectorError):
     default_detail = "The host is not a valid hostname or IP address."
 
 
+class InvalidHostConfig(ConnectorError):
+    """A malformed `config.host` in a request body: 400 with the stable `connector_host_invalid` code."""
+
+    status_code = 400
+    default_code = "connector_host_invalid"
+    default_detail = "The host is not a valid hostname or IP address."
+
+    def __init__(self, detail: str | None = None, *, code: str | None = None, extra: dict | None = None):
+        message = detail or self.default_detail
+        extra = {"errors": [{"field": "config.host", "code": "connector_host_invalid", "message": message}],
+                 **(extra or {})}
+        super().__init__(message, code=code, extra=extra)
+
+
 class HostForbidden(ConnectorError):
     default_code = "connector_host_forbidden"
     default_detail = "The host resolves to an address that connectors may not reach."

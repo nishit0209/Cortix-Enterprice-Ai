@@ -20,7 +20,10 @@ from . import expressions
 from . import types as T
 
 ColName = Annotated[str, StringConstraints(min_length=1, max_length=128)]
-NewName = Annotated[str, StringConstraints(min_length=1, max_length=63, strip_whitespace=True)]
+# New column names must already satisfy the ingest invariant (apps/datasets/ingest/columns.py: snake_case ASCII,
+# PostgreSQL-safe identifiers), so a pipeline can never publish a column like "x; DROP TABLE y".
+NewName = Annotated[str, StringConstraints(min_length=1, max_length=63, strip_whitespace=True,
+                                           pattern=r"^[a-z_][a-z0-9_]{0,62}$")]
 Scalar = str | int | float | bool | None
 
 

@@ -18,6 +18,8 @@ class CustomerSettings(TenantModel):
     survivorship = models.JSONField(default=dict, blank=True)   # {field: most_recent|most_frequent|...}
     default_country_code = models.CharField(max_length=4, default="91")
     features_dataset_id = models.UUIDField(null=True, blank=True)  # last "Customer 360 features" publish target
+    training_dataset_id = models.UUIDField(null=True, blank=True)  # last "Customer 360 training set" publish target
+    churn_window_days = models.PositiveIntegerField(default=90)    # label window: no order within N days = churned
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["org"], name="customer_settings_org_uniq")]
@@ -188,3 +190,27 @@ class ResolutionRun(TenantModel):
 
     class Meta:
         indexes = [models.Index(fields=["org", "-created_at"], name="customer_resolution_run_idx")]
+
+
+class CustomerScoringRun(TenantModel):
+    """One scoring run (churn / CLV through the ML registry, next-best-action rules): history for the C360 UI."""
+
+    STATUS = [(s, s) for s in ("queued", "running", "succeeded", "failed")]
+
+    score_type = models.CharField(max_length=24, choices=CustomerScore.SCORE_TYPES)
+    job_id = models.UUIDField(null=True, blank=True)
+    requested_by = models.UUIDField(null=True, blank=True)
+    model_id = models.UUIDField(null=True, blank=True)
+    model_name = models.CharField(max_length=200, blank=True, default="")
+    model_version_id = models.UUIDField(null=True, blank=True)
+    model_version = models.PositiveIntegerField(null=True, blank=True)
+    model_stage = models.CharField(max_length=12, blank=True, default="")
+    selection = models.CharField(max_length=16, blank=True, default="")  # explicit | auto | rules
+    status = models.CharField(max_length=16, choices=STATUS, default="queued")
+    stats = models.JSONField(default=dict, blank=True)
+    error = models.JSONField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["org", "score_type", "-created_at"], name="customer_scoring_run_idx")]
