@@ -4,7 +4,7 @@ from django.db.models import Q
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -39,7 +39,9 @@ class UploadViewSet(mixins.RetrieveModelMixin, TenantGenericViewSet):
     serializer_class = UploadSerializer
     permission_classes = [IsAuthenticated, HasOrgPermission]
     required_permissions = {"create": "datasets.create", "retrieve": "datasets.view"}
-    parser_classes = [MultiPartParser, FormParser]
+    # JSONParser: a JSON body is parsed (then refused with 400 "file required") instead of 415 during the CSRF /
+    # tenancy checks, so non-members still get 404 and missing CSRF still gets 403.
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         return Upload.objects.all()
