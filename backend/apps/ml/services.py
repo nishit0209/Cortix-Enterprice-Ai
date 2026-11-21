@@ -877,6 +877,13 @@ def apply_promotion(approval) -> ModelVersion | None:
 
 
 # --------------------------------------------------------------------------------------- serving re-exports
+from .recipes import (  # noqa: E402 - Customer 360 recipe (churn + CLV), used by the demo seed and C360 scoring
+    create_customer_projects,
+    customer360_recipe,
+    customer_features,
+    publish_customer_features,
+    train_customer_projects,
+)
 from .serving import (  # noqa: E402
     monitoring,
     predict_frame,
@@ -886,5 +893,6 @@ from .serving import (  # noqa: E402
     start_batch_prediction,
 )
 
-__all__ += ["serving_version"]
+__all__ += ["create_customer_projects", "customer360_recipe", "customer_features", "publish_customer_features",
+            "serving_version", "train_customer_projects"]
 _np = np  # numpy is part of the public frame contract (re-exported for type hints in callers)

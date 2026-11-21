@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from apps.ml import services, steps
 
-from .test_api_db import ROW, _registered, env  # noqa: F401 - `env` is a fixture
+from .test_api_db import _registered
 
 pytestmark = pytest.mark.django_db(transaction=False)
 
