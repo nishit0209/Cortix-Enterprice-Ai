@@ -400,7 +400,10 @@ def extract_xlsx(path: str, *, max_pages: int) -> Extracted:
     try:
         import openpyxl
 
-        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        # a stream, not the path: openpyxl refuses paths without an .xlsx suffix (processing uses a mkstemp file)
+        with open(path, "rb") as fh:
+            data = io.BytesIO(fh.read())
+        wb = openpyxl.load_workbook(data, read_only=True, data_only=True)
     except Exception as exc:  # noqa: BLE001
         raise ExtractionError("document_corrupt", "The workbook could not be read.") from exc
     pages = []

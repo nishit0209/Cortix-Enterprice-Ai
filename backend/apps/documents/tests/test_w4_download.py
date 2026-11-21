@@ -62,7 +62,7 @@ def test_detail_route_returns_a_working_download_url(two_orgs, api_client_for, f
 
     monkeypatch.setattr(extraction, "tesseract_languages", lambda: None)
     a, b = two_orgs
-    client = api_client_for(a.analyst)
+    client = api_client_for(a.user("data_engineer"))
     f = io.BytesIO(synth.txt_bytes())
     f.name = "notes.txt"
     with django_capture_on_commit_callbacks(execute=True):

@@ -38,7 +38,7 @@ def no_ocr(monkeypatch):
 @pytest.fixture
 def ingest(api_client_for, fake_storage, fake_embedder, no_ocr, django_capture_on_commit_callbacks):
     def upload(world, name: str, data: bytes, *, user=None, **fields):
-        client = api_client_for(user or world.analyst)
+        client = api_client_for(user or world.user("data_engineer"))
         with django_capture_on_commit_callbacks(execute=True):
             resp = client.post(_url(world), {"file": _file(name, data), **fields}, format="multipart")
         return resp
@@ -97,7 +97,7 @@ def test_upload_invoice_pdf_entities_and_tables(two_orgs, ingest, api_client_for
 def test_upload_other_formats(two_orgs, ingest, name, maker):
     a = two_orgs.a
     doc = _ready(a, ingest(a, name, maker()))
-    assert doc.status == "ready" and doc.chunk_count >= 1
+    assert doc.status == "ready" and doc.chunk_count >= 1, (doc.error_code, doc.error)
     with a.tenant():
         assert DocumentPage.objects.filter(document=doc).exists()
         if name != "c.docx":
@@ -143,7 +143,7 @@ def test_upload_requires_manage_and_attestation(two_orgs, ingest):
     resp = ingest(a, "r.txt", synth.txt_bytes(), classification="synthetic")
     assert resp.status_code == 422 and resp.json()["code"] == "attestation_required"
     doc = _ready(a, ingest(a, "r.txt", synth.txt_bytes(), classification="synthetic", attest="true"))
-    assert doc.classification == "synthetic" and doc.classification_attested_by == a.analyst.pk
+    assert doc.classification == "synthetic" and doc.classification_attested_by == a.user("data_engineer").pk
 
 
 def test_search_hybrid_and_filters(two_orgs, ingest, api_client_for):
@@ -152,7 +152,8 @@ def test_search_hybrid_and_filters(two_orgs, ingest, api_client_for):
     inv = _ready(a, ingest(a, "invoice.txt", synth.INVOICE_TEXT.encode()))
     client = api_client_for(a.viewer)
     body = client.get(_url(a, "/search?q=North region units sold")).json()
-    assert body["retrieval"] == {"vector": True, "fulltext": True, "fusion": "rrf"}
+    assert {k: body["retrieval"][k] for k in ("vector", "fulltext", "fusion", "mode")} == {
+        "vector": True, "fulltext": True, "fusion": "rrf", "mode": "hybrid"}
     assert body["results"][0]["document_id"] == str(rep.id)
     assert body["results"][0]["highlights"]
     body = client.get(_url(a, f"/search?q=GSTIN amount due&document_ids={inv.id}")).json()
@@ -186,7 +187,9 @@ def test_ask_synthetic_document_generative(two_orgs, ingest, api_client_for, set
     doc = _ready(a, ingest(a, "report.txt", synth.txt_bytes(), classification="synthetic", attest="true"))
     transport = FakeTransport().push(FakeTransport.json({
         "answer": "The North region sold 120 units [S1].",
-        "citations": [{"source_id": "S1", "quote": "The North region sold 120 units."}],
+        # the fake cannot know which S<n> holds the sentence (sources are ordered by page): cite every id, only
+        # the source that really contains the quote survives verification
+        "citations": [{"source_id": f"S{i}", "quote": "The North region sold 120 units."} for i in range(1, 9)],
         "confidence": "high", "unanswerable": False}))
     engine, _ = build_engine(transport=transport, policy_check=check_policy)
     client = api_client_for(a.viewer)
@@ -194,6 +197,7 @@ def test_ask_synthetic_document_generative(two_orgs, ingest, api_client_for, set
         body = client.post(_url(a, "/ask"), {"question": "How many units did the North region sell?",
                                              "document_ids": [str(doc.id)]}, format="json").json()
     assert body["mode"] == "generative", body
+    assert body["citations"], body
     assert body["citations"][0]["document_id"] == str(doc.id) and body["citations"][0]["chunk_id"]
     assert transport.total_calls == 1
 
@@ -218,7 +222,7 @@ def test_classification_update_and_registry(two_orgs, ingest, api_client_for):
 
     a = two_orgs.a
     doc = _ready(a, ingest(a, "report.txt", synth.txt_bytes()))
-    client = api_client_for(a.analyst)
+    client = api_client_for(a.user("data_engineer"))
     url = _url(a, f"/{doc.id}/classification")
     assert client.post(url, {"classification": "public"}, format="json").status_code == 422
     resp = client.post(url, {"classification": "public", "attest": True}, format="json")
@@ -234,7 +238,7 @@ def test_patch_reprocess_and_delete(two_orgs, ingest, api_client_for, fake_stora
                                     django_capture_on_commit_callbacks):
     a = two_orgs.a
     doc = _ready(a, ingest(a, "report.txt", synth.txt_bytes()))
-    client = api_client_for(a.analyst)
+    client = api_client_for(a.user("data_engineer"))
     assert client.patch(_url(a, f"/{doc.id}"), {"title": "Renamed"}, format="json").json()["title"] == "Renamed"
     with django_capture_on_commit_callbacks(execute=True):
         resp = client.post(_url(a, f"/{doc.id}/reprocess"), format="json")

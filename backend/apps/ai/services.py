@@ -291,7 +291,7 @@ def usage_summary(days: int = 7) -> dict:
          "errors": r.errors}
         for r in AIUsageDaily.objects.filter(day__gte=start, day__lte=end).order_by("day", "model")
     ]
-    since = next_pacific_midnight(end) - timedelta(days=days)
+    since = next_pacific_midnight() - timedelta(days=days)  # midnight (Pacific) that starts `start`
     logs = AIRequestLog.objects.filter(created_at__gte=since)
     by_feature = [
         {"feature": r["feature"], "requests": r["n"], "input_tokens": r["inp"] or 0, "output_tokens": r["out"] or 0}
