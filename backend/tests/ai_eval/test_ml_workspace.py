@@ -318,7 +318,7 @@ def test_predict_frame_contract(two_orgs, ml_env, django_capture_on_commit_callb
     frame = pl.DataFrame(ml.feature_rows(rows[:20], ml.project_features(project)))
     with a.tenant(), pytest.raises(services.ModelNotReady):
         services.predict_frame(model_id, frame)  # registered, but neither staging nor production
-    assert ml.promote(owner, a.slug, model_id, version, "production").status_code == 200
+    assert ml.promote_effective(a, owner, model_id, version, "production").status_code == 200
     with a.tenant():
         out = services.predict_frame(model_id, frame, explain=True)
     assert out.height == frame.height
@@ -348,8 +348,8 @@ def test_only_one_production_version_per_model(two_orgs, ml_env, django_capture_
         pytest.skip("registering into an existing model is not supported; one version per model")
     # the analyst lacks ml.promote (CONTRACT: Admin/Owner only)
     assert ml.promote(analyst, a.slug, model_id, v1).status_code == 403
-    assert ml.promote(owner, a.slug, model_id, v1).status_code == 200
-    assert ml.promote(owner, a.slug, model_id, v2).status_code == 200
+    assert ml.promote_effective(a, owner, model_id, v1).status_code == 200
+    assert ml.promote_effective(a, owner, model_id, v2).status_code == 200
     ModelVersion = ml.ml_model("ModelVersion")
     first, second = ml.model_version(a, model_id, v1), ml.model_version(a, model_id, v2)
     with a.tenant():

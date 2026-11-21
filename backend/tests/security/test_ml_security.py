@@ -65,7 +65,7 @@ def _trained(world, capture, *, promote_to: str | None = "production") -> dict:
     exp = ml.train(client, world.slug, project_id, capture, algorithm=algorithm)
     model_id, version = ml.register(client, world.slug, str(ml.pick(exp, "id")))
     if promote_to:
-        resp = ml.promote(client, world.slug, model_id, version, promote_to)
+        resp = ml.promote_effective(world, client, model_id, version, promote_to)
         assert resp.status_code == 200, resp.content[:400]
     features = ml.project_features(project)
     sample = ml.feature_rows(rows[:5], features)

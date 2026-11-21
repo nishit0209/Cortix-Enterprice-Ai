@@ -322,3 +322,28 @@ def api_key_for(world, user, scopes: list[str]) -> str:
 
 def bearer(token: str) -> dict[str, str]:
     return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
+
+
+def approval_id_of(resp) -> str | None:
+    """The approval id of a 202 promotion (CONTRACT "W5 additions / Approvals"), else None."""
+    if resp.status_code != 202:
+        return None
+    body = resp.json() if resp.content else {}
+    value = pick(body, "approval_id", "approval.id", default=None)
+    return str(value) if value else None
+
+
+def promote_effective(world, client, model_id: str, version, stage: str = "production"):
+    """Promote and, when the promotion is approval-gated (202 + approval_id, W5), approve it as the org's ADMIN
+    (a second person holding `ml.promote`) with password re-authentication. Returns the final response: the
+    promote response (200) or the decision response."""
+    from .client import api_client_for
+    from .factories import TEST_PASSWORD
+
+    resp = promote(client, world.slug, model_id, version, stage)
+    approval_id = approval_id_of(resp)
+    if approval_id is None:
+        return resp
+    from .automation import decide
+
+    return decide(api_client_for(world.user("admin")), world.slug, approval_id, "approve", password=TEST_PASSWORD)
