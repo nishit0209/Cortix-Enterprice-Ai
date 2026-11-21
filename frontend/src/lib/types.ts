@@ -373,7 +373,9 @@ export interface Insight {
 export interface AiUsage {
   range: { from: string; to: string; days: number; timezone: string };
   totals: { requests: number; input_tokens: number; output_tokens: number; cached_tokens: number; blocked: number; errors: number };
-  daily: Array<{ day: string; model: string; requests: number; input_tokens: number; output_tokens: number; blocked: number; errors: number }>;
+  daily: Array<{ day: string; model: string; requests: number; input_tokens: number; output_tokens: number; cached_tokens?: number; blocked: number; errors: number }>;
+  by_feature?: Array<{ feature: string; requests: number; input_tokens: number; output_tokens: number }>;
+  by_status?: Record<string, number>;
 }
 
 /* ---------- Conversational BI (W3) ---------- */

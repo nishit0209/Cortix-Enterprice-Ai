@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   Boxes,
   Bot,
@@ -286,6 +287,16 @@ export const NAV: NavSection[] = [
         perm: "members.view",
         keywords: ["team", "invite", "roles", "users"],
         summary: "Invite teammates and manage roles.",
+      },
+      {
+        id: "usage",
+        label: "Usage",
+        path: "/settings/usage",
+        icon: Activity,
+        status: "working",
+        perm: "org.view",
+        keywords: ["metrics", "consumption", "ai usage", "storage", "queries"],
+        summary: "Queries, active members, storage, AI and pipeline activity over time.",
       },
       {
         id: "settings",
