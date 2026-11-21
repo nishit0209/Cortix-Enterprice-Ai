@@ -171,10 +171,14 @@ def test_permissions_settings_and_policy(env, api_client_for):
     assert client.get(url(a, "customers/settings")).json()["defaults"]["auto_threshold"] == 0.9
     assert client.patch(url(a, "customers/settings"), {"survivorship": {"email": "bogus"}},
                         format="json").status_code == 400
+    # CONTRACT W4 grants: Analyst = view + manage + review; Viewer = customers.view only.
     analyst = api_client_for(a.users["analyst"])
-    assert analyst.get(url(a, "customers")).status_code == 200
-    assert analyst.get(url(a, "customers/matches")).status_code == 403
-    assert analyst.post(url(a, "customers/resolve")).status_code == 403
+    assert analyst.get(url(a, "customers/matches")).status_code == 200
+    viewer = api_client_for(a.users["viewer"])
+    assert viewer.get(url(a, "customers")).status_code == 200
+    assert viewer.get(url(a, "customers/matches")).status_code == 403
+    assert viewer.post(url(a, "customers/resolve")).status_code == 403
+    assert viewer.post(url(a, "customers/scoring-runs"), {"score_type": "churn"}, format="json").status_code == 403
     with a.tenant():
         ColumnPolicy.objects.create(dataset_id=crm["id"], column_name="email", principal_type="everyone",
                                     action="deny")
