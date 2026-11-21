@@ -10,11 +10,13 @@ from .constants import PACIFIC_TZ
 PACIFIC = ZoneInfo(PACIFIC_TZ)
 
 
-def _as_dt(now: float | datetime | None) -> datetime:
+def _as_dt(now: float | datetime | date | None) -> datetime:
     if now is None:
         return datetime.now(UTC)
     if isinstance(now, datetime):
         return now if now.tzinfo else now.replace(tzinfo=UTC)
+    if isinstance(now, date):  # a Pacific calendar day: its start (midnight America/Los_Angeles)
+        return datetime.combine(now, datetime.min.time(), tzinfo=PACIFIC).astimezone(UTC)
     return datetime.fromtimestamp(float(now), tz=UTC)
 
 
