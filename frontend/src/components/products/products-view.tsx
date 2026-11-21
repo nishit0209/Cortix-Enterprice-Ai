@@ -326,7 +326,7 @@ function MatchReview() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-fg-muted">Possible duplicates. Same product merges the two masters; different keeps them apart, even if they're variants of one another.</p>
+        <p className="text-sm text-fg-muted">Possible duplicates. Same product merges the two masters; different keeps them apart, even if they&apos;re variants of one another.</p>
         <NativeSelect value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Match status" className="w-auto">
           <option value="pending_review">Pending review</option>
           <option value="confirmed">Confirmed</option>

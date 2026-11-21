@@ -1,5 +1,10 @@
-import { PlannedModule } from "@/components/planned-module";
+import { Suspense } from "react";
+import { AutomationView } from "@/components/automation/automation-view";
 
 export default function AutomationPage() {
-  return <PlannedModule id="automation" />;
+  return (
+    <Suspense>
+      <AutomationView />
+    </Suspense>
+  );
 }

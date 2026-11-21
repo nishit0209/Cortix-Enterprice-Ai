@@ -82,7 +82,7 @@ export function CompareRecords({
   priority?: string[];
 }) {
   const rows = compareRecords(a, b, priority);
-  if (!rows.length) return <p className="text-sm text-fg-muted">The records' attributes aren't available (they may be restricted by policy).</p>;
+  if (!rows.length) return <p className="text-sm text-fg-muted">The records&apos; attributes aren&apos;t available (they may be restricted by policy).</p>;
   return (
     <div className="overflow-x-auto rounded-control border border-border">
       <table className="w-full text-sm">
