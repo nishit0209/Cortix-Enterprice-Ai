@@ -417,6 +417,8 @@ def _time_insights(df: pd.DataFrame, tcol: str, measure: str, *, today: date,
     partial = None
     if grain is not None and len(frame) >= 2:
         last_t = pd.Timestamp(frame["t"].iloc[-1])
+        if last_t.tzinfo is not None:  # timestamptz results (e.g. date_trunc) -> compare as naive UTC
+            last_t = last_t.tz_convert(None)
         today_ts = pd.Timestamp(today)
         if last_t <= today_ts < _next_bucket(last_t, grain):
             partial = frame.iloc[-1]
