@@ -157,7 +157,7 @@ def _caller(request) -> dict:
 
 
 def _log_prediction(model: MLModel, version: ModelVersion, *, X: pd.DataFrame | None, predictions, n_rows: int,
-                    source: str, latency_ms: float, input_sha256: str, explain: bool, request=None) -> None:
+                    source: str, latency_ms: float, input_hash: str, explain: bool, request=None) -> None:
     counts: dict = {}
     if X is not None and version.reference_stats:
         try:
@@ -168,7 +168,7 @@ def _log_prediction(model: MLModel, version: ModelVersion, *, X: pd.DataFrame | 
     if request is not None:
         request_id = str(getattr(request, "request_id", "") or request.META.get("HTTP_X_REQUEST_ID", ""))[:64]
     PredictionLog.objects.create(model=model, model_version=version, n_rows=int(n_rows), source=source,
-                                 latency_ms=round(float(latency_ms), 3), input_sha256=input_sha256,
+                                 latency_ms=round(float(latency_ms), 3), input_hash=input_hash,
                                  feature_counts=jsonable(counts), explain=bool(explain), request_id=request_id,
                                  **_caller(request))
 
@@ -213,7 +213,7 @@ def predict_rows(model: MLModel, rows, *, version: int | None = None, explain: b
                   "upper": _display(r.get("upper"))} for r in fc.to_dict(orient="records")]
         latency = (time.perf_counter() - started) * 1000
         _log_prediction(model, mv, X=None, predictions=None, n_rows=len(items), source=source, latency_ms=latency,
-                        input_sha256=_canonical_sha256({"rows": rows, "horizon": horizon}), explain=False,
+                        input_hash=_canonical_sha256({"rows": rows, "horizon": horizon}), explain=False,
                         request=request)
         return {**base, "n_rows": len(items), "predictions": items, "latency_ms": round(latency, 2)}
     try:
@@ -235,7 +235,7 @@ def predict_rows(model: MLModel, rows, *, version: int | None = None, explain: b
         items.append(item)
     latency = (time.perf_counter() - started) * 1000
     _log_prediction(model, mv, X=X, predictions=pred, n_rows=len(X), source=source, latency_ms=latency,
-                    input_sha256=_canonical_sha256(rows), explain=explain, request=request)
+                    input_hash=_canonical_sha256(rows), explain=explain, request=request)
     body = {**base, "n_rows": len(items), "predictions": items, "latency_ms": round(latency, 2)}
     if classes:
         body["classes"] = classes
@@ -300,7 +300,7 @@ def predict_frame(model_id, frame: pl.DataFrame, *, version: int | None = None, 
         [s.head(0) for s in columns])
     latency = (time.perf_counter() - started) * 1000
     _log_prediction(model, mv, X=df, predictions=pred, n_rows=len(df), source=source, latency_ms=latency,
-                    input_sha256=_frame_sha256(df), explain=explain, request=request)
+                    input_hash=_frame_sha256(df), explain=explain, request=request)
     return result
 
 

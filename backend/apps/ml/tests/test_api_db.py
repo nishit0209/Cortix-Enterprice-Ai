@@ -135,7 +135,7 @@ def test_train_compare_register_promote_predict_monitor(env):
 
     with env.a.tenant():
         log = PredictionLog.objects.get(model_id=model_id)
-    assert log.caller_type == "user" and log.n_rows == 2 and len(log.input_sha256) == 64
+    assert log.caller_type == "user" and log.n_rows == 2 and len(log.input_hash) == 64
     assert "55.5" not in str(log.feature_counts)  # binned counts only, never the raw inputs
 
 
@@ -164,15 +164,18 @@ def test_predict_with_api_key_is_org_bound(env):
 
 def test_permissions_and_cross_org(env):
     project, _exp, reg = _registered(env)
-    analyst = env.client_for(env.a.analyst)  # ml.view only
-    assert analyst.get(f"{env.base}/projects/{project['id']}").status_code == 200
-    assert analyst.post(f"{env.base}/projects", {"name": "x", "dataset_id": env.dataset_id, "target": "churned"},
-                        format="json").status_code == 403
-    scientist = env.client_for(env.a.user("data_scientist"))  # ml.manage, no ml.promote
-    assert scientist.post(f"{env.base}/models/{reg['model_id']}/versions/1/promote", {"stage": "production"},
-                          format="json").status_code == 403
-    viewer = env.client_for(env.a.viewer)  # no ml.view
-    assert viewer.get(f"{env.base}/projects").status_code == 403
+    from apps.core.tests.fixtures import member_with_permissions
+
+    viewer = env.client_for(env.a.viewer)  # ml.view only
+    assert viewer.get(f"{env.base}/projects/{project['id']}").status_code == 200
+    assert viewer.post(f"{env.base}/projects", {"name": "x", "dataset_id": env.dataset_id, "target": "churned"},
+                       format="json").status_code == 403
+    analyst = env.client_for(env.a.analyst)  # ml.manage, no ml.promote
+    for stage in ("staging", "production"):
+        assert analyst.post(f"{env.base}/models/{reg['model_id']}/versions/1/promote", {"stage": stage},
+                            format="json").status_code == 403
+    no_ml = env.client_for(member_with_permissions(env.a.org, {"org.view", "datasets.view"}))
+    assert no_ml.get(f"{env.base}/projects").status_code == 403
 
     intruder = env.client_for(env.b.owner)
     for path in (f"/projects/{project['id']}", f"/models/{reg['model_id']}"):
