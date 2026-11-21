@@ -27,7 +27,14 @@ import numpy as np
 import pandas as pd
 
 from . import drift, explain
-from .algorithms import LINEAR, SCALE_SENSITIVE, SEARCH_SPACES, default_params, make_estimator, validate_params
+from .algorithms import (
+    LINEAR,
+    SCALE_SENSITIVE,
+    SEARCH_SPACES,
+    default_params,
+    make_estimator,
+    validate_params,
+)
 from .bundle import ModelBundle, lib_versions
 from .forecast import prepare_series, train_forecast
 from .frames import coerce_series, feature_schema, jsonable

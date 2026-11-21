@@ -23,9 +23,8 @@ class ArtifactIntegrityError(Exception):
 def lib_versions() -> dict[str, str]:
     import joblib
     import sklearn
-    import xgboost
-
     import statsmodels
+    import xgboost
 
     return {"sklearn": sklearn.__version__, "xgboost": xgboost.__version__, "numpy": np.__version__,
             "pandas": pd.__version__, "statsmodels": statsmodels.__version__, "joblib": joblib.__version__}
