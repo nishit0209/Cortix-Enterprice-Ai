@@ -566,7 +566,7 @@ class _Chat:
         yield ("result", {**result, "chart": chart})
 
         yield ("status", {"stage": "explaining"})
-        insights = self._insights(rs)
+        insights = self._insights(rs, sql=guard.executed_sql)
         for item in insights:
             yield ("insight", item)
         narrative = ports.narrate(turn.question, insights, row_count=rs.row_count)
@@ -603,9 +603,12 @@ class _Chat:
                 extra["resets_at"] = getattr(proposal, "resets_at", None) or ports.ai_quota_resets_at(turn.user_id)
         yield self.fail(code, detail, status=status, audit_id=audit_id, extra_data=extra)
 
-    def _insights(self, rs: ResultSet) -> list[dict]:
+    def _insights(self, rs: ResultSet, *, sql: str | None = None) -> list[dict]:
+        """Local insights over the result. The EXECUTED sql and `truncated` let nl2sql tell a LIMITed / truncated
+        result from the full answer, so a partial result is never narrated as "the total"."""
         try:
-            raw = ports.compute_insights(column_dicts(rs.columns), [list(r) for r in rs.rows]) or []
+            raw = ports.compute_insights(column_dicts(rs.columns), [list(r) for r in rs.rows], sql=sql or None,
+                                         truncated=bool(rs.truncated)) or []
         except Exception:  # noqa: BLE001 - insights are best effort; the answer stands without them
             log.warning("bi: insight computation failed", exc_info=True)
             return []

@@ -62,6 +62,10 @@ class ApiKeyAuthentication(BaseAuthentication):
         user = User.objects.filter(pk=record.created_by, is_active=True).first()
         if user is None:
             raise AuthenticationFailed(_INVALID, code="api_key_invalid")
+        if record.org_status == "suspended":  # a valid key of a suspended org: same answer as its members get
+            from apps.core.exceptions import OrgSuspended
+
+            raise OrgSuspended()
 
         if record.last_used_at is None or record.last_used_at < now - LAST_USED_RESOLUTION:
             with tenant_context(record.org_id):

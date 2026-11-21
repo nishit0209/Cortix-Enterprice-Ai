@@ -171,12 +171,13 @@ class MessageFeedbackView(TenantAPIView):
     required_permissions = "bi.chat"
 
     def post(self, request, org, pk):
-        ser = FeedbackSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        # Resolve the message BEFORE validating the body: an unknown/foreign id is 404 whatever is posted.
         message = (Message.objects.select_related("conversation")
                    .filter(id=pk, role="assistant", conversation__user_id=request.user.pk).first())
         if message is None:
             raise NotFound()
+        ser = FeedbackSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
         return Response(services.apply_feedback(message, ser.validated_data["value"], user_id=request.user.pk))
 
 
@@ -264,11 +265,15 @@ class SavedQueryPagination(DefaultCursorPagination):
 
 class SavedQueryViewSet(mixins.ListModelMixin, TenantGenericViewSet):
     """Own + shared saved queries. Only the owner can change or delete one. SQL is validated by the guard on
-    save (under the owner's policy) and re-validated under the RUNNER's policy on every run."""
+    save (under the owner's policy) and re-validated under the RUNNER's policy on every run.
+
+    Permission rule (W4, one rule for every saved-query write): reading and running need `dashboards.view`;
+    creating, changing and deleting need `dashboards.manage`, exactly like pinning an answer to a dashboard (which
+    also creates a SavedQuery). `dashboards.create` is a legacy codename that no route checks any more."""
 
     permission_classes = [IsAuthenticated, HasOrgPermission]
     required_permissions = {"list": "dashboards.view", "retrieve": "dashboards.view", "run": "dashboards.view",
-                            "*": "dashboards.create"}
+                            "*": "dashboards.manage"}
     serializer_class = SavedQuerySerializer
     pagination_class = SavedQueryPagination
     lookup_value_regex = UUID_RE
@@ -398,6 +403,32 @@ class InsightsView(TenantAPIView):
             raise ValidationError({"limit": ["Must be an integer."]}) from exc
         items = services.dashboard_insights(request.user.pk, limit=limit)
         return Response({"items": items, "next_cursor": None, "previous_cursor": None})
+
+
+# =============================================================================================== usage (W4)
+class UsageView(TenantAPIView):
+    """GET /usage?from=YYYY-MM-DD&to=YYYY-MM-DD&metric= (`org.view`): real DB aggregates (apps/bi/usage.py).
+
+    `metric` is one of usage.METRICS (default: all). The per-user query breakdown is included only for callers
+    holding `members.view` (it names members). Range: default the last 30 UTC days, at most 366 days."""
+
+    permission_classes = [IsAuthenticated, HasOrgPermission]
+    required_permissions = "org.view"
+
+    def get(self, request, org):
+        from . import usage
+
+        try:
+            start, end = usage.parse_range(request.query_params.get("from"), request.query_params.get("to"))
+        except usage.UsageRangeError as exc:
+            raise ValidationError({"from": [str(exc)]}) from exc
+        metric = (request.query_params.get("metric") or "").strip() or None
+        if metric is not None and metric not in usage.METRICS:
+            raise ValidationError({"metric": [f"One of: {', '.join(usage.METRICS)}."]})
+        body = usage.usage_report(start, end, metric=metric, include_users=request.tenant.has_perm("members.view"))
+        resp = Response(body)
+        resp["Cache-Control"] = "no-store"
+        return resp
 
 
 # =============================================================================================== dashboards

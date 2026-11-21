@@ -452,6 +452,22 @@ def test_saved_query_sql_is_guarded_on_save(org, owner_client, fake):
                        format="json").status_code == 403
 
 
+def test_saved_query_writes_need_dashboards_manage_like_pinning(org, fake):
+    """W4 rule: every saved-query write (create/patch/delete) needs `dashboards.manage`, the same permission that
+    pinning an answer (which also creates a SavedQuery) needs; `dashboards.create` alone grants nothing."""
+    from apps.core.tests.fixtures import member_with_permissions
+
+    body = {"name": "q", "dataset_id": str(DATASET_ID), "sql": GOOD_SQL}
+    legacy = client_for(member_with_permissions(org, {"org.view", "dashboards.view", "dashboards.create"}))
+    assert legacy.post(org_url(org, "saved-queries"), body, format="json").status_code == 403
+    manager = client_for(member_with_permissions(org, {"org.view", "dashboards.view", "dashboards.manage"}))
+    r = manager.post(org_url(org, "saved-queries"), body, format="json")
+    assert r.status_code == 201, r.content
+    qid = r.json()["id"]
+    assert manager.patch(org_url(org, f"saved-queries/{qid}"), {"name": "renamed"}, format="json").status_code == 200
+    assert manager.delete(org_url(org, f"saved-queries/{qid}")).status_code == 204
+
+
 # ================================================================================================ storage guarantees
 def test_bi_rows_are_tenant_isolated(org, other_org, owner_client, fake):
     _answered(owner_client, org, fake)

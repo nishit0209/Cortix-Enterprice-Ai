@@ -54,6 +54,19 @@ def asset_exists(kind: str, asset_id: UUID | str) -> bool | None:
         return False
 
 
+# Policy preview sampler (registered by apps.bi): runs a small sample query under a GIVEN QueryPolicy.
+#   fn(policy, *, actor_id, impersonated_user_id, limit) -> dict
+_policy_sampler: list[Callable[..., dict]] = []
+
+
+def register_policy_sampler(fn: Callable[..., dict]) -> None:
+    _policy_sampler[:] = [fn]
+
+
+def policy_sampler() -> Callable[..., dict] | None:
+    return _policy_sampler[0] if _policy_sampler else None
+
+
 def register_dataset_schema_provider(fn: Callable[[UUID], DatasetSchema]) -> None:
     """The datasets app registers how to resolve a dataset's warehouse tables and columns."""
     _dataset_schema_provider[:] = [fn]

@@ -276,3 +276,70 @@ def test_tenant_scope_sets_only_the_contextvar():
                 pass
     assert current_org.get() is None
     assert storage.org_scope is tenant_scope
+
+
+# ------------------------------------------------------------------------------------- overwrite while open (W4)
+def test_overwrite_and_delete_while_a_download_holds_the_object_open(fs):
+    """Windows: a streaming download holds the file open; os.replace onto it used to fail with WinError 5.
+    Read handles are share-delete and the replace falls back to a POSIX-semantics rename, so the reader keeps the
+    OLD bytes and later reads get the NEW ones (on POSIX this is plain rename semantics)."""
+    with tenant_scope(ORG_A):
+        key = storage.org_key("exports", "live.csv")
+        storage.put_bytes(key, b"old-bytes")
+        handle = storage.open_object(key)
+        try:
+            storage.put_bytes(key, b"new-bytes")
+            assert handle.read() == b"old-bytes"
+        finally:
+            handle.close()
+        assert storage.get_object(key) == b"new-bytes"
+        handle = storage.open_object(key)
+        try:
+            storage.delete_object(key)
+            assert handle.read() == b"new-bytes"
+        finally:
+            handle.close()
+        assert not storage.object_exists(key)
+        assert not [p for p in fs.rglob(".tmp-*")], "no temp files may be left behind"
+
+
+def test_replace_retries_with_back_off_then_gives_up(monkeypatch, tmp_path):
+    calls, sleeps = [], []
+
+    def deny(src, dst):
+        calls.append((src, dst))
+        raise PermissionError(5, "Access is denied")
+
+    monkeypatch.setattr(storage.os, "replace", deny)
+    monkeypatch.setattr(storage, "_posix_rename_nt", lambda s, d: (_ for _ in ()).throw(PermissionError(5, "x")))
+    monkeypatch.setattr(storage.os, "name", "nt")
+    with pytest.raises(PermissionError):
+        storage._replace_with_retry("a", tmp_path / "b", delays=(0.01, 0.02), sleep=sleeps.append)
+    assert len(calls) == 3 and sleeps == [0.01, 0.02]
+
+
+def test_replace_succeeds_after_a_transient_lock(monkeypatch, tmp_path):
+    state = {"n": 0}
+    real = os.replace
+
+    def flaky(src, dst):
+        state["n"] += 1
+        if state["n"] == 1:
+            raise PermissionError(32, "in use by another process")
+        return real(src, dst)
+
+    src = tmp_path / "src.part"
+    src.write_bytes(b"x")
+    monkeypatch.setattr(storage.os, "replace", flaky)
+    monkeypatch.setattr(storage, "_posix_rename_nt", lambda s, d: (_ for _ in ()).throw(PermissionError(32, "x")))
+    monkeypatch.setattr(storage.os, "name", "nt")
+    sleeps: list[float] = []
+    storage._replace_with_retry(str(src), tmp_path / "dst", delays=(0.01,), sleep=sleeps.append)
+    assert (tmp_path / "dst").read_bytes() == b"x" and sleeps == [0.01]
+
+
+def test_replace_does_not_retry_on_posix(monkeypatch, tmp_path):
+    monkeypatch.setattr(storage.os, "name", "posix")
+    monkeypatch.setattr(storage.os, "replace", lambda s, d: (_ for _ in ()).throw(PermissionError(13, "denied")))
+    with pytest.raises(PermissionError):
+        storage._replace_with_retry("a", tmp_path / "b", sleep=lambda s: pytest.fail("must not sleep"))

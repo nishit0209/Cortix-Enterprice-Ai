@@ -16,6 +16,7 @@ from .tenancy.operations import APPEND_ONLY_COMMENT
 log = logging.getLogger(__name__)
 
 DURABLE_ALIAS = "durable"
+PLATFORM_ONLY_PREFIX = "platform\\_admin\\_"  # LIKE pattern: tables of apps.platform_admin
 
 
 def durable_alias() -> str:
@@ -58,6 +59,17 @@ def apply_grants(using: str = "default") -> bool:
         )
         for (table,) in cur.fetchall():
             cur.execute(f'REVOKE UPDATE, DELETE, TRUNCATE ON "{table}" FROM nexora_app')
+        # Platform super-admin tables (platform audit, app log ring) are reached only through the ops alias: the
+        # RLS-bound application role gets no access at all (they are global, not tenant-scoped).
+        cur.execute(
+            """
+            SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relkind IN ('r','p') AND c.relname LIKE %s
+            """,
+            [PLATFORM_ONLY_PREFIX + "%"],
+        )
+        for (table,) in cur.fetchall():
+            cur.execute(f'REVOKE SELECT, INSERT, UPDATE, DELETE ON "{table}" FROM nexora_app')
     return True
 
 

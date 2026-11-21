@@ -43,6 +43,7 @@ FIRST_TICK_DELAY_S = 5.0
 MIN_EVERY_S = 10
 ADVISORY_LOCK_KEY = 0x4E58_5343  # "NXSC": one key for the whole scheduler
 CACHE_PREFIX = "nexora:scheduler:last:"
+TICK_KEY = "__tick__"  # LastRunStore entry: when a process last ticked WITH the lock (platform health)
 SERVER_PROGRAMS = ("uvicorn", "daphne", "gunicorn", "hypercorn")
 
 
@@ -174,6 +175,7 @@ class Scheduler:
             ran: list[str] = []
             jobs = self.jobs()
             now = self.clock()
+            self.store.set(TICK_KEY, now)
             last_runs = {job.name: self.store.get(job.name) for job in jobs}
             for job in due_jobs(jobs, last_runs, now):
                 started = time.monotonic()
@@ -278,8 +280,41 @@ def run_periodic(name: str) -> bool:
     if job is None:
         log.warning("periodic job %s is not registered in this process", name)
         return False
-    job.fn()
+    store = LastRunStore()
+    store.set(TICK_KEY, time.time())
+    try:
+        job.fn()
+    finally:
+        store.set(name, time.time())
     return True
+
+
+def status(store: LastRunStore | None = None, now: float | None = None) -> dict:
+    """Scheduler state for the platform health page: mode, whether this process runs the local thread, the last
+    tick of ANY process (shared cache) and every registered job with its last run (ISO-8601 UTC or None)."""
+    from datetime import UTC, datetime
+
+    store = store or LastRunStore()
+    now = time.time() if now is None else now
+
+    def iso(value: float | None) -> str | None:
+        return datetime.fromtimestamp(value, tz=UTC).isoformat() if value else None
+
+    last_tick = store.get(TICK_KEY)
+    jobs = []
+    for job in registered():
+        last = store.get(job.name)
+        jobs.append({"name": job.name, "every_s": job.every_seconds, "last_run_at": iso(last),
+                     "overdue": bool(last) and now - float(last) > 2 * job.every_seconds + TICK_S})
+    mode = "local" if getattr(settings, "LOCAL_SCHEDULER", False) else (
+        "celery_beat" if str(getattr(settings, "TASK_RUNNER", "")) == "celery" else "disabled")
+    return {
+        "mode": mode,
+        "thread_alive": bool(_thread is not None and _thread.is_alive()),
+        "last_tick_at": iso(last_tick),
+        "seconds_since_tick": round(now - float(last_tick), 1) if last_tick else None,
+        "jobs": jobs,
+    }
 
 
 def beat_schedule() -> dict[str, dict]:

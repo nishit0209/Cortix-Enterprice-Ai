@@ -82,10 +82,12 @@ def store_verified(question: str, sql: str, ctx: QuestionContext, **kwargs):
     return services.store_verified(question, sql, ctx, **kwargs)
 
 
-def compute_insights(columns, rows) -> list[dict]:
+def compute_insights(columns, rows, **kwargs) -> list[dict]:
+    """Forwards `sql=` (the executed SQL), `truncated=` and `complete=` to nl2sql.compute_insights."""
     from apps.nl2sql import services
 
-    return services.compute_insights(columns, rows)
+    allowed = {k: v for k, v in kwargs.items() if k in ("sql", "truncated", "complete")}
+    return services.compute_insights(columns, rows, **allowed)
 
 
 def ai_quota_resets_at(user_id: UUID | None = None) -> str | None:

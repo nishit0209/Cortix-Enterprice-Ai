@@ -71,6 +71,23 @@ def shutdown(wait: bool = False) -> None:
         pool.shutdown(wait=wait, cancel_futures=not wait)
 
 
+def pool_status() -> dict:
+    """Runner state for the platform console: the configured runner and, for `thread`, the pool's size, live worker
+    threads and the number of submitted-but-not-started tasks in THIS process."""
+    name = runner_name()
+    out: dict = {"runner": name}
+    if name == "thread":
+        threads = max(1, int(getattr(settings, "TASK_RUNNER_THREADS", 4) or 4))
+        pool = _executor
+        out.update(threads=threads, started=pool is not None,
+                   workers_alive=len(getattr(pool, "_threads", ()) or ()) if pool is not None else 0,
+                   pending=pool._work_queue.qsize() if pool is not None else 0)
+    elif name == "celery":
+        out["broker"] = "configured" if getattr(settings, "CELERY_BROKER_URL", "") or getattr(
+            settings, "REDIS_URL", "") else "not_configured"
+    return out
+
+
 def in_pool_thread() -> bool:
     return bool(getattr(_local, "in_task", False))
 

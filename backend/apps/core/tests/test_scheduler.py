@@ -102,7 +102,7 @@ def test_tick_runs_due_jobs_once_per_interval():
     clock.now += 240
     assert s.tick() == ["a", "b"]
     assert ran == ["a", "b", "a", "a", "b"]
-    assert store.values == {"a": clock.now, "b": clock.now}
+    assert store.values == {"a": clock.now, "b": clock.now, scheduler.TICK_KEY: clock.now}
 
 
 def test_tick_without_the_lock_does_nothing():
@@ -287,3 +287,44 @@ def test_run_periodic_task_runs_the_registered_function(settings):
     finally:
         scheduler.unregister_periodic("unit.run")
     assert ran == [1]
+
+
+# ------------------------------------------------------------------------------------------------ status (W4)
+def test_status_reports_last_tick_jobs_and_overdue(settings):
+    settings.LOCAL_SCHEDULER = True
+    store = MemoryStore()
+    clock = Clock(2_000_000.0)
+    try:
+        scheduler.register_periodic("unit.status.a", 60, lambda: None)
+        scheduler.register_periodic("unit.status.b", 60, lambda: None)
+        s = Scheduler(lock=lock_returning(True), clock=clock, store=store,
+                      jobs=lambda: [scheduler.get_job("unit.status.a")])
+        s.tick()
+        st = scheduler.status(store=store, now=clock.now + 1000)
+    finally:
+        scheduler.unregister_periodic("unit.status.a")
+        scheduler.unregister_periodic("unit.status.b")
+    assert st["mode"] == "local" and st["last_tick_at"].startswith("1970-01-24")
+    assert st["seconds_since_tick"] == 1000.0
+    jobs = {j["name"]: j for j in st["jobs"]}
+    assert jobs["unit.status.a"]["last_run_at"] and jobs["unit.status.a"]["overdue"] is True
+    assert jobs["unit.status.b"]["last_run_at"] is None and jobs["unit.status.b"]["overdue"] is False
+
+
+def test_status_without_any_tick(settings):
+    settings.LOCAL_SCHEDULER = False
+    settings.TASK_RUNNER = "celery"
+    st = scheduler.status(store=MemoryStore(), now=1.0)
+    assert st["mode"] == "celery_beat" and st["last_tick_at"] is None and st["seconds_since_tick"] is None
+
+
+def test_beat_run_records_the_tick_and_the_job_run(settings, monkeypatch):
+    settings.TASK_RUNNER = "eager"
+    store = MemoryStore()
+    monkeypatch.setattr(scheduler, "LastRunStore", lambda: store)
+    try:
+        scheduler.register_periodic("unit.beatrun", 60, lambda: None)
+        assert scheduler.run_periodic.delay("unit.beatrun").get() is True
+    finally:
+        scheduler.unregister_periodic("unit.beatrun")
+    assert set(store.values) == {scheduler.TICK_KEY, "unit.beatrun"}

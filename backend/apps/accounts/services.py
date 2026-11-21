@@ -33,6 +33,7 @@ API_KEY_FORBIDDEN_SCOPES = frozenset(
         "governance.policy.edit",
         "governance.retention.edit",
         "approvals.decide",
+        "ml.promote",  # W4: promoting a model to production is an interactive, audited decision
     }
 )
 API_KEY_ALLOWED_SCOPES = frozenset(PERMISSIONS) - API_KEY_FORBIDDEN_SCOPES
@@ -50,6 +51,16 @@ def user_payload(user) -> dict:
     }
 
 
+def set_platform_admin(user, flag: bool) -> bool:
+    """Set `User.is_platform_admin`; returns whether it changed (callers audit it)."""
+    flag = bool(flag)
+    if bool(user.is_platform_admin) == flag:
+        return False
+    user.is_platform_admin = flag
+    user.save(update_fields=["is_platform_admin"])
+    return True
+
+
 def find_user_by_email(email: str):
     from .models import User
 
@@ -59,8 +70,10 @@ def find_user_by_email(email: str):
 def ensure_user(email: str, *, password: str | None = None, full_name: str = ""):
     """Get or create a user by email (idempotent; used by `manage.py seed_demo`). Returns (user, created).
 
-    A given `password` is validated with the configured password validators and set (also on an existing user);
-    without one an existing user's password is left untouched and a new user gets an unusable password."""
+    A given `password` is validated with the configured password validators and set (also on an existing user),
+    except when the existing user's password already equals it: then the stored hash is NOT re-hashed (a new salted
+    hash would needlessly invalidate the user's sessions). Without one an existing user's password is left untouched
+    and a new user gets an unusable password. `user.password_changed` tells the caller whether it was (re)set."""
     from django.contrib.auth.password_validation import validate_password
 
     from .models import User
@@ -70,12 +83,17 @@ def ensure_user(email: str, *, password: str | None = None, full_name: str = "")
     created = user is None
     if created:
         user = User(email=email, full_name=(full_name or "")[:150])
+    changed = False
     if password:
         validate_password(password, user)
-        user.set_password(password)
+        if created or not user.check_password(password):
+            user.set_password(password)
+            changed = True
     elif created:
         user.set_unusable_password()
-    user.save()
+    if created or changed:
+        user.save()
+    user.password_changed = changed
     return user, created
 
 
@@ -148,17 +166,19 @@ class ApiKeyRecord:
     created_by: UUID
     creator_permissions: frozenset[str]
     last_used_at: datetime | None
+    org_status: str = "active"
 
 
 def lookup_api_key(prefix: str) -> ApiKeyRecord | None:
     """Pre-tenant lookup through the SECURITY DEFINER function `nexora_api_key_lookup`.
 
-    Only returns keys whose org is active and whose creator is still an active member of that org.
+    Only returns keys whose org is active or suspended (`org_status`; authentication answers 403 `org_suspended`
+    for the latter) and whose creator is still an active member of that org.
     """
     with connection.cursor() as cur:
         cur.execute(
             "SELECT api_key_id, org_id, org_slug, key_hash, scopes, expires_at, revoked_at, created_by, "
-            "creator_permissions, last_used_at FROM nexora_api_key_lookup(%s)",
+            "creator_permissions, last_used_at, org_status FROM nexora_api_key_lookup(%s)",
             [prefix],
         )
         row = cur.fetchone()
@@ -175,6 +195,7 @@ def lookup_api_key(prefix: str) -> ApiKeyRecord | None:
         created_by=row[7],
         creator_permissions=frozenset(row[8] or ()),
         last_used_at=row[9],
+        org_status=row[10] or "active",
     )
 
 

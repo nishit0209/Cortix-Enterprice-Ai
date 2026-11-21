@@ -37,6 +37,14 @@ class Forbidden(NexoraError):
     default_detail = "You do not have permission to perform this action."
 
 
+class OrgSuspended(NexoraError):
+    """The caller is a member, but a platform admin suspended the org (403 `org_suspended`)."""
+
+    status_code = 403
+    default_code = "org_suspended"
+    default_detail = "This organization is suspended. Contact your platform administrator."
+
+
 class AIPolicyConsentRequired(NexoraError):
     status_code = 400
     default_code = "ai_policy_consent_required"
@@ -113,6 +121,8 @@ def problem_exception_handler(exc, context):
     if isinstance(exc, NexoraError) and exc.extra:
         body.update(exc.extra)
     response.data = body
+    # `content_type` (not just the header): DRF re-sets the header from it when the response is rendered.
+    response.content_type = "application/problem+json"
     response["Content-Type"] = "application/problem+json"
     return response
 

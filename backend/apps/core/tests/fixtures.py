@@ -47,6 +47,27 @@ def member_of(org, role_key: str, **kwargs):
     return user
 
 
+def custom_role(org, key: str, permissions):
+    """A custom (non-system) role holding exactly `permissions`."""
+    from apps.orgs.models import Permission, Role, RolePermission
+    from apps.orgs.services import ensure_permission_catalog
+
+    perms = ensure_permission_catalog()
+    with tenant_context(org.id):
+        role = Role.objects.create(key=key, name=key.replace("_", " ").title(), is_system=False)
+        RolePermission.objects.bulk_create(
+            [RolePermission(org_id=org.id, role=role, permission=perms[c]) for c in sorted(set(permissions))])
+    assert all(isinstance(p, Permission) for p in perms.values())
+    return role
+
+
+def member_with_permissions(org, permissions, key: str | None = None, **kwargs):
+    role = custom_role(org, key or f"custom_{uuid.uuid4().hex[:8]}", permissions)
+    user = make_user(**kwargs)
+    add_member(org, user, role.key)
+    return user
+
+
 def client_for(user=None) -> APIClient:
     client = APIClient()
     if user is not None:
