@@ -39,6 +39,8 @@ log = logging.getLogger("nexora.automation")
 MAX_OUTPUT_BYTES = 256 * 1024
 MAX_ITERATIONS_PER_DRIVE = 500
 RUN_PERMISSION = "automation.run"
+IMPACT_GATE = "impact"  # payload marker of the approval the runner itself requests before a high-impact step
+IMPACT_APPROVER = "approvals.decide"
 
 
 # ------------------------------------------------------------------------------------------------ creation
@@ -224,8 +226,6 @@ def _execute(run: WorkflowRun, step: WorkflowStepRun, sdef: dict) -> bool:
         return False
     spec = registry.get_step(step.kind)
     config = graphmod.render(sdef.get("config", {}), run.context)
-    step.attempt += 1
-    step.started_at = timezone.now()
     step.input = config
     timeout_s = int(sdef.get("timeout_s") or graphmod.DEFAULT_TIMEOUT_S)
     error: registry.StepError | None = None
@@ -241,6 +241,12 @@ def _execute(run: WorkflowRun, step: WorkflowStepRun, sdef: dict) -> bool:
         problems = registry.config_errors(step.kind, config)
         if problems:
             error = registry.StepError("invalid_config", "; ".join(problems)[:1000], retryable=False)
+    if error is None and spec.impact == "high" and not _impact_approved(run, step, sdef):
+        # a high-impact step NEVER executes before a high-impact approval of exactly this step (or of a directly
+        # guarding `approval` step of the same run); the handler is not called until then
+        return _pause(run, step, _request_impact_approval(run, step, spec, config))
+    step.attempt += 1
+    step.started_at = timezone.now()
     if error is None:
         ctx = registry.StepContext(
             org_id=run.org_id, run_id=run.id, step_run_id=step.id, step_key=step.step_key, kind=step.kind,
@@ -271,6 +277,38 @@ def _execute(run: WorkflowRun, step: WorkflowStepRun, sdef: dict) -> bool:
         return _step_failed(run, step, sdef, error)
     _finish_step(run, step, "succeeded", output=output)
     return True
+
+
+def _impact_approved(run: WorkflowRun, step: WorkflowStepRun, sdef: dict) -> bool:
+    """True when this high-impact step may execute: its own impact-gate approval was granted, or one of its DIRECT
+    dependencies is a succeeded `approval` step whose request was a granted high-impact `approvals.decide` one."""
+    from .models import ApprovalRequest
+
+    if step.approval_id and ApprovalRequest.objects.filter(
+            id=step.approval_id, source_id=step.id, status="approved", impact="high").exists():
+        return True
+    deps = [d for d in (sdef.get("depends_on") or []) if isinstance(d, str)]
+    if not deps:
+        return False
+    guard_ids = list(WorkflowStepRun.objects.filter(run=run, step_key__in=deps, kind="approval", status="succeeded")
+                     .exclude(approval_id=None).values_list("approval_id", flat=True))
+    return bool(guard_ids) and ApprovalRequest.objects.filter(
+        id__in=guard_ids, status="approved", impact="high", approver_permission=IMPACT_APPROVER).exists()
+
+
+def _request_impact_approval(run: WorkflowRun, step: WorkflowStepRun, spec: registry.StepSpec,
+                             config: dict) -> registry.PauseRun:
+    from .services import request_approval
+
+    details = config if len(json.dumps(config, default=str)) <= 8192 else {"truncated": True}
+    approval = request_approval(
+        kind="agent_action" if run.agent_id else "workflow_step",
+        title=f"Run high-impact step '{spec.label or spec.kind}' ({step.step_key})",
+        payload={"run_id": str(run.id), "step_key": step.step_key, "step_kind": spec.kind, "gate": IMPACT_GATE,
+                 "details": details},
+        approver_permission=IMPACT_APPROVER, impact="high", requested_by=run.actor_id, source_id=step.id)
+    return registry.PauseRun("approval", approval_id=approval.id,
+                             output={"approval_id": str(approval.id), "gate": IMPACT_GATE})
 
 
 def _set_statement_timeout_value(value: str) -> None:

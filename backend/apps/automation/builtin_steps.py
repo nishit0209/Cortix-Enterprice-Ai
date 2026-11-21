@@ -25,6 +25,7 @@ NOTIFY_SCHEMA = {
     "properties": {
         "title": {"type": "string", "minLength": 1, "maxLength": 200},
         "body": {"type": "string", "maxLength": 4000},
+        "message": {"type": "string", "maxLength": 4000},  # alias of body
         "link": {"type": "string", "maxLength": 500},
         "recipients": {"enum": ["actor", "users", "permission"]},
         "user_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}, "maxItems": MAX_NOTIFY_USERS},
@@ -109,7 +110,8 @@ def notify_step(ctx: StepContext, config: dict) -> dict:
 
     mode = config.get("recipients") or ("users" if config.get("user_ids") else
                                         "permission" if config.get("permission") else "actor")
-    title, body, link = config["title"], config.get("body", ""), config.get("link", "")
+    title, link = config["title"], config.get("link", "")
+    body = config.get("body") or config.get("message") or ""
     if mode == "permission":
         codename = config.get("permission") or ""
         if codename not in PERMISSIONS:
