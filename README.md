@@ -7,7 +7,9 @@ Enterprise AI and data intelligence platform covering:
 
 **Google Gemini is the only external generative-AI provider.** Embeddings and conventional ML run locally.
 
-> **Status:** under active development. The truth source for what works is [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md), which uses the statuses Working, Prototype, Mock and Planned.
+> **Start here:** [`docs/PRODUCT_OVERVIEW.md`](docs/PRODUCT_OVERVIEW.md) explains what the product is. [`docs/RUN_GUIDE.md`](docs/RUN_GUIDE.md) covers install, run, demo, testing and the production checklist. Locally it needs only **PostgreSQL**: Redis, MinIO and pgvector are optional.
+>
+> **Status:** The truth source for what works is [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md), which uses the statuses Working, Prototype, Mock and Planned.
 
 ## Stack
 | Layer | Technology |
