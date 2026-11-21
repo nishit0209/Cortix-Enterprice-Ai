@@ -63,7 +63,8 @@ PERMISSIONS: dict[str, str] = {
 _ALL = set(PERMISSIONS)
 # CONTRACT "W4 additions / Permissions": Owner/Admin hold all of them; Analyst (and the roles built on it) holds
 # view + manage + review but never `ml.promote`; Viewer (and Auditor) hold `*.view`. Existing orgs receive the same
-# grants through migration orgs/0004 (keep both in sync).
+# grants through migration orgs/0004 (keep both in sync). Automation (W5): Owner/Admin all, Data Engineer view + manage +
+# run, Data Scientist view + run, Analyst/Auditor view (migration orgs/0005).
 W4_VIEW = {"ml.view", "customers.view", "products.view"}
 W4_WORK = W4_VIEW | {"ml.manage", "customers.manage", "customers.review", "products.manage", "products.review"}
 _ANALYST = {
@@ -80,13 +81,14 @@ SYSTEM_ROLES: dict[str, dict] = {
         "permissions": _ANALYST | {
             "sources.manage", "datasets.create", "datasets.manage", "quality.manage", "pipelines.manage",
             "pipelines.run", "semantic.manage", "documents.manage", "customers.manage", "products.manage",
-            "automation.run",
+            "automation.run", "automation.manage",
         },
     },
     "analyst": {"name": "Analyst", "permissions": _ANALYST},
     "data_scientist": {
         "name": "Data Scientist",
-        "permissions": _ANALYST | {"ml.manage", "ml.predict", "semantic.manage", "datasets.create", "customers.manage"},
+        "permissions": _ANALYST | {"ml.manage", "ml.predict", "semantic.manage", "datasets.create", "customers.manage",
+                                   "automation.run"},
     },
     "viewer": {
         "name": "Viewer",
