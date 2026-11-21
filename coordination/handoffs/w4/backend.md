@@ -27,7 +27,9 @@
   - The notifications docstring now uses UI routes.
 
 ## Tests (real Postgres, PYTEST_DB_SUFFIX=backend)
-- Owned suites (core, accounts, orgs, governance, bi, platform_admin, automation): see the counts in the structured handoff.
+- Owned suites (core, accounts, orgs, governance, bi, platform_admin, automation): **554 passed, 1 failed, 1 skipped**.
+  - The one failure is `bi/test_w4_usage_and_preview.py::test_usage_report_counts_real_rows`. It is caused by the ai_ml `timeutil` defect below: the `ai` metric is reported as unavailable.
+- Also fixed: the test-DB flush wiped the permission catalog. orgs now re-seeds it on post_migrate.
 - Static checks pass: conventions, ownership, ruff, manage.py check, and makemigrations --check.
 
 ## Defects for others
