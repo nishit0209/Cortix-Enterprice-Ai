@@ -254,7 +254,7 @@ export const NAV: NavSection[] = [
         label: "Access policies",
         path: "/governance",
         icon: Network,
-        status: "planned",
+        status: "prototype",
         perm: "governance.policy.edit",
         keywords: ["acl", "masking", "row level"],
         summary: "Dataset ACLs, column masking and row policies with a Preview-as-user panel.",

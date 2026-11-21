@@ -1,5 +1,5 @@
-import { PlannedModule } from "@/components/planned-module";
+import { GovernanceView } from "@/components/governance/governance-view";
 
 export default function PoliciesPage() {
-  return <PlannedModule id="policies" />;
+  return <GovernanceView />;
 }
