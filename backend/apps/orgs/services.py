@@ -524,6 +524,22 @@ def members_with_permission(codename: str) -> list[UUID]:
     )
 
 
+def member_permissions(user_id) -> TenantInfo | None:
+    """The CURRENT role and permissions of an active member of the active org (inside its tenant context), or None
+    when the user is not an active member any more (or the account is inactive). Background work that acts for a
+    user (automation runs, agents) re-checks this before every step, so a removed or demoted member's runs cannot
+    keep their old privileges."""
+    membership = (Membership.objects.select_related("role", "user")
+                  .filter(user_id=user_id, status="active", user__is_active=True).first())
+    if membership is None:
+        return None
+    perms = frozenset(RolePermission.objects.filter(role_id=membership.role_id)
+                      .values_list("permission__codename", flat=True))
+    org = Organization.objects.filter(id=membership.org_id).first()
+    return TenantInfo(org_id=membership.org_id, slug=org.slug if org else "", role_key=membership.role.key,
+                      permissions=perms)
+
+
 def _notify_invitation_accepted(inv: Invitation, user) -> None:
     """The inviter and the people who manage members learn that someone joined (never the joiner)."""
     from apps.core.notifications import notify
