@@ -147,9 +147,12 @@ def _caller(request) -> dict:
     key_id = getattr(request, "_nexora_api_key_id", None)
     user_id = getattr(getattr(request, "user", None), "pk", None)
     if key_id is not None:
-        auth = getattr(request, "auth", None)
-        return {"caller_type": "api_key", "caller_id": user_id,
-                "api_key_prefix": str(getattr(auth, "prefix", "") or "")[:32]}
+        prefix = getattr(getattr(request, "auth", None), "prefix", None)
+        if not prefix:  # the auth record (ApiKeyRecord) carries no prefix: read it from the key row (tenant-scoped)
+            from apps.accounts.models import ApiKey
+
+            prefix = ApiKey.objects.filter(id=key_id).values_list("prefix", flat=True).first()
+        return {"caller_type": "api_key", "caller_id": user_id, "api_key_prefix": str(prefix or "")[:32]}
     return {"caller_type": "user", "caller_id": user_id, "api_key_prefix": ""}
 
 

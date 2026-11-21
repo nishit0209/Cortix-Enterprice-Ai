@@ -40,12 +40,13 @@ def run_training_task(*, org_id: str, job_id: str, experiment_ids: list[str], sn
 @shared_task(base=TenantTask, name="apps.ml.tasks.run_batch_prediction_task", long_running=True, acks_late=True)
 def run_batch_prediction_task(*, org_id: str, model_id: str, version: int, job_id: str, dataset_id: str,
                               output_name: str, output_dataset_id: str | None = None, explain: bool = False,
-                              user_id: str | None = None, actor_id: str | None = None) -> dict | None:
+                              user_id: str | None = None, actor_id: str | None = None,
+                              classification: str = "internal", attest: bool = False) -> dict | None:
     from .serving import run_batch_prediction
 
     return run_batch_prediction(org_id=org_id, model_id=model_id, version=version, job_id=job_id,
                                 dataset_id=dataset_id, output_name=output_name, output_dataset_id=output_dataset_id,
-                                explain=explain, user_id=user_id)
+                                explain=explain, user_id=user_id, classification=classification, attest=attest)
 
 
 @shared_task(base=NexoraTask, name="apps.ml.tasks.drift_scan", ignore_result=True)
