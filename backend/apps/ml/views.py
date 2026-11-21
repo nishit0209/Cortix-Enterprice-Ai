@@ -208,9 +208,11 @@ class ModelViewSet(mixins.ListModelMixin, TenantGenericViewSet):
         qs = ModelVersion.objects.filter(model=self.get_object()).order_by("-version")
         return Response({"items": s.VersionSerializer(qs, many=True).data})
 
-    @action(detail=True, methods=["post"], url_path=r"versions/(?P<version>\d+)/promote")
+    @action(detail=True, methods=["post"], url_path=r"versions/(?P<version>[^/.]+)/promote")
     def promote(self, request, pk=None, org=None, version=None):
         model = self.get_object()
+        if not str(version).isdigit():
+            raise NotFound()
         services.get_version(model, int(version))
         ser = s.PromoteSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
