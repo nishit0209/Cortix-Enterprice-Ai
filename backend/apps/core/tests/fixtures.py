@@ -56,7 +56,7 @@ def custom_role(org, key: str, permissions):
     with tenant_context(org.id):
         role = Role.objects.create(key=key, name=key.replace("_", " ").title(), is_system=False)
         RolePermission.objects.bulk_create(
-            [RolePermission(role=role, permission=perms[c]) for c in sorted(set(permissions))])
+            [RolePermission(org_id=org.id, role=role, permission=perms[c]) for c in sorted(set(permissions))])
     assert all(isinstance(p, Permission) for p in perms.values())
     return role
 
