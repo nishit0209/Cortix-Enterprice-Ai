@@ -127,7 +127,7 @@ export function LineageGraphView({
             onNodeDoubleClick={(_, n) => {
               if (n.data.kind === "dataset") router.push(`/o/${org}/data/datasets/${n.id}`);
             }}
-            className="nexora-flow"
+            className="cortix-flow"
           >
             <Background gap={20} size={1} color="var(--border-strong)" />
             <Controls showInteractive={false} position="bottom-left" />

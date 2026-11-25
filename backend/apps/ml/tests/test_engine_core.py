@@ -122,10 +122,12 @@ def test_recommendation_rules():
 
 def test_hyperparameter_validation():
     assert "xgboost" in algorithms_for("classification") and "kmeans" in algorithms_for("clustering")
-    validate_params("random_forest", {"n_estimators": 50, "max_depth": None})
+    validate_params("random_forest", {"n_estimators": 50, "max_depth": None, "class_weight": None})
+    assert validate_params("random_forest", {"class_weight": "balanced"}) == {"class_weight": "balanced"}
+    assert validate_params("logistic_regression", {"C": 1.0, "class_weight": "none"}) == {"C": 1.0, "class_weight": None}
     with pytest.raises(InvalidHyperparameters) as exc:
-        validate_params("random_forest", {"n_estimators": 0, "bogus": 1})
-    assert "n_estimators" in exc.value.errors and "bogus" in exc.value.errors
+        validate_params("random_forest", {"n_estimators": 0, "bogus": 1, "class_weight": "bad"})
+    assert {"n_estimators", "bogus", "class_weight"} <= set(exc.value.errors)
 
 
 # ------------------------------------------------------------------------------------------------ validation

@@ -121,7 +121,7 @@ export function useQueryHistory(org: string, filters: { limit?: number } = {}, e
 }
 
 export function exportMessage(org: string, messageId: string, format: "csv" | "xlsx") {
-  return postDownload(`${o(org)}/exports`, { message_id: messageId, format }, `nexora-answer-${messageId.slice(0, 8)}.${format}`);
+  return postDownload(`${o(org)}/exports`, { message_id: messageId, format }, `cortix-answer-${messageId.slice(0, 8)}.${format}`);
 }
 
 export function historyDatasetName(item: QueryHistoryItem): string {

@@ -31,10 +31,10 @@ from uuid import UUID
 
 from django.conf import settings
 
-log = logging.getLogger("nexora.seed_demo")
+log = logging.getLogger("cortix.seed_demo")
 
-DEFAULT_EMAIL = "demo@nexora.local"
-DEFAULT_ORG_NAME = "Nexora Demo"
+DEFAULT_EMAIL = "demo@cortix.local"
+DEFAULT_ORG_NAME = "Cortix Demo"
 DEFAULT_FULL_NAME = "Demo User"
 SEED_KEY = "demo_seed"
 SALES_FILE = "sales.csv"
@@ -395,7 +395,7 @@ def seed_demo(*, email: str = DEFAULT_EMAIL, password: str | None = None, org_na
 def format_summary(r: SeedResult) -> str:
     lines = [
         "",
-        "NEXORA demo data",
+        "Cortix demo data",
         "================",
         f"Login     : {r.email}",
         f"Password  : {r.password if r.password else '(' + r.password_note + ')'}",

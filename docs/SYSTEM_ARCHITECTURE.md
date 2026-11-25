@@ -1,3 +1,4 @@
+
 # System Architecture
 
 > Status: **Design.** Last updated 2026-11-17. Related: `MULTI_TENANCY_DESIGN.md`, `AI_ARCHITECTURE.md`, `SECURITY_ARCHITECTURE.md`, `DEPLOYMENT_ARCHITECTURE.md`.

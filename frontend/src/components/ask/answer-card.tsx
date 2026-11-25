@@ -140,7 +140,7 @@ export function AnswerCard({
       transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
       className="flex gap-3"
       aria-busy={streaming}
-      aria-label="NEXORA answer"
+      aria-label="Cortix answer"
     >
       <span
         className={cn(

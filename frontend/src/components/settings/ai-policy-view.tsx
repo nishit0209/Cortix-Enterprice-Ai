@@ -27,7 +27,7 @@ export const POLICY_INFO: Record<
 > = {
   synthetic_only: {
     title: "Synthetic only",
-    sends: "Only datasets and documents you attest as synthetic or public. Nothing else ever leaves NEXORA.",
+    sends: "Only datasets and documents you attest as synthetic or public. Nothing else ever leaves Cortix.",
     enables: ["AI answers on synthetic/public data", "Local insights and builder answers on all data"],
     requires: "Default for every organization.",
     icon: ShieldCheck,
@@ -69,7 +69,7 @@ export function AiPolicyView() {
     <PageHeader
       title="AI data policy"
       badge={<FeatureStatusBadge status="working" />}
-      description="Decide what may be sent to Gemini, NEXORA's only AI provider. Every change is audited."
+      description="Decide what may be sent to Gemini, Cortix's only AI provider. Every change is audited."
     />
   );
 
@@ -197,7 +197,7 @@ export function AiPolicyView() {
           </p>
           <p>
             <span className="font-medium text-fg">Internal</span> datasets need at least <span className="font-mono">schema_only</span>{" "}
-            for AI-generated SQL. Their values stay in NEXORA unless a paid-tier policy allows more.
+            for AI-generated SQL. Their values stay in Cortix unless a paid-tier policy allows more.
           </p>
           <p>
             <span className="font-medium text-fg">Confidential</span> datasets never send values to Gemini. Local insights and the

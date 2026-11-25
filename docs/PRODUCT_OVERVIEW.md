@@ -1,6 +1,6 @@
-# NEXORA Enterprise AI: Product Overview
+# Cortix Enterprise AI: Product Overview
 
-> **What it is:** NEXORA is a multi-tenant **Enterprise AI and Data Intelligence platform**. A company connects its data, cleans and governs it, then asks business questions in plain language and gets charts and insights. On the same platform it runs Customer 360, Product 360, document intelligence, machine learning and automated workflows with human approvals.
+> **What it is:** Cortix is a multi-tenant **Enterprise AI and Data Intelligence platform**. A company connects its data, cleans and governs it, then asks business questions in plain language and gets charts and insights. On the same platform it runs Customer 360, Product 360, document intelligence, machine learning and automated workflows with human approvals.
 >
 > **Who it is for:** mid-size and large organizations, in particular:
 > - **business teams:** sales, operations, finance;
@@ -11,13 +11,13 @@
 
 ---
 
-## 1. The problem NEXORA solves
+## 1. The problem Cortix solves
 - **Scattered data.** Company data is spread across CSV/Excel files, databases and documents. Cleaning it, joining it and trusting it takes weeks.
 - **Analyst dependency.** Business users can't get answers without an analyst writing SQL.
 - **Unsafe AI tools.** Generic AI chat tools are unsafe on company data: they leak confidential records, can't be audited and ignore access rights.
 - **Too many tools.** Customer, product, document and ML tools are separate products that don't share data, security or governance.
 
-**NEXORA puts all of this in one secure platform:** one login, one data layer, one governance model, one audit trail.
+**Cortix puts all of this in one secure platform:** one login, one data layer, one governance model, one audit trail.
 
 ## 2. Product modules (A–J)
 

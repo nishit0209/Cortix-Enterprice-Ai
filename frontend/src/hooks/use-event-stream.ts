@@ -24,7 +24,7 @@ export interface UseEventStreamOptions<M> {
 function readResume(key?: string): string | null {
   if (!key || typeof window === "undefined") return null;
   try {
-    return window.sessionStorage.getItem(`nexora:sse:${key}`);
+    return window.sessionStorage.getItem(`cortix:sse:${key}`);
   } catch {
     return null;
   }
@@ -33,8 +33,8 @@ function readResume(key?: string): string | null {
 function writeResume(key: string | undefined, id: string | null) {
   if (!key || typeof window === "undefined") return;
   try {
-    if (id) window.sessionStorage.setItem(`nexora:sse:${key}`, id);
-    else window.sessionStorage.removeItem(`nexora:sse:${key}`);
+    if (id) window.sessionStorage.setItem(`cortix:sse:${key}`, id);
+    else window.sessionStorage.removeItem(`cortix:sse:${key}`);
   } catch {
     /* storage unavailable: resume is best-effort */
   }

@@ -1,5 +1,5 @@
 /**
- * Typed fetch wrapper for the NEXORA API (contracts/api/CONTRACT.md).
+ * Typed fetch wrapper for the Cortix API (contracts/api/CONTRACT.md).
  *
  * - Same-origin requests (`/api/v1/...` is rewritten to the Django backend by next.config.ts).
  * - Session cookie auth: `credentials: "include"`.
@@ -234,7 +234,7 @@ async function doFetch<T>(path: string, opts: RequestOptions, isRetry: boolean):
     throw new ApiError({
       status: 0,
       code: "network_error",
-      detail: "Could not reach the NEXORA API. Check your connection or try again shortly.",
+      detail: "Could not reach the Cortix API. Check your connection or try again shortly.",
     });
   }
 

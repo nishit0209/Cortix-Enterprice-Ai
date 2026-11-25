@@ -1,6 +1,6 @@
-# NEXORA: Run Guide
+# Cortix Enterprise AI: Run Guide
 
-How to install, run, load demo data and test NEXORA on one Windows PC, plus the checklist for production. Run every command in a **PowerShell terminal** (VS Code terminal is fine).
+How to install, run, load demo data and test Cortix on one Windows PC, plus the checklist for production. Run every command in a **PowerShell terminal** (VS Code terminal is fine).
 
 ---
 
@@ -51,10 +51,10 @@ cd "D:\nexora enterprice ai\backend"
 ## Part 2: Load the demo company (once)
 ```powershell
 cd "D:\nexora enterprice ai\backend"
-..\.venv\Scripts\python.exe manage.py seed_demo --password "Nexora@Demo2026"
-..\.venv\Scripts\python.exe manage.py create_platform_admin --email demo@nexora.local
+..\.venv\Scripts\python.exe manage.py seed_demo --password "Cortix@Demo2026"
+..\.venv\Scripts\python.exe manage.py create_platform_admin --email demo@cortix.local
 ```
-- `seed_demo` creates the user **demo@nexora.local** and the org **"Nexora Demo"**.
+- `seed_demo` creates the user **demo@cortix.local** and the org **"Cortix Demo"**.
   - It ingests the synthetic sales, customers, products, orders and tickets data through the real pipeline: profiling, quality, warehouse, semantic layer.
   - It also builds a default dashboard and a sample conversation.
   - Running it again does not duplicate anything.
@@ -76,7 +76,7 @@ cd "D:\nexora enterprice ai\frontend"
 npm run build
 npm run start
 ```
-Open **http://localhost:3000** and log in as `demo@nexora.local` / `Nexora@Demo2026`.
+Open **http://localhost:3000** and log in as `demo@cortix.local` / `Cortix@Demo2026`.
 
 To stop, press **Ctrl+C** in each terminal. After a code update:
 1. Re-run `scripts\setup_local.py` and `npm ci`.
@@ -154,5 +154,5 @@ The current results are in `docs/FEATURE_STATUS.md` and `backend/tests/FINAL_VER
 | `manage.py check_warehouse --provision-test` | verify the warehouse roles |
 | `manage.py verify_gemini` | check the Gemini key and models |
 | `manage.py download_models` | download the local embedding model |
-| `manage.py ml_customer_recipe --org <org-slug> --user demo@nexora.local --train --promote staging --attest` | build and train the churn/CLV models for Customer 360 (the org slug is printed by `seed_demo`) |
+| `manage.py ml_customer_recipe --org <org-slug> --user demo@cortix.local --train --promote staging --attest` | build and train the churn/CLV models for Customer 360 (the org slug is printed by `seed_demo`) |
 | `manage.py record_cassettes --out DIR` | record Gemini answers for the offline AI evaluation (needs a key) |

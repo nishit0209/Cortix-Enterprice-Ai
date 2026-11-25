@@ -564,7 +564,7 @@ function BuilderInner({ pipeline }: { pipeline: Pipeline }) {
               fitViewOptions={{ padding: 0.25, maxZoom: 1.1 }}
               defaultEdgeOptions={{ type: "smoothstep" }}
               proOptions={{ hideAttribution: true }}
-              className="nexora-flow"
+              className="cortix-flow"
             >
               <Background gap={20} size={1} color="var(--border-strong)" />
               <Controls showInteractive={false} position="bottom-left" />

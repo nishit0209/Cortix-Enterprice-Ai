@@ -171,7 +171,7 @@ export function DatasetsView() {
             <EmptyState
               icon={<Database />}
               title="No datasets yet"
-              description="Upload a CSV, TSV, XLSX or JSON file. NEXORA detects types, profiles every column and scores quality."
+              description="Upload a CSV, TSV, XLSX or JSON file. Cortix detects types, profiles every column and scores quality."
               action={
                 can("datasets.create") ? (
                   <Button onClick={() => setUploadOpen(true)}>

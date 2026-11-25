@@ -4,7 +4,7 @@ export const CLASSIFICATIONS: Array<{ value: Classification; label: string; desc
   {
     value: "internal",
     label: "Internal",
-    description: "Default. Business data that stays inside NEXORA under synthetic_only.",
+    description: "Default. Business data that stays inside Cortix under synthetic_only.",
     aiEligible: false,
   },
   {

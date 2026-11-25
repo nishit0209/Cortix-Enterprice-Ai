@@ -187,7 +187,7 @@ REST_FRAMEWORK = {
 }
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 SPECTACULAR_SETTINGS = {
-    "TITLE": "NEXORA Enterprise AI API",
+    "TITLE": "Cortix Enterprise AI API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
@@ -233,13 +233,19 @@ S3_REGION = env("S3_REGION", default="us-east-1")
 MAX_UPLOAD_BYTES = env.int("MAX_UPLOAD_BYTES", default=200 * 1024 * 1024)
 DATASET_MAX_COLUMNS = env.int("DATASET_MAX_COLUMNS", default=1000)
 DATASET_MAX_ROWS = env.int("DATASET_MAX_ROWS", default=50_000_000)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = env.int("DATA_UPLOAD_MAX_MEMORY_SIZE", default=MAX_UPLOAD_BYTES + 1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 # --- Email -----------------------------------------------------------------------------------------
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Nexora <no-reply@nexora.local>")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Cortix <no-reply@cortix.local>")
 
 # --- AI (Gemini ONLY) ----------------------------------------------------------------------------------
 GEMINI_API_KEY = env("GEMINI_API_KEY", default="")

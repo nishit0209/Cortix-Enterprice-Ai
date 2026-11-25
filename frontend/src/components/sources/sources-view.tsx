@@ -263,7 +263,7 @@ function AddSourceDialog({
         <DialogHeader
           icon={<Database />}
           title="Add PostgreSQL source"
-          description="Use a dedicated read-only role (for example nexora_ro). NEXORA verifies it cannot write before importing anything."
+          description="Use a dedicated read-only role (for example cortix_ro). Cortix verifies it cannot write before importing anything."
         />
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col" noValidate>
           <DialogBody className="grid gap-4 sm:grid-cols-6">

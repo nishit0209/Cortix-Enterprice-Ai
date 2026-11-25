@@ -76,7 +76,7 @@ export async function downloadSignedUrl(url: string, fallbackName: string, fetch
   try {
     res = await fetchImpl(url, { method: "GET", credentials: "include" });
   } catch {
-    throw new ApiError({ status: 0, code: "network_error", detail: "Could not reach the NEXORA API." });
+    throw new ApiError({ status: 0, code: "network_error", detail: "Could not reach the Cortix API." });
   }
   if (res.status === 403 || res.status === 410) {
     const err = await toApiError(res);
@@ -107,7 +107,7 @@ async function postOnce(path: string, body: unknown, fetchImpl: typeof fetch): P
       body: JSON.stringify(body),
     });
   } catch {
-    throw new ApiError({ status: 0, code: "network_error", detail: "Could not reach the NEXORA API." });
+    throw new ApiError({ status: 0, code: "network_error", detail: "Could not reach the Cortix API." });
   }
 }
 

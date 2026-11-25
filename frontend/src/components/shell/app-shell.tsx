@@ -15,9 +15,10 @@ import { AiStatusPill } from "./ai-status-pill";
 import { NotificationCenter } from "./notification-center";
 import { UserMenu } from "./user-menu";
 import { CommandMenu } from "./command-menu";
+import { TopLoader } from "./top-loader";
 import { useBreadcrumbLabel, useOrgContext } from "./org-context";
 
-const SIDEBAR_KEY = "nexora:sidebar-collapsed";
+const SIDEBAR_KEY = "cortix:sidebar-collapsed";
 
 function useCollapsedSidebar() {
   const [collapsed, setCollapsed] = React.useState(false);
@@ -89,6 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh bg-bg">
+      <TopLoader />
       <a
         href="#main"
         className="sr-only z-50 rounded-control bg-surface px-3 py-2 text-sm focus:not-sr-only focus:fixed focus:left-3 focus:top-3"
@@ -167,7 +169,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
         <footer className="border-t border-border px-4 py-3 text-xs text-fg-subtle sm:px-8">
           <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-2">
-            <span>NEXORA · Enterprise AI data platform</span>
+            <span>Cortix · Enterprise AI data platform</span>
             <span className="hidden sm:inline">
               Press <Kbd>Ctrl</Kbd> <Kbd>K</Kbd> for commands · <Kbd>[</Kbd> to toggle the sidebar
             </span>

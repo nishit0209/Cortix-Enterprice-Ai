@@ -252,8 +252,9 @@ export function mapResiduals(raw: unknown, limit = 1000): ResidualPoint[] {
   const push = (p: number | null, r: number | null) => {
     if (p !== null && r !== null && out.length < limit) out.push({ predicted: p, residual: r });
   };
-  if (Array.isArray(raw)) {
-    for (const item of raw) {
+  const items = Array.isArray(raw) ? raw : isObj(raw) && Array.isArray(raw.points) ? raw.points : null;
+  if (items) {
+    for (const item of items) {
       if (!isObj(item)) continue;
       const p = num(pick(item, "predicted", "y_pred", "prediction"));
       let r = num(pick(item, "residual"));
@@ -286,12 +287,12 @@ export function mapImportance(raw: unknown, limit = 20): Importance[] {
         if (typeof r[0] === "string" && v !== null) items.push({ feature: r[0], value: v });
       } else if (isObj(r)) {
         const f = str(pick(r, "feature", "name", "column"));
-        const v = num(pick(r, "importance", "mean_abs_shap", "contribution", "value", "shap", "score"));
+        const v = num(pick(r, "importance", "mean_abs_shap", "mean_abs", "contribution", "value", "shap", "score"));
         if (f && v !== null) items.push({ feature: f, value: v });
       }
     }
   } else if (isObj(raw)) {
-    const inner = pick(raw, "features", "values", "items");
+    const inner = pick(raw, "features", "native", "permutation", "values", "items");
     if (inner !== undefined) return mapImportance(inner, limit);
     items = Object.entries(raw)
       .map(([feature, v]) => ({ feature, value: num(v) }))
@@ -352,6 +353,11 @@ function mapTopValues(raw: unknown): Array<{ value: string; count: number }> {
     .filter((t): t is { value: string; count: number } => !!t);
 }
 
+function fmtEdge(n: number): string {
+  if (Number.isInteger(n)) return n.toLocaleString();
+  return Math.abs(n) >= 100 ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : n.toLocaleString(undefined, { maximumFractionDigits: 1 });
+}
+
 function mapEdaColumn(raw: unknown): EdaColumn | null {
   if (!isObj(raw)) return null;
   const name = str(pick(raw, "name", "column"));
@@ -371,12 +377,24 @@ function mapEdaColumn(raw: unknown): EdaColumn | null {
     min: raw.min ?? null,
     max: raw.max ?? null,
     median: num(pick(raw, "median", "p50")),
-    outliers: num(pick(raw, "outliers", "outlier_count")),
+    outliers: num(pick(raw, "outliers", "outlier_count", "outliers_iqr", "outliers_z")),
+    outliers_z: num(raw.outliers_z),
+    histogram: mapDistribution(raw.histogram),
     top_values: mapTopValues(pick(raw, "top_values", "top")),
   };
 }
 
 function mapDistribution(raw: unknown): Array<{ label: string; count: number }> {
+  if (isObj(raw) && Array.isArray(raw.edges) && Array.isArray(raw.counts)) {
+    const edges = raw.edges as unknown[];
+    const counts = raw.counts as unknown[];
+    return counts.map((c, i) => {
+      const a = num(edges[i]);
+      const b = num(edges[i + 1]);
+      const label = a !== null && b !== null ? `${fmtEdge(a)}–${fmtEdge(b)}` : String(edges[i] ?? i);
+      return { label, count: num(c) ?? 0 };
+    });
+  }
   if (isObj(raw) && Array.isArray(raw.bins) && Array.isArray(raw.counts)) {
     const bins = raw.bins as unknown[];
     const counts = raw.counts as unknown[];
@@ -388,16 +406,25 @@ function mapDistribution(raw: unknown): Array<{ label: string; count: number }> 
     .filter((d): d is { label: string; count: number } => !!d);
 }
 
-/** Correlation as `{columns, matrix}` or as pairs `[{a, b, value}]` (folded into a symmetric matrix). */
+/** Correlation as `{columns, matrix}`, `{columns, pearson, spearman}` or pairs `[{a, b, value}]`. */
 export function mapCorrelation(raw: unknown): Eda["correlation"] {
   if (!raw) return null;
   const o = isObj(raw) ? raw : { pairs: raw };
   const method = str(o.method) ?? "pearson";
   const pearson = isObj(o.pearson) ? o.pearson : null;
   if (pearson) return mapCorrelation({ method: "pearson", ...pearson });
-  if (Array.isArray(o.columns) && Array.isArray(o.matrix)) {
+  const rawMatrix = Array.isArray(o.matrix)
+    ? o.matrix
+    : method === "spearman" && Array.isArray(o.spearman)
+      ? o.spearman
+      : Array.isArray(o.pearson)
+        ? o.pearson
+        : Array.isArray(o.spearman)
+          ? o.spearman
+          : null;
+  if (Array.isArray(o.columns) && rawMatrix) {
     const columns = (o.columns as unknown[]).map(String);
-    const matrix = (o.matrix as unknown[]).map((r) => arr(r).map((v) => num(v)));
+    const matrix = (rawMatrix as unknown[]).map((r) => arr(r).map((v) => num(v)));
     if (matrix.length !== columns.length || matrix.some((r) => r.length !== columns.length)) return null;
     return { method, columns, matrix };
   }
@@ -434,11 +461,21 @@ export function mapEda(raw: unknown): Eda | null {
     ? {
         name: str(pick(t, "name", "column")) ?? "",
         kind: (str(t.kind) === "numeric" || num(t.mean) !== null ? "numeric" : "categorical") as "numeric" | "categorical",
-        distribution: mapDistribution(pick(t, "distribution", "class_balance", "histogram", "counts")),
+        distribution: mapDistribution(pick(t, "distribution", "class_balance", "classes", "histogram", "counts")),
       }
     : null;
   const tc = isObj(e.time_coverage) ? e.time_coverage : null;
-  const narr = pick(e, "narration", "summary", "explanation");
+  const narr = pick(e, "narration", "narrative", "summary", "explanation");
+  const outRaw = isObj(e.outliers) ? e.outliers : null;
+  const outlier_summary =
+    outRaw && num(outRaw.flagged) !== null
+      ? {
+          method: str(outRaw.method) ?? "isolation_forest",
+          rows_checked: num(outRaw.rows_checked) ?? 0,
+          flagged: num(outRaw.flagged)!,
+          flagged_share: num(outRaw.flagged_share) ?? 0,
+        }
+      : null;
   return {
     row_count: num(pick(e, "row_count", "rows", "n_rows")),
     column_count: num(pick(e, "column_count", "n_columns")) ?? (columns.length || null),
@@ -446,6 +483,7 @@ export function mapEda(raw: unknown): Eda | null {
     columns,
     target,
     correlation: mapCorrelation(pick(e, "correlation", "correlations")),
+    outlier_summary,
     time_coverage: tc
       ? {
           column: str(tc.column) ?? "",
@@ -458,7 +496,7 @@ export function mapEda(raw: unknown): Eda | null {
       : null,
     narration:
       typeof narr === "string" && narr.trim()
-        ? { text: narr, source: str(e.narration_source) ?? "local" }
+        ? { text: narr, source: str(pick(e, "narration_source", "narrative_source")) ?? "local" }
         : isObj(narr) && str(narr.text)
           ? { text: str(narr.text)!, source: str(narr.source) ?? "local" }
           : null,

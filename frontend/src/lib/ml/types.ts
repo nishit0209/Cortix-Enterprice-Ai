@@ -76,6 +76,8 @@ export interface EdaColumn {
   max: unknown;
   median: number | null;
   outliers: number | null;
+  outliers_z?: number | null;
+  histogram?: Array<{ label: string; count: number }>;
   top_values: Array<{ value: string; count: number }>;
 }
 
@@ -86,6 +88,7 @@ export interface Eda {
   columns: EdaColumn[];
   target: { name: string; kind: "categorical" | "numeric"; distribution: Array<{ label: string; count: number }> } | null;
   correlation: { method: string; columns: string[]; matrix: Array<Array<number | null>> } | null;
+  outlier_summary?: { method: string; rows_checked: number; flagged: number; flagged_share: number } | null;
   time_coverage: { column: string; start: string | null; end: string | null; series: Array<{ period: string; count: number }> } | null;
   narration: { text: string; source: string } | null;
   warnings: string[];

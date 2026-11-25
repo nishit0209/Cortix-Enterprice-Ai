@@ -93,7 +93,7 @@ export function MlWorkspace() {
               <EmptyState
                 icon={<FlaskConical />}
                 title="No ML projects yet"
-                description="A project ties a ready dataset to a target column. NEXORA profiles it, recommends models and trains them on this server."
+                description="A project ties a ready dataset to a target column. Cortix profiles it, recommends models and trains them on this server."
                 action={
                   canManage ? (
                     <Button onClick={() => router.push(`/o/${slug}/ml/new`)}>

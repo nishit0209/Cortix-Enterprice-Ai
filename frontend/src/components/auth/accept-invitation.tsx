@@ -74,7 +74,7 @@ export function AcceptInvitation() {
         <span className="flex size-11 items-center justify-center rounded-card bg-accent-soft text-accent-soft-fg">
           <MailCheck className="size-5" aria-hidden />
         </span>
-        <h1 className="pt-2 text-2xl font-semibold tracking-[-0.02em] text-fg">Join your team on NEXORA</h1>
+        <h1 className="pt-2 text-2xl font-semibold tracking-[-0.02em] text-fg">Join your team on Cortix</h1>
         <p className="text-sm text-fg-muted">
           {signedIn
             ? `Accept the invitation as ${me.data!.user.email}.`

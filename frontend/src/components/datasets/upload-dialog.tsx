@@ -130,7 +130,7 @@ export function UploadDatasetDialog({
         <DialogHeader
           icon={<Upload />}
           title="Upload dataset"
-          description="NEXORA ingests, profiles and scores quality automatically."
+          description="Cortix ingests, profiles and scores quality automatically."
         />
         <DialogBody className="space-y-5">
           <AnimatePresence mode="wait" initial={false}>

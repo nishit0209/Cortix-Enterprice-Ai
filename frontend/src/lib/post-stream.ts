@@ -80,7 +80,7 @@ export async function postEventStream(opts: PostStreamOptions): Promise<PostStre
       return {
         kind: "rejected",
         received: 0,
-        error: new ApiError({ status: 0, code: "network_error", detail: "Could not reach the NEXORA API." }),
+        error: new ApiError({ status: 0, code: "network_error", detail: "Could not reach the Cortix API." }),
       };
     }
     if (!res.ok) return { kind: "rejected", error: await toApiError(res), received: 0 };

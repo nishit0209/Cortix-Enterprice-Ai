@@ -2,7 +2,7 @@
  * Server-Sent Events client.
  *
  * Implemented on fetch + ReadableStream instead of the native EventSource because:
- *  - the NEXORA job stream must resume after a page reload with an explicit `Last-Event-ID` header
+ *  - the Cortix job stream must resume after a page reload with an explicit `Last-Event-ID` header
  *    (EventSource can't set headers; it only resumes within the same instance), and
  *  - the chat endpoint (W3) streams from a POST, which EventSource can't do.
  * Semantics follow the WHATWG event-stream spec: `id`, `event`, `data`, `retry`, `:` comments (heartbeats).

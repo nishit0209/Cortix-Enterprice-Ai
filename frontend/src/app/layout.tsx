@@ -17,12 +17,12 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NEXORA — Enterprise AI data platform",
-    template: "%s · NEXORA",
+    default: "Cortix — Enterprise AI data platform",
+    template: "%s · Cortix",
   },
   description:
-    "NEXORA unifies data engineering, governed conversational BI and AI in one secure, multi-tenant workspace.",
-  applicationName: "NEXORA",
+    "Cortix unifies data engineering, governed conversational BI and AI in one secure, multi-tenant workspace.",
+  applicationName: "Cortix",
 };
 
 export const viewport: Viewport = {

@@ -122,7 +122,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="relative z-10 flex flex-1 flex-col justify-between p-10 xl:p-14">
           <div className="flex items-center gap-2.5">
             <LogoMark size={30} />
-            <span className="text-[15px] font-semibold tracking-[0.14em]">NEXORA</span>
+            <span className="text-[15px] font-semibold tracking-[0.14em]">CORTIX</span>
           </div>
           <div className="flex flex-col items-start gap-10">
             <DataConstellation />
@@ -131,7 +131,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 Your data, governed end to end. <span className="text-[#a5a1ff]">AI you can inspect.</span>
               </h2>
               <p className="text-sm leading-6 text-white/65">
-                NEXORA brings data engineering, quality, conversational BI and Gemini-powered insight into one secure,
+                Cortix brings data engineering, quality, conversational BI and Gemini-powered insight into one secure,
                 multi-tenant workspace.
               </p>
             </div>
@@ -159,7 +159,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       {/* Form panel */}
       <main className="flex min-h-dvh flex-col">
         <div className="flex h-16 items-center px-6 lg:hidden">
-          <Link href="/" aria-label="NEXORA home">
+          <Link href="/" aria-label="Cortix home">
             <Logo />
           </Link>
         </div>

@@ -1,8 +1,8 @@
-# NEXORA Enterprise AI — local development stack
+# Cortix Enterprise AI — local development stack
 #   docker compose up -d                      # infra + api + worker + beat + caddy
 #   docker compose --profile web up -d        # also run the Next.js production build in a container
 # UI:  http://localhost:8080  (Caddy → Next.js on host :3000 by default, API → api:8000)
-name: nexora
+name: cortix
 
 x-backend-env: &backend-env
   DJANGO_SETTINGS_MODULE: nexora.settings.dev

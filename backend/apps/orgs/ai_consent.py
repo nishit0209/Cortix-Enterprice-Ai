@@ -26,12 +26,12 @@ POLICY_DESCRIPTIONS = {
     ),
 }
 
-_TEMPLATE = """NEXORA AI data-processing consent (version {version})
+_TEMPLATE = """Cortix AI data-processing consent (version {version})
 
 By granting this consent on behalf of your organization you confirm that:
 
 1. You are an owner or administrator of the organization and are authorised to decide how its data is processed.
-2. NEXORA uses Google Gemini as its only external generative-AI provider. Data sent to Gemini leaves NEXORA's
+2. Cortix uses Google Gemini as its only external generative-AI provider. Data sent to Gemini leaves Cortix's
    infrastructure and is processed by Google under the terms of the configured Gemini tier ({tier}).
 3. On the Gemini free tier, Google may use submitted content to improve its products. Never grant a policy
    above "synthetic_only" for real personal or confidential data while the free tier is configured.

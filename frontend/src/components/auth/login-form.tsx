@@ -97,7 +97,7 @@ export function LoginForm() {
     <div className="space-y-8">
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-[-0.02em] text-fg">Welcome back</h1>
-        <p className="text-sm text-fg-muted">Sign in to your NEXORA workspace.</p>
+        <p className="text-sm text-fg-muted">Sign in to your Cortix workspace.</p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         {formError && <FormAlert {...formError} />}
@@ -119,7 +119,7 @@ export function LoginForm() {
         </Button>
       </form>
       <p className="text-center text-sm text-fg-muted">
-        New to NEXORA?{" "}
+        New to Cortix?{" "}
         <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="font-medium text-accent hover:underline">
           Create a workspace
         </Link>

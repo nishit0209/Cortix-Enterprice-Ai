@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * NEXORA design tokens.
+ * Cortix design tokens.
  * Colors are CSS variables so light/dark (next-themes, `.dark` on <html>) swap without re-rendering.
  * Tailwind reads them through @theme inline below: bg-surface, text-fg-muted, border-border, ...
  */
@@ -296,7 +296,8 @@
 }
 
 /* React Flow (pipeline builder, lineage): theme the library chrome with our tokens in both modes. */
-.nexora-flow {
+.nexora-flow,
+.cortix-flow {
   --xy-background-color: var(--bg);
   --xy-edge-stroke: var(--border-strong);
   --xy-edge-stroke-selected: var(--accent);
@@ -311,27 +312,40 @@
   --xy-node-boxshadow-selected: none;
   background: var(--bg);
 }
-.nexora-flow .react-flow__edge-path {
+.nexora-flow .react-flow__edge-path,
+.cortix-flow .react-flow__edge-path {
   stroke-width: 1.75;
 }
-.nexora-flow .react-flow__edge.selected .react-flow__edge-path {
+.nexora-flow .react-flow__edge.selected .react-flow__edge-path,
+.cortix-flow .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--accent);
 }
-.nexora-flow .react-flow__controls {
+.nexora-flow .react-flow__controls,
+.cortix-flow .react-flow__controls {
   border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
   box-shadow: var(--shadow-soft);
 }
-.nexora-flow .react-flow__minimap {
+.nexora-flow .react-flow__minimap,
+.cortix-flow .react-flow__minimap {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
 }
-.nexora-flow .react-flow__edge-textbg {
+.nexora-flow .react-flow__edge-textbg,
+.cortix-flow .react-flow__edge-textbg {
   fill: var(--surface);
 }
-.nexora-flow .react-flow__edge-text {
+.nexora-flow .react-flow__edge-text,
+.cortix-flow .react-flow__edge-text {
   fill: var(--fg-muted);
   font-size: 11px;
 }
+
+/* Hide Next.js development indicator overlay/badge */
+nextjs-portal,
+[data-nextjs-dev-indicator] {
+  display: none !important;
+}
+

@@ -24,7 +24,7 @@ from django.utils import timezone
 
 from .tenancy.context import require_org_id
 
-log = logging.getLogger("nexora.notifications")
+log = logging.getLogger("cortix.notifications")
 
 TITLE_MAX = 200
 BODY_MAX = 4000

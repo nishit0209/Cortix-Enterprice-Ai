@@ -91,7 +91,7 @@ export default function OnboardingPage() {
             <Building2 className="size-5 text-accent" aria-hidden />
           </span>
           <h1 className="pt-3 text-2xl font-semibold tracking-[-0.02em] text-fg">
-            {firstName ? `Welcome, ${firstName}` : "Welcome to NEXORA"}
+            {firstName ? `Welcome, ${firstName}` : "Welcome to Cortix"}
           </h1>
           <p className="text-sm text-fg-muted">
             Create an organization to get started, or ask a teammate to invite you to theirs.

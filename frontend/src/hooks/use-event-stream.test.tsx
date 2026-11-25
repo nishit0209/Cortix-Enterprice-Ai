@@ -18,7 +18,7 @@ function streamResponse(chunks: string[]) {
 
 describe("useEventStream", () => {
   it("delivers typed, JSON-decoded events, persists the resume id and clears it on done", async () => {
-    window.sessionStorage.setItem("nexora:sse:job:j1", "41-0");
+    window.sessionStorage.setItem("cortix:sse:job:j1", "41-0");
     const fetchImpl = vi.fn(async (_u: string, init: RequestInit) => {
       expect((init.headers as Record<string, string>)["Last-Event-ID"]).toBe("41-0");
       return streamResponse([
@@ -41,7 +41,7 @@ describe("useEventStream", () => {
     const status = events[0];
     if (status.type === "status") expect(status.data.progress).toBe(60);
     expect(result.current.lastEventId).toBe("44-0");
-    expect(window.sessionStorage.getItem("nexora:sse:job:j1")).toBeNull();
+    expect(window.sessionStorage.getItem("cortix:sse:job:j1")).toBeNull();
   });
 
   it("does nothing without a url", () => {

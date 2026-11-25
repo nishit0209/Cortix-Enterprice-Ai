@@ -79,6 +79,7 @@ function NavLink({
   const link = (
     <Link
       href={href}
+      prefetch={true}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
@@ -128,7 +129,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       aria-label="Sidebar"
     >
       <div className={cn("flex h-14 items-center border-b border-border", collapsed ? "justify-center px-2" : "px-4")}>
-        <Link href={orgHref(slug, "/dashboard")} className="rounded-control focus-ring" aria-label="NEXORA home">
+        <Link href={orgHref(slug, "/dashboard")} className="rounded-control focus-ring" aria-label="Cortix home">
           <Logo collapsed={collapsed} />
         </Link>
       </div>

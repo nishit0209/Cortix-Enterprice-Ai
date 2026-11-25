@@ -233,6 +233,12 @@ function EdaReport({ eda, actions }: { eda: Eda; actions: React.ReactNode }) {
     .map((c) => ({ feature: c.name, value: c.missing_pct ?? 0 }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 20);
+  const outlierItems = eda.columns
+    .filter((c) => (c.outliers ?? 0) > 0)
+    .map((c) => ({ feature: c.name, value: c.outliers ?? 0 }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 15);
+  const numericDist = eda.columns.filter((c) => (c.histogram?.length ?? 0) > 0 && (c.distinct ?? 0) > 2 && c.name !== eda.target?.name).slice(0, 6);
   const categorical = eda.columns.filter((c) => c.top_values.length > 0).slice(0, 6);
   return (
     <div className="space-y-5">
@@ -292,6 +298,38 @@ function EdaReport({ eda, actions }: { eda: Eda; actions: React.ReactNode }) {
             <CorrelationHeatmap columns={eda.correlation.columns} matrix={eda.correlation.matrix} />
           </CardContent>
         </Card>
+      )}
+
+      {(outlierItems.length > 0 || eda.outlier_summary) && (
+        <ChartCard
+          title="Outlier detection"
+          description={
+            eda.outlier_summary
+              ? `Isolation Forest flagged ${formatNumber(eda.outlier_summary.flagged)} of ${formatNumber(eda.outlier_summary.rows_checked)} rows (${formatPercent(eda.outlier_summary.flagged_share * 100, 1)}). Per-column counts below use 1.5×IQR.`
+              : "Numeric columns with values outside 1.5×IQR."
+          }
+          empty={outlierItems.length === 0 ? <EmptyState compact title="No per-column IQR outliers" description="Multivariate anomalies may still be flagged by Isolation Forest." /> : undefined}
+          table={{ columns: [{ key: "feature", label: "Column" }, { key: "value", label: "IQR outliers", align: "right", format: (v) => formatNumber(Number(v)) }], rows: outlierItems }}
+        >
+          <HBarChart items={outlierItems} color="var(--warning)" valueLabel="Outliers" format={(v) => formatNumber(v)} height={Math.max(160, outlierItems.length * 32 + 36)} />
+        </ChartCard>
+      )}
+
+      {numericDist.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-fg">Numeric distributions</h3>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {numericDist.map((c) => (
+              <Card key={c.name} className="p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="truncate font-mono text-[13px] font-medium text-fg">{c.name}</span>
+                  {(c.outliers ?? 0) > 0 && <Badge tone="warning">{formatNumber(c.outliers)} outliers</Badge>}
+                </div>
+                <CountBars data={c.histogram!} color="var(--chart-2)" height={170} />
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
 
       {eda.time_coverage && eda.time_coverage.series.length > 0 && (
@@ -360,7 +398,17 @@ function EdaReport({ eda, actions }: { eda: Eda; actions: React.ReactNode }) {
                   <td className="tabular py-1.5 pr-3 text-right">{fmtCell(c.min)}</td>
                   <td className="tabular py-1.5 pr-3 text-right">{c.median === null ? "—" : fmtMetric(c.median)}</td>
                   <td className="tabular py-1.5 pr-3 text-right">{fmtCell(c.max)}</td>
-                  <td className="tabular py-1.5 text-right">{c.outliers === null ? "—" : formatNumber(c.outliers)}</td>
+                  <td className="tabular py-1.5 text-right">
+                    {c.outliers === null ? (
+                      "—"
+                    ) : c.outliers > 0 ? (
+                      <span className="font-medium text-warning" title={c.outliers_z ? `Z-score (>3): ${formatNumber(c.outliers_z)}` : undefined}>
+                        {formatNumber(c.outliers)}
+                      </span>
+                    ) : (
+                      formatNumber(0)
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

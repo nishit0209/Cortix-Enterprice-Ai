@@ -1,4 +1,4 @@
-# NEXORA Enterprise AI
+# Cortix Enterprise AI
 
 Enterprise AI and data intelligence platform covering:
 - data ingestion and ETL;

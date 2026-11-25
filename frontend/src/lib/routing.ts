@@ -1,6 +1,6 @@
 import type { MeResponse } from "./types";
 
-const LAST_ORG_KEY = "nexora:last-org";
+const LAST_ORG_KEY = "cortix:last-org";
 
 /** Only same-origin relative paths are allowed as post-login redirects (prevents open redirects). */
 export function safeNext(next: string | null | undefined): string | null {

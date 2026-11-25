@@ -16,7 +16,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
         }}
       >
         <div style={{ textAlign: "center", padding: 24 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600 }}>NEXORA hit an unexpected error</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 600 }}>Cortix hit an unexpected error</h1>
           <p style={{ color: "#5b6270", fontSize: 14 }}>Reload the page to continue.</p>
           <button
             onClick={reset}

@@ -24,13 +24,15 @@ LINEAR = {"logistic_regression", "ridge", "linear_regression"}
 TREE = {"random_forest", "xgboost", "hist_gradient_boosting"}
 SCALE_SENSITIVE = LINEAR | {"kmeans"}
 
-# name -> (type, min, max) ; type "int" | "float" | "bool" | "choice:<a>|<b>" | "int_or_none"
+# name -> (type, min, max) ; type "int" | "float" | "bool" | "choice:<a>|<b>" | "choice_or_none:<a>|<b>" | "int_or_none"
 PARAMS: dict[str, dict[str, tuple]] = {
-    "logistic_regression": {"C": ("float", 1e-4, 1e4), "max_iter": ("int", 50, 10_000)},
+    "logistic_regression": {"C": ("float", 1e-4, 1e4), "max_iter": ("int", 50, 10_000),
+                            "class_weight": ("choice_or_none:balanced|none", None, None)},
     "ridge": {"alpha": ("float", 0.0, 1e5)},
     "linear_regression": {"fit_intercept": ("bool", None, None)},
     "random_forest": {"n_estimators": ("int", 10, 1000), "max_depth": ("int_or_none", 1, 64),
-                      "min_samples_leaf": ("int", 1, 1000), "max_features": ("choice:sqrt|log2|1.0", None, None)},
+                      "min_samples_leaf": ("int", 1, 1000), "max_features": ("choice:sqrt|log2|1.0", None, None),
+                      "class_weight": ("choice_or_none:balanced|none", None, None)},
     "xgboost": {"n_estimators": ("int", 10, 2000), "max_depth": ("int", 1, 16), "learning_rate": ("float", 1e-3, 1.0),
                 "subsample": ("float", 0.1, 1.0), "colsample_bytree": ("float", 0.1, 1.0),
                 "min_child_weight": ("float", 0.0, 100.0), "reg_lambda": ("float", 0.0, 1000.0)},
@@ -79,6 +81,14 @@ def validate_params(algorithm: str, params: dict | None) -> dict:
                 if not isinstance(value, bool):
                     raise TypeError
                 out[key] = value
+            elif kind.startswith("choice_or_none:"):
+                if value is None:
+                    out[key] = None
+                else:
+                    choices = kind.split(":", 1)[1].split("|")
+                    if str(value) not in choices:
+                        raise TypeError
+                    out[key] = None if str(value) == "none" else str(value)
             elif kind.startswith("choice:"):
                 choices = kind.split(":", 1)[1].split("|")
                 if str(value) not in choices:
@@ -118,6 +128,16 @@ def default_params(algorithm: str, *, n_rows: int = 10_000) -> dict:
     return {}
 
 
+def _resolve_class_weight(params: dict, balanced: bool) -> str | None:
+    """Use explicit user choice ('balanced'/'none') when set, else automatic imbalance handling."""
+    cw = params.get("class_weight")
+    if cw == "balanced":
+        return "balanced"
+    if cw == "none":
+        return None
+    return "balanced" if balanced else None
+
+
 def make_estimator(task: str, algorithm: str, params: dict, *, random_state: int, n_classes: int = 2,
                    balanced: bool = False, pos_weight: float | None = None):
     """A fresh unfitted estimator. `balanced` adds class weights (imbalanced classification)."""
@@ -127,14 +147,14 @@ def make_estimator(task: str, algorithm: str, params: dict, *, random_state: int
             from sklearn.linear_model import LogisticRegression
 
             return LogisticRegression(C=p.get("C", 1.0), max_iter=p.get("max_iter", 2000),
-                                      class_weight="balanced" if balanced else None, random_state=random_state)
+                                      class_weight=_resolve_class_weight(p, balanced), random_state=random_state)
         if algorithm == "random_forest":
             from sklearn.ensemble import RandomForestClassifier
 
             return RandomForestClassifier(n_estimators=p.get("n_estimators", 200), max_depth=p.get("max_depth"),
                                           min_samples_leaf=p.get("min_samples_leaf", 1),
                                           max_features=p.get("max_features", "sqrt"),
-                                          class_weight="balanced" if balanced else None, n_jobs=-1,
+                                          class_weight=_resolve_class_weight(p, balanced), n_jobs=-1,
                                           random_state=random_state)
         if algorithm == "xgboost":
             from xgboost import XGBClassifier

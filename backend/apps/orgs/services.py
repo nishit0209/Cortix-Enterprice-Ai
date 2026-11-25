@@ -429,9 +429,9 @@ def invitation_link(token: str) -> str:
 
 def send_invitation_email(*, inv: Invitation, token: str, org: Organization, inviter) -> bool:
     inviter_name = (inviter.full_name or inviter.email) if inviter else "A teammate"
-    subject = f"You're invited to join {org.name} on NEXORA"
+    subject = f"You're invited to join {org.name} on Cortix"
     body = (
-        f"{inviter_name} invited you to join the organization \"{org.name}\" on NEXORA "
+        f"{inviter_name} invited you to join the organization \"{org.name}\" on Cortix "
         f"as {inv.role.name}.\n\n"
         f"Accept the invitation: {invitation_link(token)}\n\n"
         f"This link expires on {inv.expires_at:%Y-%m-%d %H:%M} UTC. If you did not expect this email, ignore it."
@@ -440,7 +440,7 @@ def send_invitation_email(*, inv: Invitation, token: str, org: Organization, inv
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [inv.email], fail_silently=False)
         return True
     except Exception:  # noqa: BLE001 - the invitation stays valid; the inviter can re-send
-        log.exception("nexora: sending invitation email failed (invitation %s)", inv.id)
+        log.exception("cortix: sending invitation email failed (invitation %s)", inv.id)
         return False
 
 

@@ -30,7 +30,7 @@ import { ConversationRail } from "./conversation-rail";
 import { AiContextChip } from "./ai-context";
 import { isReadyDataset } from "./dataset-picker";
 
-const DRAFT_KEY = "nexora:ask:dataset";
+const DRAFT_KEY = "cortix:ask:dataset";
 
 function readDraft(): string | null {
   try {

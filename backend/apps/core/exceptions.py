@@ -19,6 +19,9 @@ class NexoraError(APIException):
         self.extra = extra or {}
 
 
+CortixError = NexoraError
+
+
 class Conflict(NexoraError):
     status_code = 409
     default_code = "conflict"

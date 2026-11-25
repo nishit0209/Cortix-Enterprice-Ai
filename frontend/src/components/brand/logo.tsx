@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** NEXORA mark: an "N" drawn as a directed graph edge between two nodes (data flowing through a governed path). */
+/** Cortix mark: a neural "C" drawn with synaptic nodes (cortex data intelligence). */
 export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
   const id = React.useId().replace(/:/g, "");
   return (
@@ -20,24 +20,39 @@ export function LogoMark({ size = 28, className }: { size?: number; className?: 
       <rect width="32" height="32" rx="8.5" fill={`url(#${id}-g)`} />
       <rect x="0.5" y="0.5" width="31" height="31" rx="8" fill="none" stroke={`url(#${id}-s)`} />
       <path
-        d="M10.5 21.5V10.5L21.5 21.5V10.5"
+        d="M21 11 A 7 7 0 1 0 21 21"
         fill="none"
         stroke="#fff"
         strokeWidth="2.4"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
-      <circle cx="10.5" cy="10.5" r="2.3" fill="#fff" />
-      <circle cx="21.5" cy="21.5" r="2.3" fill="#fff" />
+      <path
+        d="M9 16 H 15.5"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <circle cx="21" cy="11" r="2.2" fill="#fff" />
+      <circle cx="21" cy="21" r="2.2" fill="#fff" />
+      <circle cx="15.5" cy="16" r="2.2" fill="#fff" />
     </svg>
   );
 }
 
-export function Logo({ className, collapsed }: { className?: string; collapsed?: boolean }) {
+export function Logo({
+  className,
+  collapsed,
+  size = 28,
+}: {
+  className?: string;
+  collapsed?: boolean;
+  size?: number;
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <LogoMark />
-      {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em] text-fg">NEXORA</span>}
+      <LogoMark size={size} />
+      {!collapsed && <span className="text-[15px] font-semibold tracking-[0.14em] text-fg">CORTIX</span>}
     </span>
   );
 }

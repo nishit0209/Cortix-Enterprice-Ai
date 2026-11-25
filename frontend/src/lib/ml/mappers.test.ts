@@ -176,6 +176,27 @@ describe("entity mappers", () => {
     expect(eda.narration?.text).toBe("Balanced enough.");
     expect(eda.warnings).toEqual(["High cardinality: city"]);
     expect(mapEda(null)).toBeNull();
+
+    // Backend apps/ml/engine/eda.py payload shape
+    const backendEda = mapEda({
+      rows: 3000,
+      columns_count: 2,
+      columns: [
+        { name: "spend", kind: "numeric", missing_pct: 0, n_unique: 2988, mean: 1743, std: 1128, min: 158, median: 1450, max: 13900, outliers_iqr: 131, outliers_z: 50, histogram: { edges: [100, 500, 1000], counts: [20, 80] } },
+      ],
+      target: { name: "churned", classes: [{ value: "0", count: 2214, share: 0.738 }, { value: "1", count: 786, share: 0.262 }] },
+      correlations: { columns: ["spend", "churned"], pearson: [[1, 0.25], [0.25, 1]], spearman: [[1, 0.2], [0.2, 1]] },
+      outliers: { method: "isolation_forest", rows_checked: 3000, flagged: 1068, flagged_share: 0.356 },
+      narrative: "Dataset has 3,000 rows.",
+      narrative_source: "local",
+    })!;
+    expect(backendEda.columns[0].outliers).toBe(131);
+    expect(backendEda.columns[0].outliers_z).toBe(50);
+    expect(backendEda.columns[0].histogram).toEqual([{ label: "100–500", count: 20 }, { label: "500–1,000", count: 80 }]);
+    expect(backendEda.target?.distribution).toEqual([{ label: "0", count: 2214 }, { label: "1", count: 786 }]);
+    expect(backendEda.correlation).toEqual({ method: "pearson", columns: ["spend", "churned"], matrix: [[1, 0.25], [0.25, 1]] });
+    expect(backendEda.outlier_summary?.flagged).toBe(1068);
+    expect(backendEda.narration).toEqual({ text: "Dataset has 3,000 rows.", source: "local" });
   });
 
   it("rejects non-square correlation matrices", () => {

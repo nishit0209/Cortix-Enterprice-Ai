@@ -31,7 +31,7 @@ export const ERROR_CATALOG: Record<string, ErrorCopy> = {
     description: "Text widgets don't run a query.",
   },
   network_error: {
-    title: "Can't reach NEXORA",
+    title: "Can't reach Cortix",
     description: "The API did not respond. The backend may be starting up or your connection dropped.",
     action: "Retry in a few seconds.",
   },
@@ -130,7 +130,7 @@ export const ERROR_CATALOG: Record<string, ErrorCopy> = {
   },
   connector_not_readonly: {
     title: "Database role is not read-only",
-    description: "NEXORA only connects with read-only roles.",
+    description: "Cortix only connects with read-only roles.",
   },
   connector_host_forbidden: {
     title: "Host not allowed",
